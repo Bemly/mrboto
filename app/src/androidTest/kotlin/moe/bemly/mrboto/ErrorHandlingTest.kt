@@ -35,8 +35,8 @@ class ErrorHandlingTest {
     }
 
     @Test
-    fun `nil constant eval returns ok`() {
-        assertEquals("ok", mruby.eval("nil"))
+    fun `nil constant eval returns nil string`() {
+        assertEquals("nil", mruby.eval("nil"))
     }
 
     @Test

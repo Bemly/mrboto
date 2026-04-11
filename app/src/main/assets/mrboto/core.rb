@@ -47,7 +47,7 @@ module Mrboto
     attr_reader :_registry_id
 
     def self.from_registry(id)
-      return nil if id.nil? || id == 0
+      return nil if id.nil? || id <= 0 || id > 4096
       obj = allocate
       obj.instance_variable_set(:@_registry_id, id)
       obj

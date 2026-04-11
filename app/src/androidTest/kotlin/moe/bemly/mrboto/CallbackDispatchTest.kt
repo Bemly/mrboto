@@ -28,7 +28,7 @@ class CallbackDispatchTest {
         mruby.eval("Mrboto.register_callback { 'a' }")
         mruby.eval("Mrboto.register_callback { 'b' }")
         val result = mruby.eval("ids = []; 2.times { ids << Mrboto.register_callback { 'c' } }; ids.uniq.size == 2")
-        assertEquals("ok", result)
+        assertEquals("true", result)
     }
 
     @Test
@@ -41,7 +41,7 @@ class CallbackDispatchTest {
     @Test
     fun `dispatch_callback with non existent ID is silent`() {
         val result = mruby.eval("Mrboto.dispatch_callback(99999)")
-        assertEquals("ok", result)
+        assertEquals("nil", result)
     }
 
     @Test
