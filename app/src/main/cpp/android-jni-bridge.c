@@ -719,13 +719,16 @@ static mrb_value mrb_mrboto_set_on_click(mrb_state *mrb, mrb_value self) {
 static mrb_value mrb_mrboto_run_on_ui_thread(mrb_state *mrb, mrb_value self) {
     mrb_int activity_id, callback_id;
     mrb_get_args(mrb, "ii", &activity_id, &callback_id);
-    /* Access the @@callbacks hash on the Mrboto module and call the proc
-     * directly, bypassing dispatch_callback (a singleton class method that
-     * mrb_funcall cannot safely invoke on a module in mruby 3.4). */
+    /* The @@callbacks hash is stored in the singleton class of Mrboto module
+     * (because it's defined inside class << self). Access it via singleton class
+     * + mrb_cv_get to avoid calling dispatch_callback singleton method (which
+     * mrb_funcall cannot safely resolve on a module). */
     mrb_value mrboto_mod = mrb_const_get(mrb, mrb_obj_value(mrb->object_class),
                                          mrb_intern_lit(mrb, "Mrboto"));
     if (!mrb_nil_p(mrboto_mod)) {
-        mrb_value callbacks = mrb_cv_get(mrb, mrboto_mod, mrb_intern_lit(mrb, "callbacks"));
+        mrb_value singleton = mrb_singleton_class(mrb, mrboto_mod);
+        mrb_value callbacks = mrb_cv_get(mrb, singleton, mrb_intern_lit(mrb, "@@callbacks"));
+        if (mrb->exc) { mrb->exc = NULL; }
         if (mrb_hash_p(callbacks)) {
             mrb_value key = mrb_fixnum_value((mrb_int)callback_id);
             mrb_value proc = mrb_hash_get(mrb, callbacks, key, mrb_nil_value());
