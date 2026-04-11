@@ -12,14 +12,14 @@ Architecture:
 
 ## Key Directories
 
-- `mrboto/src/main/cpp/` — C JNI bridge (`native-lib.c`, `android-jni-bridge.c`), CMake, vendored mruby headers/libs
-- `mrboto/src/main/kotlin/moe/bemly/mrboto/` — Kotlin API layer
+- `app/src/main/cpp/` — C JNI bridge (`native-lib.c`, `android-jni-bridge.c`), CMake, vendored mruby headers/libs
+- `app/src/main/kotlin/moe/bemly/mrboto/` — Kotlin API layer
   - `MRuby.kt` — core eval API + framework APIs (registerAndroidClasses, dispatchLifecycle, loadScript, registerJavaObject, lookupJavaObject)
   - `MrbotoApplication.kt` — bootstraps global MRuby, loads core Ruby scripts
   - `MrbotoActivityBase.kt` — Activity base class, lifecycle delegation, setViewClickListener
   - `ViewListeners.kt` — Click/Text/Check listeners delegating to mruby
   - `JavaObjectWrapper.kt` — registry reference docs
-- `mrboto/src/main/assets/mrboto/` — Ruby DSL core scripts
+- `app/src/main/assets/mrboto/` — Ruby DSL core scripts
   - `core.rb` — Mrboto module, JavaObject base, callback registry, native method stubs
   - `layout.rb` — MATCH_PARENT, WRAP_CONTENT, Gravity, Orientation, dp()
   - `activity.rb` — Mrboto::Activity with lifecycle hooks, set_content_view
@@ -27,6 +27,7 @@ Architecture:
   - `helpers.rb` — toast, start_activity, get_extra, shared_preferences, run_on_ui_thread
 - `demo/` — Demo app showing Ruby-driven Activities
 - `mruby/` — git submodule at tag 3.4.0
+- `app/src/androidTest/kotlin/moe/bemly/mrboto/` — instrumented test suite (95+ tests)
 
 ## Common Tasks
 
@@ -44,6 +45,11 @@ cd mruby && rake deep_clean && cd ..
 ### Publish to local Maven
 ```bash
 ./gradlew :mrboto:publishToMavenLocal
+```
+
+### Run tests
+```bash
+./gradlew :mrboto:connectedAndroidTest
 ```
 
 ## Technical Stack
@@ -69,7 +75,7 @@ cd mruby && rake deep_clean && cd ..
 - mruby uses rake, not CMake. Libraries are prebuilt and linked as `STATIC IMPORTED`.
 - `build-android.sh` sets `ANDROID_NDK_HOME` and runs `rake` with `MRUBY_CONFIG` pointing to `build_config.rb`.
 - `build_config.rb` is at the project root; `rake` must be run from `mruby/` directory with `MRUBY_CONFIG` env var.
-- The library module is named `mrboto/` (not `app/`). Use `:mrboto` for Gradle tasks.
+- The library module is `app/` (named `:mrboto` in Gradle). Use `:mrboto` for Gradle tasks.
 - `local.properties` only needs `sdk.dir` — AGP manages NDK via `ndkVersion` in `build.gradle.kts`.
 - AGP 9.1.0 has built-in Kotlin support, so `org.jetbrains.kotlin.android` plugin is not needed.
 - `compileSdk` is 36 (required by androidx.core 1.18.0+).
@@ -93,8 +99,23 @@ Ruby `linear_layout { }` → `Mrboto::Widgets.create_view(class_name, attrs)` �
 ## Publishing
 
 - Maven coordinates: `moe.bemly.mrboto:mrboto:26.4.11`
-- `maven-publish` plugin configured in `mrboto/build.gradle.kts`
+- `maven-publish` plugin configured in `app/build.gradle.kts`
 - AGP 9 auto-associates release variant (no explicit component needed)
+
+## Test Coverage
+
+| Test File | Tests | Covers |
+|---|---|---|
+| `MRubyTest.kt` | 14 | eval, version, gc, close, registerJavaObject, lookupJavaObject, loadScript |
+| `ErrorHandlingTest.kt` | 15 | syntax errors, runtime errors, invalid IDs, closed VM |
+| `BridgeMethodsTest.kt` | 17 | _toast, _start_activity, _get_extra, _sp_get/put_int, _app_context, _dp_to_px, _create_view, _set_on_click, _set_content_view, _run_on_ui_thread, stubs |
+| `RegistryStressTest.kt` | 6 | sequential IDs, 4096 capacity limit, overflow rejection |
+| `LayoutConstantsTest.kt` | 16 | MATCH_PARENT, WRAP_CONTENT, Gravity, Orientation, dp() |
+| `ActivityClassTest.kt` | 11 | Activity instantiation, content_view, title, lifecycle hooks |
+| `WidgetsTest.kt` | 22 | Widget creation, attributes, nesting, View.from_registry |
+| `CallbackDispatchTest.kt` | 8 | register_callback, dispatch_callback, dispatch_text_changed, dispatch_checked |
+| `HelpersTest.kt` | 10 | toast, SharedPreferences, package_name |
+| `LifecycleDispatchTest.kt` | 7 | dispatchLifecycle, accessors, hook ordering |
 
 ## Style Guidelines
 
