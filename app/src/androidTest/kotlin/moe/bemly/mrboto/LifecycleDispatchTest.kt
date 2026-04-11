@@ -73,7 +73,8 @@ class LifecycleDispatchTest {
         """.trimIndent())
         val result = mruby.dispatchLifecycle(actId, "on_create")
         assertEquals("ok", result)
-        assertEquals("true", mruby.eval("@created.to_s"))
+        // @created is set on the Activity instance, not top-level eval scope
+        assertEquals("true", mruby.eval("Mrboto.current_activity.instance_variable_get(:@created).to_s"))
     }
 
     @Test
@@ -97,6 +98,7 @@ class LifecycleDispatchTest {
             val result = mruby.dispatchLifecycle(actId, phase)
             assertEquals("ok on $phase", "ok", result)
         }
-        assertEquals("6", mruby.eval("@hooks.size.to_s"))
+        // @hooks is set on the Activity instance, not top-level eval scope
+        assertEquals("6", mruby.eval("Mrboto.current_activity.instance_variable_get(:@hooks).size.to_s"))
     }
 }
