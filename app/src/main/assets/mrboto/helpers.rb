@@ -40,18 +40,6 @@ module Mrboto
       SharedPreferences.new(name)
     end
 
-    # Get the application package name
-    def self.package_name
-      ctx = Mrboto._app_context
-      if ctx
-        ctx.call_java_method("getPackageName")
-      elsif Mrboto.current_activity
-        Mrboto.current_activity.call_java_method("getPackageName")
-      else
-        nil
-      end
-    end
-
     # Run a block on the UI thread
     def self.run_on_ui_thread(&block)
       activity = Mrboto.current_activity
@@ -112,14 +100,7 @@ module Mrboto
 
   # ── Package name ───────────────────────────────────────────────────
   def self.package_name
-    ctx = Mrboto._app_context
-    if ctx
-      ctx.call_java_method("getPackageName")
-    elsif Mrboto.current_activity
-      Mrboto.current_activity.call_java_method("getPackageName")
-    else
-      nil
-    end
+    Mrboto._package_name
   end
 end
 

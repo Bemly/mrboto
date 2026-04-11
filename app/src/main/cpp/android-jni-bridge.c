@@ -719,11 +719,18 @@ static mrb_value mrb_mrboto_set_on_click(mrb_state *mrb, mrb_value self) {
 static mrb_value mrb_mrboto_run_on_ui_thread(mrb_state *mrb, mrb_value self) {
     mrb_int activity_id, callback_id;
     mrb_get_args(mrb, "ii", &activity_id, &callback_id);
-    /* Simplified: just execute the callback immediately */
-    mrb_value cid = mrb_fixnum_value((mrb_int)callback_id);
-    mrb_funcall(mrb, mrb_const_get(mrb, mrb_obj_value(mrb->object_class),
-                                   mrb_intern_lit(mrb, "Mrboto")),
-                "dispatch_callback", 1, cid);
+    /* Execute the callback immediately via Ruby-side dispatch_callback.
+     * Using mrb_load_string instead of mrb_funcall because dispatch_callback
+     * is defined in class << self (singleton class) which mrb_funcall
+     * on the module object doesn't find correctly. */
+    char code[128];
+    snprintf(code, sizeof(code), "Mrboto.dispatch_callback(%ld)", (long)callback_id);
+    mrb_value result = mrb_load_string(mrb, code);
+    if (mrb->exc) {
+        mrb->exc = NULL;
+    }
+    (void)result;
+    (void)activity_id;
     return mrb_nil_value();
 }
 
@@ -813,6 +820,52 @@ static mrb_value mrb_mrboto_dp_to_px(mrb_state *mrb, mrb_value self) {
     mrb_gc_arena_restore(mrb, ai);
     return mrb_fixnum_value(px);
 }
+
+/* ── Helper: Package Name ─────────────────────────────────────────── */
+
+static mrb_value mrb_mrboto_package_name(mrb_state *mrb, mrb_value self) {
+    JNIEnv *env = mrboto_get_env();
+    if (env == NULL) return mrb_str_new_cstr(mrb, "unknown");
+
+    int ai = mrb_gc_arena_save(mrb);
+
+    jclass at_cls = (*env)->FindClass(env, "android/app/ActivityThread");
+    if (at_cls != NULL) {
+        jmethodID current_app = (*env)->GetStaticMethodID(env, at_cls, "currentApplication",
+                                                          "()Landroid/app/Application;");
+        if (current_app != NULL) {
+            jobject app = (*env)->CallStaticObjectMethod(env, at_cls, current_app);
+            if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); }
+            if (app != NULL) {
+                jclass app_cls = (*env)->GetObjectClass(env, app);
+                jmethodID get_pkg = (*env)->GetMethodID(env, app_cls, "getPackageName",
+                                                        "()Ljava/lang/String;");
+                if (get_pkg != NULL) {
+                    jstring pkg = (jstring)(*env)->CallObjectMethod(env, app, get_pkg);
+                    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); }
+                    if (pkg != NULL) {
+                        const char *s = (*env)->GetStringUTFChars(env, pkg, NULL);
+                        mrb_value result = mrb_str_new_cstr(mrb, s);
+                        (*env)->ReleaseStringUTFChars(env, pkg, s);
+                        (*env)->DeleteLocalRef(env, pkg);
+                        (*env)->DeleteLocalRef(env, app_cls);
+                        (*env)->DeleteLocalRef(env, at_cls);
+                        mrb_gc_arena_restore(mrb, ai);
+                        return result;
+                    }
+                }
+                (*env)->DeleteLocalRef(env, app_cls);
+            }
+        }
+        (*env)->DeleteLocalRef(env, at_cls);
+    } else {
+        (*env)->ExceptionClear(env);
+    }
+
+    mrb_gc_arena_restore(mrb, ai);
+    return mrb_str_new_cstr(mrb, "unknown");
+}
+
 static void mrb_mrboto_define_methods(mrb_state *mrb, struct RClass *mrboto) {
     mrb_define_module_function(mrb, mrboto, "_set_content_view", mrb_mrboto_set_content_view, MRB_ARGS_REQ(2));
     mrb_define_module_function(mrb, mrboto, "_toast", mrb_mrboto_toast, MRB_ARGS_REQ(3));
@@ -828,6 +881,7 @@ static void mrb_mrboto_define_methods(mrb_state *mrb, struct RClass *mrboto) {
     mrb_define_module_function(mrb, mrboto, "_set_on_click", mrb_mrboto_set_on_click, MRB_ARGS_REQ(2));
     mrb_define_module_function(mrb, mrboto, "_run_on_ui_thread", mrb_mrboto_run_on_ui_thread, MRB_ARGS_REQ(2));
     mrb_define_module_function(mrb, mrboto, "_dp_to_px", mrb_mrboto_dp_to_px, MRB_ARGS_REQ(1));
+    mrb_define_module_function(mrb, mrboto, "_package_name", mrb_mrboto_package_name, MRB_ARGS_NONE());
 }
 
 #ifdef __cplusplus
