@@ -137,7 +137,11 @@ int mrboto_create_view(mrb_state *mrb, int context_id, const char *class_name,
                        mrb_value attrs) {
     JNIEnv *env = mrboto_get_env();
     jobject context = mrboto_lookup_ref(env, context_id);
-    if (context == NULL) return 0;
+    LOGI("create_view: class=%s context=%p", class_name, context);
+    if (context == NULL) {
+        LOGE("create_view: context is NULL");
+        return 0;
+    }
 
     /* Convert class_name dots to slashes for JNI */
     char jni_class[256];
@@ -151,6 +155,7 @@ int mrboto_create_view(mrb_state *mrb, int context_id, const char *class_name,
     jclass cls = (*env)->FindClass(env, jni_class);
     if (cls == NULL) {
         LOGE("FindClass failed: %s", jni_class);
+        (*env)->ExceptionClear();
         return 0;
     }
 
@@ -159,22 +164,25 @@ int mrboto_create_view(mrb_state *mrb, int context_id, const char *class_name,
                                         "(Landroid/content/Context;)V");
     if (cid == NULL) {
         LOGE("Constructor not found for %s", jni_class);
+        (*env)->ExceptionClear();
         (*env)->DeleteLocalRef(env, cls);
         return 0;
     }
 
     jobject view = (*env)->NewObject(env, cls, cid, context);
+    if ((*env)->ExceptionCheck()) {
+        LOGE("NewObject failed for %s", jni_class);
+        (*env)->ExceptionClear();
+        (*env)->DeleteLocalRef(env, cls);
+        return 0;
+    }
+
     int view_id = 0;
     if (view != NULL) {
         view_id = mrboto_register_ref(env, view);
         (*env)->DeleteLocalRef(env, view);
     }
-
-    /* Apply attributes from hash if provided */
-    if (view_id > 0 && mrb_hash_p(attrs)) {
-        /* We'll apply attributes via separate JNI calls after wrapping */
-        /* For now, just register the view */
-    }
+    LOGI("create_view: class=%s view_id=%d", class_name, view_id);
 
     (*env)->DeleteLocalRef(env, cls);
     return view_id;
@@ -458,14 +466,17 @@ jobject mrboto_get_app_context(mrb_state *mrb) {
 static mrb_value mrb_mrboto_set_content_view(mrb_state *mrb, mrb_value self) {
     mrb_int activity_id, view_id;
     mrb_get_args(mrb, "ii", &activity_id, &view_id);
+    LOGI("set_content_view: activity_id=%d view_id=%d", (int)activity_id, (int)view_id);
 
     JNIEnv *env = mrboto_get_env();
     jobject activity = mrboto_lookup_ref(env, (int)activity_id);
     jobject view = mrboto_lookup_ref(env, (int)view_id);
+    LOGI("set_content_view: activity=%p view=%p", activity, view);
     if (activity && view) {
         jclass act_cls = (*env)->GetObjectClass(env, activity);
         jmethodID mid = (*env)->GetMethodID(env, act_cls, "setContentView",
                                             "(Landroid/view/View;)V");
+        LOGI("setContentView methodID=%p", mid);
         if (mid) (*env)->CallVoidMethod(env, activity, mid, view);
         (*env)->DeleteLocalRef(env, act_cls);
     }

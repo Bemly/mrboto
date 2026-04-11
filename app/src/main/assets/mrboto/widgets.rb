@@ -46,6 +46,9 @@ module Mrboto
       yield wrapper if block_given?
 
       wrapper
+    rescue => e
+      puts "Widget create_view error: #{class_name} - #{e.class}: #{e.message}"
+      nil
     end
 
     # Apply attributes to a View wrapper
