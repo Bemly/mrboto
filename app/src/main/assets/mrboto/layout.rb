@@ -30,10 +30,5 @@ end
 
 # ── DP to PX ────────────────────────────────────────────────────────
 def dp(value)
-  ctx = Mrboto._app_context
-  return (value * 1.5 + 0.5).to_i unless ctx
-  # Use real display metrics: density = getResources().getDisplayMetrics().density
-  display_metrics = ctx.call_java_method("getResources").call_java_method("getDisplayMetrics")
-  density = display_metrics.call_java_method("getDensity") rescue 1.5
-  (value * density + 0.5).to_i
+  Mrboto._dp_to_px(value)
 end

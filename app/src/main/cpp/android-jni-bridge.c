@@ -661,6 +661,56 @@ static mrb_value mrb_mrboto_run_on_ui_thread(mrb_state *mrb, mrb_value self) {
     return mrb_nil_value();
 }
 
+/* ── Helper: DP to PX conversion ──────────────────────────────────── */
+
+static mrb_value mrb_mrboto_dp_to_px(mrb_state *mrb, mrb_value self) {
+    mrb_float value;
+    mrb_get_args(mrb, "f", &value);
+
+    JNIEnv *env = mrboto_get_env();
+    if (env == NULL) return mrb_fixnum_value((mrb_int)(value * 1.5 + 0.5));
+
+    /* Try to get density from Resources.getSystem().getDisplayMetrics().density */
+    jclass res_cls = (*env)->FindClass(env, "android/content/res/Resources");
+    if (res_cls == NULL) {
+        (*env)->ExceptionClear(env);
+        return mrb_fixnum_value((mrb_int)(value * 1.5 + 0.5));
+    }
+
+    jmethodID get_system = (*env)->GetStaticMethodID(env, res_cls, "getSystem",
+                                                     "()Landroid/content/res/Resources;");
+    if (get_system == NULL) {
+        (*env)->DeleteLocalRef(env, res_cls);
+        return mrb_fixnum_value((mrb_int)(value * 1.5 + 0.5));
+    }
+
+    jobject resources = (*env)->CallStaticObjectMethod(env, res_cls, get_system);
+    if (resources == NULL) {
+        (*env)->DeleteLocalRef(env, res_cls);
+        return mrb_fixnum_value((mrb_int)(value * 1.5 + 0.5));
+    }
+
+    jmethodID get_metrics = (*env)->GetMethodID(env, res_cls, "getDisplayMetrics",
+                                                "()Landroid/util/DisplayMetrics;");
+    (*env)->DeleteLocalRef(env, res_cls);
+    if (get_metrics == NULL) return mrb_fixnum_value((mrb_int)(value * 1.5 + 0.5));
+
+    jobject metrics = (*env)->CallObjectMethod(env, resources, get_metrics);
+    (*env)->DeleteLocalRef(env, resources);
+    if (metrics == NULL) return mrb_fixnum_value((mrb_int)(value * 1.5 + 0.5));
+
+    jclass dm_cls = (*env)->GetObjectClass(env, metrics);
+    jfieldID fid = (*env)->GetFieldID(env, dm_cls, "density", "F");
+    (*env)->DeleteLocalRef(env, dm_cls);
+    (*env)->DeleteLocalRef(env, metrics);
+
+    if (fid == NULL) return mrb_fixnum_value((mrb_int)(value * 1.5 + 0.5));
+
+    jfloat density = (*env)->GetFloatField(env, metrics, fid);
+    mrb_int px = (mrb_int)(value * (double)density + 0.5);
+    return mrb_fixnum_value(px);
+}
+
 /* Bind all methods to the Mrboto module */
 static void mrb_mrboto_define_methods(mrb_state *mrb, struct RClass *mrboto) {
     mrb_define_method(mrb, mrboto, "_set_content_view", mrb_mrboto_set_content_view, MRB_ARGS_REQ(2));
@@ -676,6 +726,7 @@ static void mrb_mrboto_define_methods(mrb_state *mrb, struct RClass *mrboto) {
     mrb_define_method(mrb, mrboto, "_create_view", mrb_mrboto_create_view, MRB_ARGS_REQ(3));
     mrb_define_method(mrb, mrboto, "_set_on_click", mrb_mrboto_set_on_click, MRB_ARGS_REQ(2));
     mrb_define_method(mrb, mrboto, "_run_on_ui_thread", mrb_mrboto_run_on_ui_thread, MRB_ARGS_REQ(2));
+    mrb_define_method(mrb, mrboto, "_dp_to_px", mrb_mrboto_dp_to_px, MRB_ARGS_REQ(1));
 }
 
 /* ── Native Methods (called from Kotlin MRuby.kt) ─────────────────── */
