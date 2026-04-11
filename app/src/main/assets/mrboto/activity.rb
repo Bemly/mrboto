@@ -26,6 +26,7 @@ module Mrboto
     # ── Lifecycle Hooks (override in subclasses) ───────────────────
     def on_create(bundle = nil)
       @bundle = bundle
+      # Note: do NOT call super — JavaObject has no on_create method
     end
 
     def on_start; end
