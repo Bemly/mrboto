@@ -195,18 +195,17 @@ void mrboto_set_on_click(int view_id, int callback_id) {
     jobject view = mrboto_lookup_ref(env, view_id);
     if (view == NULL || env == NULL) return;
 
-    /*
-     * Set the callback ID as a tag on the View.
-     * The actual OnClickListener is set by the Kotlin side via ViewListeners.
-     * We store the callback ID for reference.
-     */
     jclass view_cls = (*env)->GetObjectClass(env, view);
+    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); return; }
     jmethodID setTag = (*env)->GetMethodID(env, view_cls, "setTag", "(Ljava/lang/Object;)V");
     if (setTag != NULL) {
         jclass integer_cls = (*env)->FindClass(env, "java/lang/Integer");
         jmethodID int_init = (*env)->GetMethodID(env, integer_cls, "<init>", "(I)V");
+        if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, view_cls); return; }
         jobject int_obj = (*env)->NewObject(env, integer_cls, int_init, (jint)callback_id);
+        if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, integer_cls); (*env)->DeleteLocalRef(env, view_cls); return; }
         (*env)->CallVoidMethod(env, view, setTag, int_obj);
+        if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); }
         (*env)->DeleteLocalRef(env, int_obj);
         (*env)->DeleteLocalRef(env, integer_cls);
     }
@@ -391,10 +390,14 @@ mrb_value mrboto_get_extra(mrb_state *mrb, int activity_id, const char *key) {
 
 static jobject get_shared_prefs(JNIEnv *env, jobject context, const char *name) {
     jclass ctx_cls = (*env)->GetObjectClass(env, context);
+    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); return NULL; }
     jmethodID get_sp = (*env)->GetMethodID(env, ctx_cls, "getSharedPreferences",
                                            "(Ljava/lang/String;I)Landroid/content/SharedPreferences;");
+    if (get_sp == NULL) { (*env)->DeleteLocalRef(env, ctx_cls); return NULL; }
     jstring jname = (*env)->NewStringUTF(env, name);
+    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, ctx_cls); return NULL; }
     jobject sp = (*env)->CallObjectMethod(env, context, get_sp, jname, (jint)0 /* MODE_PRIVATE */);
+    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); }
     (*env)->DeleteLocalRef(env, jname);
     (*env)->DeleteLocalRef(env, ctx_cls);
     return sp;
@@ -413,9 +416,12 @@ mrb_value mrboto_sp_get_string(mrb_state *mrb, int context_id,
         jclass sp_cls = (*env)->GetObjectClass(env, sp);
         jmethodID get = (*env)->GetMethodID(env, sp_cls, "getString",
                                             "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;");
+        if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, sp_cls); return mrb_nil_value(); }
         jstring jkey = (*env)->NewStringUTF(env, key);
         jstring jdef = default_val ? (*env)->NewStringUTF(env, default_val) : NULL;
+        if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, jkey); if (jdef) (*env)->DeleteLocalRef(env, jdef); (*env)->DeleteLocalRef(env, sp_cls); return mrb_nil_value(); }
         jstring jval = (jstring)(*env)->CallObjectMethod(env, sp, get, jkey, jdef);
+        if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); }
 
         if (jval != NULL) {
             const char *s = (*env)->GetStringUTFChars(env, jval, NULL);
@@ -443,17 +449,22 @@ void mrboto_sp_put_string(mrb_state *mrb, int context_id,
         jclass sp_cls = (*env)->GetObjectClass(env, sp);
         jmethodID edit = (*env)->GetMethodID(env, sp_cls, "edit",
                                              "()Landroid/content/SharedPreferences$Editor;");
+        if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, sp_cls); return; }
         jobject editor = (*env)->CallObjectMethod(env, sp, edit);
+        if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, sp_cls); return; }
 
         jclass ed_cls = (*env)->GetObjectClass(env, editor);
         jmethodID put = (*env)->GetMethodID(env, ed_cls, "putString",
                                             "(Ljava/lang/String;Ljava/lang/String;)Landroid/content/SharedPreferences$Editor;");
+        if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, sp_cls); (*env)->DeleteLocalRef(env, editor); return; }
         jstring jkey = (*env)->NewStringUTF(env, key);
         jstring jval = (*env)->NewStringUTF(env, value);
         (*env)->CallObjectMethod(env, editor, put, jkey, jval);
+        if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); }
 
         jmethodID apply = (*env)->GetMethodID(env, ed_cls, "apply", "()V");
         (*env)->CallVoidMethod(env, editor, apply);
+        if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); }
 
         (*env)->DeleteLocalRef(env, jkey);
         (*env)->DeleteLocalRef(env, jval);
@@ -529,6 +540,7 @@ static mrb_value mrb_mrboto_set_content_view(mrb_state *mrb, mrb_value self) {
         jmethodID mid = (*env)->GetMethodID(env, act_cls, "setContentView",
                                             "(Landroid/view/View;)V");
         LOGI("setContentView methodID=%p", mid);
+        if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
         if (mid) {
             (*env)->CallVoidMethod(env, activity, mid, view);
             if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
@@ -598,7 +610,7 @@ static mrb_value mrb_mrboto_app_context(mrb_state *mrb, mrb_value self) {
     if (env == NULL) return mrb_nil_value();
 
     jclass at_cls = (*env)->FindClass(env, "android/app/ActivityThread");
-    if (at_cls == NULL) return mrb_nil_value();
+    if (at_cls == NULL) { (*env)->ExceptionClear(env); return mrb_nil_value(); }
 
     jobject app = NULL;
 
@@ -607,6 +619,7 @@ static mrb_value mrb_mrboto_app_context(mrb_state *mrb, mrb_value self) {
                                                       "()Landroid/app/Application;");
     if (current_app != NULL) {
         app = (*env)->CallStaticObjectMethod(env, at_cls, current_app);
+        if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); }
     }
 
     /* Fallback: currentActivityThread().getApplication() */
@@ -615,11 +628,13 @@ static mrb_value mrb_mrboto_app_context(mrb_state *mrb, mrb_value self) {
                                                       "()Landroid/app/ActivityThread;");
         if (current != NULL) {
             jobject at = (*env)->CallStaticObjectMethod(env, at_cls, current);
+            if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); }
             if (at != NULL) {
                 jmethodID get_app = (*env)->GetMethodID(env, at_cls, "getApplication",
                                                         "()Landroid/app/Application;");
                 if (get_app != NULL) {
                     app = (*env)->CallObjectMethod(env, at, get_app);
+                    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); }
                 }
                 (*env)->DeleteLocalRef(env, at);
             }
@@ -644,15 +659,21 @@ static mrb_value mrb_mrboto_string_res(mrb_state *mrb, mrb_value self) {
     if (!activity) return mrb_nil_value();
 
     jclass act_cls = (*env)->GetObjectClass(env, activity);
+    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); return mrb_nil_value(); }
     jmethodID get_res = (*env)->GetMethodID(env, act_cls, "getResources",
                                             "()Landroid/content/res/Resources;");
+    if (get_res == NULL) { (*env)->DeleteLocalRef(env, act_cls); return mrb_nil_value(); }
     jobject resources = (*env)->CallObjectMethod(env, activity, get_res);
+    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); }
     if (!resources) { (*env)->DeleteLocalRef(env, act_cls); return mrb_nil_value(); }
 
     jclass res_cls = (*env)->GetObjectClass(env, resources);
+    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, resources); (*env)->DeleteLocalRef(env, act_cls); return mrb_nil_value(); }
     jmethodID get_str = (*env)->GetMethodID(env, res_cls, "getString",
                                             "(I)Ljava/lang/String;");
+    if (get_str == NULL) { (*env)->DeleteLocalRef(env, resources); (*env)->DeleteLocalRef(env, res_cls); (*env)->DeleteLocalRef(env, act_cls); return mrb_nil_value(); }
     jstring jstr = (jstring)(*env)->CallObjectMethod(env, resources, get_str, (jint)res_id);
+    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); }
 
     mrb_value result = mrb_nil_value();
     if (jstr) {
@@ -673,6 +694,11 @@ static mrb_value mrb_mrboto_create_view(mrb_state *mrb, mrb_value self) {
     mrb_value attrs;
     mrb_get_args(mrb, "izH", &context_id, &class_name, &attrs);
     int view_id = mrboto_create_view(mrb, (int)context_id, class_name, attrs);
+    if (mrb->exc) {
+        mrb_value msg = mrb_funcall(mrb, mrb_obj_value(mrb->exc), "message", 0);
+        mrb->exc = NULL;
+        (void)msg;
+    }
     return mrb_fixnum_value(view_id);
 }
 
