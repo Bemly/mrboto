@@ -18,7 +18,8 @@ class ActivityClassTest {
 
     @Test
     fun `Activity class is defined`() {
-        assertEquals("true", mruby.eval("defined?(Mrboto::Activity).to_s"))
+        // Use Mrboto.const_defined? instead of Object::const_defined? for mruby compatibility
+        assertEquals("true", mruby.eval("Mrboto.const_defined?(:Activity).to_s"))
     }
 
     @Test
@@ -67,29 +68,24 @@ class ActivityClassTest {
     @Test
     fun `Activity on_create can be called`() {
         val id = mruby.registerJavaObject(Any())
-        val result = mruby.eval("""
-            act = Mrboto::Activity.new($id)
-            act.on_create(nil)
-            'ok'
-        """.trimIndent())
+        val result = mruby.eval("act = Mrboto::Activity.new($id); act.on_create(nil); 'ok'")
         assertEquals("ok", result)
     }
 
     @Test
     fun `Activity subclass can override on_create`() {
         val id = mruby.registerJavaObject(Any())
-        val result = mruby.eval("""
-            class TestOverrideActivity < Mrboto::Activity
-              def on_create(bundle)
-                super
-                @custom_flag = true
-              end
-            end
-            act = TestOverrideActivity.new($id)
-            act.on_create(nil)
-            @custom_flag.to_s
-        """.trimIndent())
-        assertEquals("true", result)
+        mruby.loadScript(
+            "class TestOverrideActivity < Mrboto::Activity\n" +
+            "  def on_create(bundle)\n" +
+            "    super\n" +
+            "    @custom_flag = true\n" +
+            "  end\n" +
+            "end\n" +
+            "\$test_act = TestOverrideActivity.new($id)\n" +
+            "\$test_act.on_create(nil)"
+        )
+        assertEquals("true", mruby.eval("\$test_act.instance_variable_get(:@custom_flag).to_s"))
     }
 
     @Test

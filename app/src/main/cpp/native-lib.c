@@ -107,43 +107,43 @@ static jstring
 extract_error_message(JNIEnv *env, mrb_state *mrb)
 {
     if (mrb->exc) {
-        /* Get the backtrace for more detail */
+        /* Get message first — before mrb->exc gets cleared by funcall */
+        mrb_value msg = mrb_funcall(mrb, mrb_obj_value(mrb->exc), "message", 0);
+        const char *msg_str = NULL;
+        if (mrb_string_p(msg)) {
+            msg_str = mrb_string_value_cstr(mrb, &msg);
+        }
+
+        /* Get backtrace if available */
         mrb_value backtrace = mrb_funcall(mrb, mrb_obj_value(mrb->exc),
                                           "backtrace", 0);
-        mrb_value msg = mrb_funcall(mrb, mrb_obj_value(mrb->exc), "message", 0);
+        mrb->exc = NULL;
 
-        if (!mrb->exc && mrb_string_p(msg)) {
-            const char *msg_str = mrb_string_value_cstr(mrb, &msg);
+        if (msg_str != NULL && mrb_array_p(backtrace)) {
+            mrb_value len_val = mrb_funcall(mrb, backtrace, "length", 0);
+            if (!mrb->exc && mrb_integer_p(len_val) && mrb_integer(len_val) > 0) {
+                mrb_value full_msg = mrb_str_new_cstr(mrb, msg_str);
+                mrb_str_cat_cstr(mrb, full_msg, "\n");
 
-            /* If we also got a backtrace, append it */
-            if (!mrb->exc && mrb_array_p(backtrace)) {
-                /* Get array length via Ruby method */
-                mrb_value len_val = mrb_funcall(mrb, backtrace, "length", 0);
-                if (!mrb->exc && mrb_integer_p(len_val) && mrb_integer(len_val) > 0) {
-                    /* Build: "message\n  at location1\n  at location2\n..." */
-                    mrb_value full_msg = mrb_str_new_cstr(mrb, msg_str);
-                    mrb_str_cat_cstr(mrb, full_msg, "\n");
-
-                    mrb_int len = mrb_integer(len_val);
-                    for (mrb_int i = 0; i < len; i++) {
-                        mrb_value entry = mrb_ary_entry(backtrace, i);
-                        if (mrb_string_p(entry)) {
-                            mrb_str_cat_cstr(mrb, full_msg, "  at ");
-                            mrb_str_cat_str(mrb, full_msg, entry);
-                            mrb_str_cat_cstr(mrb, full_msg, "\n");
-                        }
+                mrb_int len = mrb_integer(len_val);
+                for (mrb_int i = 0; i < len; i++) {
+                    mrb_value entry = mrb_ary_entry(backtrace, i);
+                    if (mrb_string_p(entry)) {
+                        mrb_str_cat_cstr(mrb, full_msg, "  at ");
+                        mrb_str_cat_str(mrb, full_msg, entry);
+                        mrb_str_cat_cstr(mrb, full_msg, "\n");
                     }
-
-                    mrb->exc = NULL;
-                    const char *full_str = mrb_string_value_cstr(mrb, &full_msg);
-                    jstring result = (*env)->NewStringUTF(env, full_str);
-                    return result;
                 }
-            }
 
-            mrb->exc = NULL;
+                const char *full_str = mrb_string_value_cstr(mrb, &full_msg);
+                return (*env)->NewStringUTF(env, full_str);
+            }
+        }
+
+        if (msg_str != NULL) {
             return (*env)->NewStringUTF(env, msg_str);
         }
+        return (*env)->NewStringUTF(env, "Unknown Ruby error");
     }
     return (*env)->NewStringUTF(env, "Unknown Ruby error");
 }
