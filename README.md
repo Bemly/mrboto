@@ -181,6 +181,10 @@ Ruby: linear_layout { } → Widgets.create_view() → C mrboto_create_view() →
   JNI FindClass + NewObject(Context) → registry ID → View.from_registry(id)
 ```
 
+## Acknowledgments
+
+Inspired by [Ruboto/JRuby9K_POC](https://github.com/ruboto/JRuby9K_POC), which pioneered the idea of running Ruby on Android. mrboto takes a different approach — embedding mruby instead of the full JVM — but stands on the shoulders of that earlier work.
+
 ## License
 
 MIT

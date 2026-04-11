@@ -195,6 +195,10 @@ Ruby: linear_layout { } → Widgets.create_view() → C mrboto_create_view() →
   JNI FindClass + NewObject(Context) → 注册表 ID → View.from_registry(id)
 ```
 
+## 致谢
+
+受 [Ruboto/JRuby9K_POC](https://github.com/ruboto/JRuby9K_POC) 启发 —— 该项目开创了在 Android 上运行 Ruby 的先河。mrboto 选择了不同的路线（嵌入 mruby 而非完整 JVM），但建立在前人工作的基础之上。
+
 ## 许可
 
 MIT
