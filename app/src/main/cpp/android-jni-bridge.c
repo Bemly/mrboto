@@ -719,13 +719,14 @@ static mrb_value mrb_mrboto_set_on_click(mrb_state *mrb, mrb_value self) {
 static mrb_value mrb_mrboto_run_on_ui_thread(mrb_state *mrb, mrb_value self) {
     mrb_int activity_id, callback_id;
     mrb_get_args(mrb, "ii", &activity_id, &callback_id);
-    /* Execute the callback directly via mruby C API instead of
-     * mrb_load_string, to avoid dynamic code generation issues. */
-    mrb_value mrboto_mod = mrb_obj_value(mrb_module_get(mrb, "Mrboto"));
+    /* Execute the callback directly via mrb_funcall on Mrboto.dispatch_callback.
+     * Use mrb_const_get (proven path) instead of mrb_module_get to obtain
+     * the module, and mrb_funcall to call the singleton method. */
+    mrb_value mrboto_mod = mrb_const_get(mrb, mrb_obj_value(mrb->object_class),
+                                         mrb_intern_lit(mrb, "Mrboto"));
     if (!mrb_nil_p(mrboto_mod)) {
-        mrb_value args[1];
-        args[0] = mrb_fixnum_value((mrb_int)callback_id);
-        mrb_funcall(mrb, mrboto_mod, "dispatch_callback", 1, args);
+        mrb_value cb_id = mrb_fixnum_value((mrb_int)callback_id);
+        mrb_funcall(mrb, mrboto_mod, "dispatch_callback", 1, &cb_id);
         if (mrb->exc) { mrb->exc = NULL; }
     }
     (void)activity_id;
@@ -928,11 +929,10 @@ Java_moe_bemly_mrboto_MRuby_nativeDispatchLifecycle(JNIEnv *env, jobject thiz,
     /* Convert callbackName from jstring to C string */
     const char *cname = (*env)->GetStringUTFChars(env, callbackName, NULL);
 
-    /* Get Mrboto.current_activity. Use mrb_iv_get directly because
-     * attr_accessor in class << self may not be resolvable via mrb_funcall
-     * on the module object in mruby 3.4. The instance variable @current_activity
-     * is stored on the module itself. */
-    mrb_value mrboto_mod = mrb_obj_value(mrb_module_get(mrb, "Mrboto"));
+    /* Get Mrboto.current_activity via mrb_const_get (proven path to obtain
+     * the module) + mrb_iv_get (direct instance variable access). */
+    mrb_value mrboto_mod = mrb_const_get(mrb, mrb_obj_value(mrb->object_class),
+                                         mrb_intern_lit(mrb, "Mrboto"));
     mrb_value activity = mrb_nil_value();
     if (!mrb_nil_p(mrboto_mod)) {
         mrb_sym iv_name = mrb_intern_lit(mrb, "@current_activity");

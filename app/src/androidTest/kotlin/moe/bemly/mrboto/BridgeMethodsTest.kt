@@ -143,10 +143,11 @@ class BridgeMethodsTest {
         mruby.eval("Mrboto.current_activity_id = $actId")
         mruby.eval("class TestRUITActivity < Mrboto::JavaObject; end")
         mruby.eval("Mrboto.current_activity = TestRUITActivity.from_registry($actId)")
+        // Use global variables ($cid, $run_result) because mrb_load_string with NULL
+        // context does NOT preserve local variables between separate eval calls.
         mruby.eval("\$run_result = nil")
-        mruby.eval("cid = Mrboto.register_callback { \$run_result = 'executed' }")
-        val cid = mruby.eval("cid")
-        val result = mruby.eval("Mrboto._run_on_ui_thread($actId, $cid)")
+        mruby.eval("\$cid = Mrboto.register_callback { \$run_result = 'executed' }")
+        val result = mruby.eval("Mrboto._run_on_ui_thread($actId, \$cid)")
         assertEquals("nil", result)
         assertEquals("executed", mruby.eval("\$run_result"))
     }

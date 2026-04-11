@@ -27,8 +27,8 @@ class LifecycleDispatchTest {
         val actId = mruby.registerJavaObject(Any())
         mruby.eval("Mrboto.current_activity_id = $actId")
         mruby.eval("class TestActivity < Mrboto::JavaObject; end")
-        mruby.eval("act = TestActivity.from_registry($actId)")
-        mruby.eval("Mrboto.current_activity = act")
+        // Combine into single eval to avoid local variable loss across mrb_load_string calls
+        mruby.eval("Mrboto.current_activity = TestActivity.from_registry($actId)")
         val result = mruby.dispatchLifecycle(actId, "on_create")
         assertEquals("ok", result)
     }
@@ -43,8 +43,8 @@ class LifecycleDispatchTest {
     fun `current_activity accessor works`() {
         val actId = mruby.registerJavaObject(Any())
         mruby.eval("Mrboto.current_activity_id = $actId")
-        mruby.eval("act = Mrboto::JavaObject.from_registry($actId)")
-        mruby.eval("Mrboto.current_activity = act")
+        // Combine into single eval to avoid local variable loss across mrb_load_string calls
+        mruby.eval("Mrboto.current_activity = Mrboto::JavaObject.from_registry($actId)")
         val result = mruby.eval("Mrboto.current_activity._registry_id.to_s")
         assertEquals(actId.toString(), result)
     }
