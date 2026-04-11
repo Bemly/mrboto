@@ -132,7 +132,10 @@ module Mrboto
     def background_color=(val)
       color = case val
               when Integer then val
-              when String then val.to_i(16)
+              when String
+                v = val.to_i(16)
+                # 6-digit hex needs alpha channel prepended (FF)
+                v < 0x1000000 ? (0xFF000000 | v) : v
               else 0xFF000000
               end
       Mrboto._call_java_method(@_registry_id, 'setBackgroundColor', color)
@@ -188,7 +191,10 @@ module Mrboto
     def text_color=(val)
       color = case val
               when Integer then val
-              when String then val.to_i(16)
+              when String
+                v = val.to_i(16)
+                # 6-digit hex needs alpha channel prepended (FF)
+                v < 0x1000000 ? (0xFF000000 | v) : v
               else 0xFF000000
               end
       Mrboto._call_java_method(@_registry_id, 'setTextColor', color)
