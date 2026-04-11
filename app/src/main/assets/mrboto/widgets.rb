@@ -236,7 +236,7 @@ module Mrboto
   # These make widget creation natural: linear_layout { ... }
 
   module DSL
-    JAVA_CLASS_MAP.each do |dsl_name, java_class|
+    Widgets::JAVA_CLASS_MAP.each do |dsl_name, java_class|
       define_method(dsl_name) do |attrs = {}, &block|
         Mrboto::Widgets.create_view(java_class, attrs, &block)
       end

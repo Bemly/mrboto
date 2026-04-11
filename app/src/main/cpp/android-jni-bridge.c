@@ -689,35 +689,30 @@ Java_com_mrboto_MRuby_nativeSetOnClick(JNIEnv *env, jobject thiz,
     jobject view = mrboto_lookup_ref(env2, (int)viewId);
     if (view == NULL) return;
 
-    /*
-     * Set the callback ID as a tag on the View.
-     * The Kotlin MrbotoClickListener (set globally) will read this tag.
-     * We use the View's setTag(Object) method.
-     */
-    jmethodID setTag = (*env2)->GetMethodID(env2, (*env2)->GetObjectClass(env2, view),
-                                            "setTag", "(Ljava/lang/Object;)V");
-    /* Create an Integer object for the callback ID */
-    jclass integer_cls = (*env2)->FindClass(env2, "java/lang/Integer");
-    jmethodID int_init = (*env2)->GetMethodID(env2, integer_cls, "<init>", "(I)V");
-    jobject int_obj = (*env2)->NewObject(env2, integer_cls, int_init, (jint)callbackId);
-    (*env2)->CallVoidMethod(env2, view, setTag, int_obj);
+    jclass view_cls = (*env2)->GetObjectClass(env2, view);
+    jmethodID setTag = (*env2)->GetMethodID(env2, view_cls, "setTag", "(Ljava/lang/Object;)V");
+    if (setTag != NULL) {
+        jclass integer_cls = (*env2)->FindClass(env2, "java/lang/Integer");
+        jmethodID int_init = (*env2)->GetMethodID(env2, integer_cls, "<init>", "(I)V");
+        jobject int_obj = (*env2)->NewObject(env2, integer_cls, int_init, (jint)callbackId);
+        (*env2)->CallVoidMethod(env2, view, setTag, int_obj);
+        (*env2)->DeleteLocalRef(env2, int_obj);
+        (*env2)->DeleteLocalRef(env2, integer_cls);
+    }
+    (*env2)->DeleteLocalRef(env2, view_cls);
 
-    /*
-     * Now set the actual click listener. We need a Java OnClickListener.
-     * This is done by having the Kotlin MrbotoApplication register a global
-     * OnClickListener factory. For now, we eval back into mruby to set it up.
-     */
-    /* The actual listener setup is handled by Kotlin side via ViewListeners */
     LOGD("nativeSetOnClick: view=%d callback=%d", viewId, callbackId);
-
-    (*env2)->DeleteLocalRef(env2, int_obj);
-    (*env2)->DeleteLocalRef(env2, integer_cls);
 }
 
-/**
- * Look up a Java object by its registry ID.
- * Returns the Java object or null.
- */
+JNIEXPORT jint JNICALL
+Java_com_mrboto_MRuby_nativeRegisterObject(JNIEnv *env, jobject thiz,
+                                           jlong mrbPtr, jobject obj) {
+    (void)thiz;
+    (void)mrbPtr;
+    if (obj == NULL) return 0;
+    return mrboto_register_ref(env, obj);
+}
+
 JNIEXPORT jobject JNICALL
 Java_com_mrboto_MRuby_nativeLookupObject(JNIEnv *env, jobject thiz,
                                          jlong mrbPtr, jint registryId) {
