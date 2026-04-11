@@ -131,6 +131,14 @@ class MRuby : AutoCloseable {
         nativeSetOnClick(mrbPtr, viewId, callbackId)
     }
 
+    /**
+     * Call setContentView on the Activity.
+     */
+    fun setContentView(activityId: Int, viewId: Int) {
+        check(mrbPtr != 0L) { "mruby VM is not open" }
+        nativeSetContentView(mrbPtr, activityId, viewId)
+    }
+
     // ── Cleanup ──────────────────────────────────────────────────────
 
     override fun close() {
@@ -163,4 +171,5 @@ class MRuby : AutoCloseable {
     private external fun nativeRegisterObject(mrbPtr: Long, obj: Any): Int
     private external fun nativeLookupObject(mrbPtr: Long, registryId: Int): Any?
     private external fun nativeSetOnClick(mrbPtr: Long, viewId: Int, callbackId: Int)
+    private external fun nativeSetContentView(mrbPtr: Long, activityId: Int, viewId: Int)
 }

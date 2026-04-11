@@ -7,6 +7,13 @@ module Mrboto
   class Activity < JavaObject
     attr_accessor :bundle, :content_view
 
+    def initialize(java_activity_registry_id)
+      @_registry_id = java_activity_registry_id
+      @_java_activity_id = java_activity_registry_id
+      @bundle = nil
+      @content_view = nil
+    end
+
     # ── Lifecycle Hooks (override in subclasses) ───────────────────
     def on_create(bundle = nil)
       @bundle = bundle
@@ -26,13 +33,8 @@ module Mrboto
     # Accepts a View wrapper (e.g. from linear_layout { ... }).
     def set_content_view(view)
       @content_view = view
-      if view.respond_to?(:java_object) && view.java_object
-        # Call setContentView on the actual Activity
-        activity_obj = Mrboto.current_activity
-        if activity_obj && activity_obj.respond_to?(:call_java_method)
-          activity_obj.call_java_method("setContentView", view.java_object)
-        end
-      end
+      return unless view.is_a?(View) && view._registry_id
+      Mrboto._set_content_view(@_registry_id, view._registry_id)
     end
 
     # Find a view by its Android resource ID

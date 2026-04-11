@@ -78,6 +78,7 @@ module Mrboto
   def self._get_extra(activity_id, key); end
   def self._app_context; end
   def self._create_view(context_id, class_name, attrs); end
+  def self._set_content_view(activity_id, view_id); end
   def self._set_on_click(view_id, callback_id); end
   def self._set_text_watcher(view_id, callback_id); end
   def self._sp_get_string(context_id, name, key, default_val); end

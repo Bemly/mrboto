@@ -555,11 +555,196 @@ jobject mrboto_get_app_context(mrb_state *mrb) {
     return app;
 }
 
+/* ── mruby Method Bindings for Mrboto module ──────────────────────── */
+
+/* C functions that serve as Ruby method implementations */
+
+static mrb_value mrb_mrboto_set_content_view(mrb_state *mrb, mrb_value self) {
+    mrb_int activity_id, view_id;
+    mrb_get_args(mrb, "ii", &activity_id, &view_id);
+
+    JNIEnv *env = mrboto_get_env();
+    jobject activity = mrboto_lookup_ref(env, (int)activity_id);
+    jobject view = mrboto_lookup_ref(env, (int)view_id);
+    if (activity && view) {
+        jclass act_cls = (*env)->GetObjectClass(env, activity);
+        jmethodID mid = (*env)->GetMethodID(env, act_cls, "setContentView",
+                                            "(Landroid/view/View;)V");
+        if (mid) (*env)->CallVoidMethod(env, activity, mid, view);
+        (*env)->DeleteLocalRef(env, act_cls);
+    }
+    return mrb_nil_value();
+}
+
+static mrb_value mrb_mrboto_toast(mrb_state *mrb, mrb_value self) {
+    mrb_int context_id, duration;
+    const char *msg;
+    mrb_int msg_len;
+    mrb_get_args(mrb, "isi", &context_id, &msg, &msg_len, &duration);
+    mrboto_toast(mrb, (int)context_id, msg, (int)duration);
+    return mrb_nil_value();
+}
+
+static mrb_value mrb_mrboto_start_activity(mrb_state *mrb, mrb_value self) {
+    mrb_int context_id;
+    const char *cls_name;
+    mrb_int cls_len;
+    mrb_value extras;
+    mrb_get_args(mrb, "is|H", &context_id, &cls_name, &cls_len, &extras);
+    mrboto_start_activity(mrb, (int)context_id, cls_name, mrb_nil_p(extras) ? mrb_nil_value() : extras);
+    return mrb_nil_value();
+}
+
+static mrb_value mrb_mrboto_get_extra(mrb_state *mrb, mrb_value self) {
+    mrb_int activity_id;
+    const char *key;
+    mrb_int key_len;
+    mrb_get_args(mrb, "is", &activity_id, &key, &key_len);
+    return mrboto_get_extra(mrb, (int)activity_id, key);
+}
+
+static mrb_value mrb_mrboto_sp_get_string(mrb_state *mrb, mrb_value self) {
+    mrb_int context_id;
+    const char *name, *key, *default_val = NULL;
+    mrb_int name_len, key_len, default_len = 0;
+    mrb_get_args(mrb, "is|s", &context_id, &name, &name_len, &key, &key_len,
+                 &default_val, &default_len);
+    return mrboto_sp_get_string(mrb, (int)context_id, name, key, default_val);
+}
+
+static mrb_value mrb_mrboto_sp_put_string(mrb_state *mrb, mrb_value self) {
+    mrb_int context_id;
+    const char *name, *key, *value;
+    mrb_int name_len, key_len, value_len;
+    mrb_get_args(mrb, "iss", &context_id, &name, &name_len, &key, &key_len,
+                 &value, &value_len);
+    mrboto_sp_put_string(mrb, (int)context_id, name, key, value);
+    return mrb_nil_value();
+}
+
+static mrb_value mrb_mrboto_sp_get_int(mrb_state *mrb, mrb_value self) {
+    mrb_int context_id, default_val = 0;
+    const char *name, *key;
+    mrb_int name_len, key_len;
+    mrb_get_args(mrb, "iss|i", &context_id, &name, &name_len, &key, &key_len,
+                 &default_val);
+    (void)default_val; /* simplified: return nil for now */
+    return mrb_nil_value();
+}
+
+static mrb_value mrb_mrboto_sp_put_int(mrb_state *mrb, mrb_value self) {
+    mrb_int context_id, value;
+    const char *name, *key;
+    mrb_int name_len, key_len;
+    mrb_get_args(mrb, "issi", &context_id, &name, &name_len, &key, &key_len, &value);
+    /* Would need a separate C impl; simplified for now */
+    return mrb_nil_value();
+}
+
+static mrb_value mrb_mrboto_app_context(mrb_state *mrb, mrb_value self) {
+    jobject ctx = mrboto_get_app_context(mrb);
+    if (ctx) return mrboto_wrap_java_object(mrb, mrboto_get_env(), ctx);
+    return mrb_nil_value();
+}
+
+static mrb_value mrb_mrboto_string_res(mrb_state *mrb, mrb_value self) {
+    mrb_int activity_id, res_id;
+    mrb_get_args(mrb, "ii", &activity_id, &res_id);
+
+    JNIEnv *env = mrboto_get_env();
+    jobject activity = mrboto_lookup_ref(env, (int)activity_id);
+    if (!activity) return mrb_nil_value();
+
+    jclass act_cls = (*env)->GetObjectClass(env, activity);
+    jmethodID get_res = (*env)->GetMethodID(env, act_cls, "getResources",
+                                            "()Landroid/content/res/Resources;");
+    jobject resources = (*env)->CallObjectMethod(env, activity, get_res);
+    if (!resources) { (*env)->DeleteLocalRef(env, act_cls); return mrb_nil_value(); }
+
+    jclass res_cls = (*env)->GetObjectClass(env, resources);
+    jmethodID get_str = (*env)->GetMethodID(env, res_cls, "getString",
+                                            "(I)Ljava/lang/String;");
+    jstring jstr = (jstring)(*env)->CallObjectMethod(env, resources, get_str, (jint)res_id);
+
+    mrb_value result = mrb_nil_value();
+    if (jstr) {
+        const char *s = (*env)->GetStringUTFChars(env, jstr, NULL);
+        result = mrb_str_new_cstr(mrb, s);
+        (*env)->ReleaseStringUTFChars(env, jstr, s);
+        (*env)->DeleteLocalRef(env, jstr);
+    }
+    (*env)->DeleteLocalRef(env, resources);
+    (*env)->DeleteLocalRef(env, res_cls);
+    (*env)->DeleteLocalRef(env, act_cls);
+    return result;
+}
+
+static mrb_value mrb_mrboto_create_view(mrb_state *mrb, mrb_value self) {
+    mrb_int context_id;
+    const char *class_name;
+    mrb_int class_len;
+    mrb_value attrs;
+    mrb_get_args(mrb, "is&H", &context_id, &class_name, &class_len, &attrs);
+    int view_id = mrboto_create_view(mrb, (int)context_id, class_name, attrs);
+    return mrb_fixnum_value(view_id);
+}
+
+static mrb_value mrb_mrboto_set_on_click(mrb_state *mrb, mrb_value self) {
+    mrb_int view_id, callback_id;
+    mrb_get_args(mrb, "ii", &view_id, &callback_id);
+    mrboto_set_on_click((int)view_id, (int)callback_id);
+    return mrb_nil_value();
+}
+
+static mrb_value mrb_mrboto_run_on_ui_thread(mrb_state *mrb, mrb_value self) {
+    mrb_int activity_id, callback_id;
+    mrb_get_args(mrb, "ii", &activity_id, &callback_id);
+    /* Simplified: just execute the callback immediately */
+    mrb_value cid = mrb_fixnum_value((mrb_int)callback_id);
+    mrb_funcall(mrb, mrb_const_get(mrb, mrb_obj_value(mrb->object_class),
+                                   mrb_intern_lit(mrb, "Mrboto")),
+                "dispatch_callback", 1, cid);
+    return mrb_nil_value();
+}
+
+/* Bind all methods to the Mrboto module */
+static void mrb_mrboto_define_methods(mrb_state *mrb, struct RClass *mrboto) {
+    mrb_define_method(mrb, mrboto, "_set_content_view", mrb_mrboto_set_content_view, MRB_ARGS_REQ(2));
+    mrb_define_method(mrb, mrboto, "_toast", mrb_mrboto_toast, MRB_ARGS_REQ(3));
+    mrb_define_method(mrb, mrboto, "_start_activity", mrb_mrboto_start_activity, MRB_ARGS_ANY());
+    mrb_define_method(mrb, mrboto, "_get_extra", mrb_mrboto_get_extra, MRB_ARGS_REQ(2));
+    mrb_define_method(mrb, mrboto, "_sp_get_string", mrb_mrboto_sp_get_string, MRB_ARGS_REQ(3));
+    mrb_define_method(mrb, mrboto, "_sp_put_string", mrb_mrboto_sp_put_string, MRB_ARGS_REQ(4));
+    mrb_define_method(mrb, mrboto, "_sp_get_int", mrb_mrboto_sp_get_int, MRB_ARGS_ANY());
+    mrb_define_method(mrb, mrboto, "_sp_put_int", mrb_mrboto_sp_put_int, MRB_ARGS_REQ(4));
+    mrb_define_method(mrb, mrboto, "_app_context", mrb_mrboto_app_context, MRB_ARGS_NONE());
+    mrb_define_method(mrb, mrboto, "_string_res", mrb_mrboto_string_res, MRB_ARGS_REQ(2));
+    mrb_define_method(mrb, mrboto, "_create_view", mrb_mrboto_create_view, MRB_ARGS_REQ(3));
+    mrb_define_method(mrb, mrboto, "_set_on_click", mrb_mrboto_set_on_click, MRB_ARGS_REQ(2));
+    mrb_define_method(mrb, mrboto, "_run_on_ui_thread", mrb_mrboto_run_on_ui_thread, MRB_ARGS_REQ(2));
+}
+
 /* ── Native Methods (called from Kotlin MRuby.kt) ─────────────────── */
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/* Forward declarations for mruby method bindings */
+static mrb_value mrb_mrboto_set_content_view(mrb_state *mrb, mrb_value self);
+static mrb_value mrb_mrboto_toast(mrb_state *mrb, mrb_value self);
+static mrb_value mrb_mrboto_start_activity(mrb_state *mrb, mrb_value self);
+static mrb_value mrb_mrboto_get_extra(mrb_state *mrb, mrb_value self);
+static mrb_value mrb_mrboto_sp_get_string(mrb_state *mrb, mrb_value self);
+static mrb_value mrb_mrboto_sp_put_string(mrb_state *mrb, mrb_value self);
+static mrb_value mrb_mrboto_sp_get_int(mrb_state *mrb, mrb_value self);
+static mrb_value mrb_mrboto_sp_put_int(mrb_state *mrb, mrb_value self);
+static mrb_value mrb_mrboto_app_context(mrb_state *mrb, mrb_value self);
+static mrb_value mrb_mrboto_string_res(mrb_state *mrb, mrb_value self);
+static mrb_value mrb_mrboto_create_view(mrb_state *mrb, mrb_value self);
+static mrb_value mrb_mrboto_set_on_click(mrb_state *mrb, mrb_value self);
+static mrb_value mrb_mrboto_run_on_ui_thread(mrb_state *mrb, mrb_value self);
+static void mrb_mrboto_define_methods(mrb_state *mrb, struct RClass *mrboto);
 
 /**
  * Register Android classes in mruby (Mrboto module, JavaObject, etc.)
@@ -577,6 +762,9 @@ Java_com_mrboto_MRuby_nativeRegisterAndroidClasses(JNIEnv *env, jobject thiz, jl
     /* Define JavaObject class under Mrboto */
     struct RClass *java_obj = mrb_define_class_under(mrb, mrboto, "JavaObject", mrb->object_class);
     (void)java_obj; /* methods defined on Ruby side via core.rb */
+
+    /* Bind native methods to Mrboto module */
+    mrb_mrboto_define_methods(mrb, mrboto);
 
     LOGI("Android classes registered in mruby");
 }
@@ -599,10 +787,10 @@ Java_com_mrboto_MRuby_nativeDispatchLifecycle(JNIEnv *env, jobject thiz,
     /* Convert callbackName from jstring to C string */
     const char *cname = (*env)->GetStringUTFChars(env, callbackName, NULL);
 
-    /* Get Mrboto.current_activity */
+    /* Get Mrboto.current_activity via method call (attr_accessor on class << self) */
     mrb_value mrboto_mod = mrb_const_get(mrb, mrb_obj_value(mrb->object_class),
                                          mrb_intern_lit(mrb, "Mrboto"));
-    mrb_value activity = mrb_const_get(mrb, mrboto_mod, mrb_intern_lit(mrb, "current_activity"));
+    mrb_value activity = mrb_funcall(mrb, mrboto_mod, "current_activity", 0);
 
     jstring result = NULL;
     if (!mrb_nil_p(activity)) {
@@ -682,26 +870,29 @@ JNIEXPORT void JNICALL
 Java_com_mrboto_MRuby_nativeSetOnClick(JNIEnv *env, jobject thiz,
                                        jlong mrbPtr, jint viewId, jint callbackId) {
     (void)thiz;
-    mrb_state *mrb = (mrb_state *)(intptr_t)mrbPtr;
-    (void)mrb;
-
-    JNIEnv *env2 = mrboto_get_env();
-    jobject view = mrboto_lookup_ref(env2, (int)viewId);
-    if (view == NULL) return;
-
-    jclass view_cls = (*env2)->GetObjectClass(env2, view);
-    jmethodID setTag = (*env2)->GetMethodID(env2, view_cls, "setTag", "(Ljava/lang/Object;)V");
-    if (setTag != NULL) {
-        jclass integer_cls = (*env2)->FindClass(env2, "java/lang/Integer");
-        jmethodID int_init = (*env2)->GetMethodID(env2, integer_cls, "<init>", "(I)V");
-        jobject int_obj = (*env2)->NewObject(env2, integer_cls, int_init, (jint)callbackId);
-        (*env2)->CallVoidMethod(env2, view, setTag, int_obj);
-        (*env2)->DeleteLocalRef(env2, int_obj);
-        (*env2)->DeleteLocalRef(env2, integer_cls);
-    }
-    (*env2)->DeleteLocalRef(env2, view_cls);
-
+    (void)mrbPtr;
+    (void)viewId;
+    (void)callbackId;
     LOGD("nativeSetOnClick: view=%d callback=%d", viewId, callbackId);
+}
+
+JNIEXPORT void JNICALL
+Java_com_mrboto_MRuby_nativeSetContentView(JNIEnv *env, jobject thiz,
+                                           jlong mrbPtr, jint activityId, jint viewId) {
+    (void)thiz;
+    (void)mrbPtr;
+
+    jobject activity = mrboto_lookup_ref(env, (int)activityId);
+    jobject view = mrboto_lookup_ref(env, (int)viewId);
+    if (activity == NULL || view == NULL) return;
+
+    jclass act_cls = (*env)->GetObjectClass(env, activity);
+    jmethodID setContentView = (*env)->GetMethodID(env, act_cls, "setContentView",
+                                                   "(Landroid/view/View;)V");
+    if (setContentView != NULL) {
+        (*env)->CallVoidMethod(env, activity, setContentView, view);
+    }
+    (*env)->DeleteLocalRef(env, act_cls);
 }
 
 JNIEXPORT jint JNICALL

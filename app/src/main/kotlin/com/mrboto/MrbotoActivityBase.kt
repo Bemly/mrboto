@@ -46,7 +46,7 @@ abstract class MrbotoActivityBase : Activity() {
         // Wrap 'this' Activity as a JavaObject in mruby
         val activityRefId = mruby.registerJavaObject(this)
 
-        // Load the Ruby script
+        // Load the Ruby script (defines the Activity class, e.g. MainActivity < Mrboto::Activity)
         try {
             val script = assets.open(getScriptPath()).bufferedReader().use { it.readText() }
             mruby.loadScript(script)
@@ -54,9 +54,23 @@ abstract class MrbotoActivityBase : Activity() {
             Log.e(TAG, "Failed to load script ${getScriptPath()}: ${e.message}")
         }
 
-        // Set the current activity instance in mruby
-        mruby.eval("Mrboto.current_activity_id = $activityRefId")
-        mruby.eval("Mrboto.current_activity = Mrboto::JavaObject.from_registry($activityRefId)")
+        // Instantiate the Ruby Activity class, passing the Java Activity registry ID
+        val rubyActivityEval = """
+            activity_class = Object.constants.find { |c|
+              obj = const_get(c)
+              obj.is_a?(Class) && obj.ancestors.include?(Mrboto::Activity) rescue false
+            }
+            if activity_class
+              inst = const_get(activity_class).new($activityRefId)
+              Mrboto.current_activity_id = $activityRefId
+              Mrboto.current_activity = inst
+              "ok"
+            else
+              "Error: no class inheriting from Mrboto::Activity found"
+            end
+        """.trimIndent()
+        val setResult = mruby.eval(rubyActivityEval)
+        Log.i(TAG, "Activity instantiation: $setResult")
 
         // Dispatch on_create
         val bundleId = if (savedInstanceState != null) {
