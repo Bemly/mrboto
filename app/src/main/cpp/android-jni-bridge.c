@@ -610,10 +610,6 @@ static void mrb_mrboto_define_methods(mrb_state *mrb, struct RClass *mrboto) {
 
 /* ── Native Methods (called from Kotlin MRuby.kt) ─────────────────── */
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /* Forward declarations for mruby method bindings */
 static mrb_value mrb_mrboto_set_content_view(mrb_state *mrb, mrb_value self);
 static mrb_value mrb_mrboto_toast(mrb_state *mrb, mrb_value self);
@@ -629,6 +625,10 @@ static mrb_value mrb_mrboto_create_view(mrb_state *mrb, mrb_value self);
 static mrb_value mrb_mrboto_set_on_click(mrb_state *mrb, mrb_value self);
 static mrb_value mrb_mrboto_run_on_ui_thread(mrb_state *mrb, mrb_value self);
 static void mrb_mrboto_define_methods(mrb_state *mrb, struct RClass *mrboto);
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * Register Android classes in mruby (Mrboto module, JavaObject, etc.)
