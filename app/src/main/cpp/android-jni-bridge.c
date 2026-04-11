@@ -731,7 +731,7 @@ static mrb_value mrb_mrboto_run_on_ui_thread(mrb_state *mrb, mrb_value self) {
         if (mrb->exc) { mrb->exc = NULL; }
         if (mrb_hash_p(callbacks)) {
             mrb_value key = mrb_fixnum_value((mrb_int)callback_id);
-            mrb_value proc = mrb_hash_get(mrb, callbacks, key, mrb_nil_value());
+            mrb_value proc = mrb_hash_fetch(mrb, callbacks, key, mrb_nil_value());
             if (!mrb_nil_p(proc)) {
                 mrb_funcall(mrb, proc, "call", 0);
                 if (mrb->exc) { mrb->exc = NULL; }
