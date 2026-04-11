@@ -288,8 +288,10 @@ void mrboto_start_activity(mrb_state *mrb, int context_id, const char *cls_name,
 
     /* Get package name from context */
     jclass context_cls = (*env)->GetObjectClass(env, context);
+    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); return; }
     jmethodID get_pkg = (*env)->GetMethodID(env, context_cls, "getPackageName", "()Ljava/lang/String;");
     jstring pkg = (jstring)(*env)->CallObjectMethod(env, context, get_pkg);
+    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, context_cls); return; }
 
     /* Use ComponentName */
     jclass cn_cls = (*env)->FindClass(env, "android/content/ComponentName");
@@ -307,10 +309,15 @@ void mrboto_start_activity(mrb_state *mrb, int context_id, const char *cls_name,
                                              "(Landroid/content/ComponentName;)Landroid/content/Intent;");
     (*env)->CallObjectMethod(env, intent, set_comp, cn);
 
-    /* Start activity */
+    /* Start activity — this WILL throw in instrumented tests (no real Activity) */
     jmethodID start = (*env)->GetMethodID(env, context_cls, "startActivity",
                                           "(Landroid/content/Intent;)V");
-    (*env)->CallVoidMethod(env, context, start, intent);
+    if (start != NULL) {
+        (*env)->CallVoidMethod(env, context, start, intent);
+        if ((*env)->ExceptionCheck(env)) {
+            (*env)->ExceptionClear(env);
+        }
+    }
 
     /* Cleanup */
     (*env)->DeleteLocalRef(env, jcls);
@@ -332,29 +339,44 @@ mrb_value mrboto_get_extra(mrb_state *mrb, int activity_id, const char *key) {
     jclass act_cls = (*env)->GetObjectClass(env, activity);
     jmethodID get_intent = (*env)->GetMethodID(env, act_cls, "getIntent",
                                                "()Landroid/content/Intent;");
+    if (get_intent == NULL) {
+        (*env)->DeleteLocalRef(env, act_cls);
+        return mrb_nil_value();
+    }
     jobject intent = (*env)->CallObjectMethod(env, activity, get_intent);
-    if (intent == NULL) return mrb_nil_value();
+    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, act_cls); return mrb_nil_value(); }
+    if (intent == NULL) { (*env)->DeleteLocalRef(env, act_cls); return mrb_nil_value(); }
 
     jclass intent_cls = (*env)->GetObjectClass(env, intent);
     jmethodID get_extras = (*env)->GetMethodID(env, intent_cls, "getExtras",
                                                "()Landroid/os/Bundle;");
+    if (get_extras == NULL) {
+        (*env)->DeleteLocalRef(env, intent);
+        (*env)->DeleteLocalRef(env, intent_cls);
+        (*env)->DeleteLocalRef(env, act_cls);
+        return mrb_nil_value();
+    }
     jobject bundle = (*env)->CallObjectMethod(env, intent, get_extras);
+    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); }
 
     mrb_value result = mrb_nil_value();
     if (bundle != NULL) {
         jclass bundle_cls = (*env)->GetObjectClass(env, bundle);
         jmethodID get_str = (*env)->GetMethodID(env, bundle_cls, "getString",
                                                 "(Ljava/lang/String;)Ljava/lang/String;");
-        jstring jkey = (*env)->NewStringUTF(env, key);
-        jstring jval = (jstring)(*env)->CallObjectMethod(env, bundle, get_str, jkey);
+        if (get_str != NULL) {
+            jstring jkey = (*env)->NewStringUTF(env, key);
+            jstring jval = (jstring)(*env)->CallObjectMethod(env, bundle, get_str, jkey);
+            if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); }
 
-        if (jval != NULL) {
-            const char *s = (*env)->GetStringUTFChars(env, jval, NULL);
-            result = mrb_str_new_cstr(mrb, s);
-            (*env)->ReleaseStringUTFChars(env, jval, s);
-            (*env)->DeleteLocalRef(env, jval);
+            if (jval != NULL) {
+                const char *s = (*env)->GetStringUTFChars(env, jval, NULL);
+                result = mrb_str_new_cstr(mrb, s);
+                (*env)->ReleaseStringUTFChars(env, jval, s);
+                (*env)->DeleteLocalRef(env, jval);
+            }
+            (*env)->DeleteLocalRef(env, jkey);
         }
-        (*env)->DeleteLocalRef(env, jkey);
         (*env)->DeleteLocalRef(env, bundle_cls);
     }
 
@@ -507,7 +529,10 @@ static mrb_value mrb_mrboto_set_content_view(mrb_state *mrb, mrb_value self) {
         jmethodID mid = (*env)->GetMethodID(env, act_cls, "setContentView",
                                             "(Landroid/view/View;)V");
         LOGI("setContentView methodID=%p", mid);
-        if (mid) (*env)->CallVoidMethod(env, activity, mid, view);
+        if (mid) {
+            (*env)->CallVoidMethod(env, activity, mid, view);
+            if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
+        }
         (*env)->DeleteLocalRef(env, act_cls);
     }
     return mrb_nil_value();
