@@ -10,6 +10,7 @@ android {
 
     defaultConfig {
         minSdk = 33
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {
             abiFilters += listOf("arm64-v8a", "x86_64")
@@ -48,6 +49,12 @@ android {
             path = file("src/main/cpp/CMakeLists.txt")
             version = "4.1.2"
         }
+    }
+    dependencies {
+        androidTestImplementation("androidx.test.ext:junit:1.2.1")
+        androidTestImplementation("androidx.test:runner:1.6.2")
+        androidTestImplementation("androidx.test:rules:1.6.1")
+        androidTestImplementation("org.jetbrains.kotlin:kotlin-test-junit:2.1.0")
     }
 }
 
