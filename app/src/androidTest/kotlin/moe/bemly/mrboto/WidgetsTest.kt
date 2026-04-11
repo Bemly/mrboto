@@ -194,7 +194,7 @@ class WidgetsTest {
     }
 
     @Test
-    fun `LinearLayout responds to orientation=`() {
+    fun `LinearLayout responds to orientation`() {
         assertEquals("true", mruby.eval("Mrboto::LinearLayout.instance_methods.include?(:orientation).to_s"))
     }
 

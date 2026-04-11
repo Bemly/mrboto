@@ -39,7 +39,7 @@ class CallbackDispatchTest {
     }
 
     @Test
-    fun `dispatch_callback with non-existent ID is silent`() {
+    fun `dispatch_callback with non existent ID is silent`() {
         val result = mruby.eval("Mrboto.dispatch_callback(99999)")
         assertEquals("ok", result)
     }

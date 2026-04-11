@@ -16,27 +16,27 @@ class LayoutConstantsTest {
         get() = mrbotoRule.mruby
 
     @Test
-    fun `MATCH_PARENT is -1`() {
+    fun `MATCH_PARENT is negative one`() {
         assertEquals("-1", mruby.eval("Mrboto::LayoutParams::MATCH_PARENT.to_s"))
     }
 
     @Test
-    fun `FILL_PARENT is -1`() {
+    fun `FILL_PARENT is negative one`() {
         assertEquals("-1", mruby.eval("Mrboto::LayoutParams::FILL_PARENT.to_s"))
     }
 
     @Test
-    fun `WRAP_CONTENT is -2`() {
+    fun `WRAP_CONTENT is negative two`() {
         assertEquals("-2", mruby.eval("Mrboto::LayoutParams::WRAP_CONTENT.to_s"))
     }
 
     @Test
-    fun `top-level MATCH_PARENT matches LayoutParams`() {
+    fun `top level MATCH_PARENT matches LayoutParams`() {
         assertEquals("ok", mruby.eval("Mrboto::MATCH_PARENT == Mrboto::LayoutParams::MATCH_PARENT ? 'ok' : 'fail'"))
     }
 
     @Test
-    fun `top-level WRAP_CONTENT matches LayoutParams`() {
+    fun `top level WRAP_CONTENT matches LayoutParams`() {
         assertEquals("ok", mruby.eval("Mrboto::WRAP_CONTENT == Mrboto::LayoutParams::WRAP_CONTENT ? 'ok' : 'fail'"))
     }
 

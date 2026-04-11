@@ -42,7 +42,7 @@ class HelpersTest {
     }
 
     @Test
-    fun `top-level toast method exists`() {
+    fun `top level toast method exists`() {
         assertEquals("true", mruby.eval("method(:toast).nil? rescue false; true.to_s"))
     }
 
@@ -93,7 +93,7 @@ class HelpersTest {
     }
 
     @Test
-    fun `package_name is non-nil`() {
+    fun `package_name is not nil`() {
         setupActivity()
         assertNotEquals("nil", mruby.eval("Mrboto.package_name.nil?.to_s"))
     }
