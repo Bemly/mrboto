@@ -258,10 +258,17 @@ void mrboto_toast(mrb_state *mrb, int context_id, const char *msg, int duration)
     jstring jmsg = (*env)->NewStringUTF(env, msg);
     jobject toast = (*env)->CallStaticObjectMethod(env, toast_cls, make_text,
                                                    context, jmsg, (jint)duration);
+    if ((*env)->ExceptionCheck(env)) {
+        (*env)->ExceptionClear(env);
+        (*env)->DeleteLocalRef(env, jmsg);
+        (*env)->DeleteLocalRef(env, toast_cls);
+        return;
+    }
 
     if (toast != NULL) {
         jmethodID show = (*env)->GetMethodID(env, toast_cls, "show", "()V");
         if (show) (*env)->CallVoidMethod(env, toast, show);
+        if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
         (*env)->DeleteLocalRef(env, toast);
     }
 
@@ -545,9 +552,10 @@ static mrb_value mrb_mrboto_sp_put_string(mrb_state *mrb, mrb_value self) {
 }
 
 static mrb_value mrb_mrboto_sp_get_int(mrb_state *mrb, mrb_value self) {
-    mrb_int context_id, default_val = 0;
+    mrb_int context_id;
     const char *name, *key;
-    mrb_get_args(mrb, "izz", &context_id, &name, &key);
+    mrb_int default_val = 0;
+    mrb_get_args(mrb, "izz|i", &context_id, &name, &key, &default_val);
     (void)default_val;
     return mrb_nil_value();
 }
@@ -555,8 +563,8 @@ static mrb_value mrb_mrboto_sp_get_int(mrb_state *mrb, mrb_value self) {
 static mrb_value mrb_mrboto_sp_put_int(mrb_state *mrb, mrb_value self) {
     mrb_int context_id, value;
     const char *name, *key;
-    mrb_get_args(mrb, "izz", &context_id, &name, &key);
-    (void)value; /* placeholder */
+    mrb_get_args(mrb, "izzi", &context_id, &name, &key, &value);
+    (void)value; /* stub — not yet implemented */
     return mrb_nil_value();
 }
 
@@ -752,7 +760,7 @@ static void mrb_mrboto_define_methods(mrb_state *mrb, struct RClass *mrboto) {
     mrb_define_module_function(mrb, mrboto, "_toast", mrb_mrboto_toast, MRB_ARGS_REQ(3));
     mrb_define_module_function(mrb, mrboto, "_start_activity", mrb_mrboto_start_activity, MRB_ARGS_ANY());
     mrb_define_module_function(mrb, mrboto, "_get_extra", mrb_mrboto_get_extra, MRB_ARGS_REQ(2));
-    mrb_define_module_function(mrb, mrboto, "_sp_get_string", mrb_mrboto_sp_get_string, MRB_ARGS_REQ(3));
+    mrb_define_module_function(mrb, mrboto, "_sp_get_string", mrb_mrboto_sp_get_string, MRB_ARGS_ANY());
     mrb_define_module_function(mrb, mrboto, "_sp_put_string", mrb_mrboto_sp_put_string, MRB_ARGS_REQ(4));
     mrb_define_module_function(mrb, mrboto, "_sp_get_int", mrb_mrboto_sp_get_int, MRB_ARGS_ANY());
     mrb_define_module_function(mrb, mrboto, "_sp_put_int", mrb_mrboto_sp_put_int, MRB_ARGS_REQ(4));
