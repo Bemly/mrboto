@@ -721,7 +721,7 @@ static mrb_value mrb_mrboto_run_on_ui_thread(mrb_state *mrb, mrb_value self) {
     mrb_get_args(mrb, "ii", &activity_id, &callback_id);
     /* Execute the callback directly via mruby C API instead of
      * mrb_load_string, to avoid dynamic code generation issues. */
-    mrb_value mrboto_mod = mrb_module_get(mrb, "Mrboto");
+    mrb_value mrboto_mod = mrb_obj_value(mrb_module_get(mrb, "Mrboto"));
     if (!mrb_nil_p(mrboto_mod)) {
         mrb_value args[1];
         args[0] = mrb_fixnum_value((mrb_int)callback_id);
@@ -932,7 +932,7 @@ Java_moe_bemly_mrboto_MRuby_nativeDispatchLifecycle(JNIEnv *env, jobject thiz,
      * attr_accessor in class << self may not be resolvable via mrb_funcall
      * on the module object in mruby 3.4. The instance variable @current_activity
      * is stored on the module itself. */
-    mrb_value mrboto_mod = mrb_module_get(mrb, "Mrboto");
+    mrb_value mrboto_mod = mrb_obj_value(mrb_module_get(mrb, "Mrboto"));
     mrb_value activity = mrb_nil_value();
     if (!mrb_nil_p(mrboto_mod)) {
         mrb_sym iv_name = mrb_intern_lit(mrb, "@current_activity");
