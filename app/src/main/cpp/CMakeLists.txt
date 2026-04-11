@@ -15,7 +15,10 @@ set_target_properties(mruby PROPERTIES
 # ──────────────────────────────────────────────────────────────
 # JNI native library
 # ──────────────────────────────────────────────────────────────
-add_library(mrboto-native SHARED native-lib.c)
+add_library(mrboto-native SHARED
+    native-lib.c
+    android-jni-bridge.c
+)
 
 target_include_directories(mrboto-native PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/mruby/include
