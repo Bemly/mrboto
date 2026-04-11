@@ -645,7 +645,7 @@ extern "C" {
  * Register Android classes in mruby (Mrboto module, JavaObject, etc.)
  */
 JNIEXPORT void JNICALL
-Java_com_mrboto_MRuby_nativeRegisterAndroidClasses(JNIEnv *env, jobject thiz, jlong mrbPtr) {
+Java_moe_bemly_mrboto_MRuby_nativeRegisterAndroidClasses(JNIEnv *env, jobject thiz, jlong mrbPtr) {
     (void)thiz;
     (void)env;
 
@@ -669,7 +669,7 @@ Java_com_mrboto_MRuby_nativeRegisterAndroidClasses(JNIEnv *env, jobject thiz, jl
  * Evaluates: Mrboto.current_activity.on_xxx(bundle)
  */
 JNIEXPORT jstring JNICALL
-Java_com_mrboto_MRuby_nativeDispatchLifecycle(JNIEnv *env, jobject thiz,
+Java_moe_bemly_mrboto_MRuby_nativeDispatchLifecycle(JNIEnv *env, jobject thiz,
                                               jlong mrbPtr, jint activityId,
                                               jstring callbackName, jint argsId) {
     (void)thiz;
@@ -727,7 +727,7 @@ Java_com_mrboto_MRuby_nativeDispatchLifecycle(JNIEnv *env, jobject thiz,
  * Load and execute a Ruby source script.
  */
 JNIEXPORT jstring JNICALL
-Java_com_mrboto_MRuby_nativeLoadScript(JNIEnv *env, jobject thiz,
+Java_moe_bemly_mrboto_MRuby_nativeLoadScript(JNIEnv *env, jobject thiz,
                                        jlong mrbPtr, jstring script) {
     (void)thiz;
 
@@ -763,7 +763,7 @@ Java_com_mrboto_MRuby_nativeLoadScript(JNIEnv *env, jobject thiz,
  * Implemented by evaluating Ruby code that uses the Kotlin ViewListener.
  */
 JNIEXPORT void JNICALL
-Java_com_mrboto_MRuby_nativeSetOnClick(JNIEnv *env, jobject thiz,
+Java_moe_bemly_mrboto_MRuby_nativeSetOnClick(JNIEnv *env, jobject thiz,
                                        jlong mrbPtr, jint viewId, jint callbackId) {
     (void)thiz;
     (void)mrbPtr;
@@ -773,7 +773,7 @@ Java_com_mrboto_MRuby_nativeSetOnClick(JNIEnv *env, jobject thiz,
 }
 
 JNIEXPORT void JNICALL
-Java_com_mrboto_MRuby_nativeSetContentView(JNIEnv *env, jobject thiz,
+Java_moe_bemly_mrboto_MRuby_nativeSetContentView(JNIEnv *env, jobject thiz,
                                            jlong mrbPtr, jint activityId, jint viewId) {
     (void)thiz;
     (void)mrbPtr;
@@ -792,7 +792,7 @@ Java_com_mrboto_MRuby_nativeSetContentView(JNIEnv *env, jobject thiz,
 }
 
 JNIEXPORT jint JNICALL
-Java_com_mrboto_MRuby_nativeRegisterObject(JNIEnv *env, jobject thiz,
+Java_moe_bemly_mrboto_MRuby_nativeRegisterObject(JNIEnv *env, jobject thiz,
                                            jlong mrbPtr, jobject obj) {
     (void)thiz;
     (void)mrbPtr;
@@ -801,7 +801,7 @@ Java_com_mrboto_MRuby_nativeRegisterObject(JNIEnv *env, jobject thiz,
 }
 
 JNIEXPORT jobject JNICALL
-Java_com_mrboto_MRuby_nativeLookupObject(JNIEnv *env, jobject thiz,
+Java_moe_bemly_mrboto_MRuby_nativeLookupObject(JNIEnv *env, jobject thiz,
                                          jlong mrbPtr, jint registryId) {
     (void)thiz;
     (void)mrbPtr;

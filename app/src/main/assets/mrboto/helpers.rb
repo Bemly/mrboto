@@ -1,8 +1,8 @@
 # mrboto/helpers.rb — Convenience helpers for common Android operations
 #
 # toast("Hello")
-# start_activity(class_name: "com.mrboto.demo.SettingsActivity")
-# start_activity(class_name: "com.mrboto.demo.Detail", extras: { key: "value" })
+# start_activity(class_name: "moe.bemly.mrboto.demo.SettingsActivity")
+# start_activity(class_name: "moe.bemly.mrboto.demo.Detail", extras: { key: "value" })
 # get_extra("key")
 # sp = shared_preferences("my_prefs")
 # sp.put_string("name", "Alice")

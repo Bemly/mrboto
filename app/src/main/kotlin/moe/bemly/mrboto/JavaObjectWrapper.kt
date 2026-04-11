@@ -1,4 +1,4 @@
-package com.mrboto
+package moe.bemly.mrboto
 
 /**
  * Kotlin-side helper for the JNI reference registry.

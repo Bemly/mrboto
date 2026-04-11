@@ -21,7 +21,7 @@
 
 ```kotlin
 dependencies {
-    implementation("com.mrboto:mrboto:1.0.0")
+    implementation("moe.bemly.mrboto:mrboto:26.4.11")
 }
 ```
 
@@ -35,7 +35,7 @@ dependencies {
 
 ```kotlin
 dependencies {
-    implementation("com.mrboto:mrboto:1.0.0")
+    implementation("moe.bemly.mrboto:mrboto:26.4.11")
 }
 ```
 
@@ -137,7 +137,7 @@ end
 在 `AndroidManifest.xml` 中设置 Application：
 
 ```xml
-<application android:name="com.mrboto.MrbotoApplication" ...>
+<application android:name="moe.bemly.mrboto.MrbotoApplication" ...>
 ```
 
 ### Ruby DSL 可用方法
@@ -180,7 +180,7 @@ mrboto/
 │       │   ├── activity.rb          # Activity 生命周期钩子
 │       │   ├── widgets.rb           # Widget DSL
 │       │   └── helpers.rb           # toast、Intent、SharedPreferences
-│       └── kotlin/com/mrboto/
+│       └── kotlin/moe/bemly/mrboto/
 │           ├── MRuby.kt             # 公共 API
 │           ├── MrbotoApplication.kt # 启动时初始化 MRuby
 │           ├── MrbotoActivityBase.kt# Activity 基类
@@ -188,7 +188,7 @@ mrboto/
 │           └── JavaObjectWrapper.kt # JNI 注册表封装
 ├── demo/                            # ← Demo App
 │   └── src/main/
-│       ├── kotlin/com/mrboto/demo/
+│       ├── kotlin/moe/bemly/mrboto/demo/
 │       │   └── DemoActivity.kt      # 纯 Ruby 驱动的 Activity
 │       ├── assets/
 │       │   ├── main_activity.rb     # Ruby DSL 示例

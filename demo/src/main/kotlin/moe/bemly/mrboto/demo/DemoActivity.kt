@@ -1,6 +1,6 @@
-package com.mrboto.demo
+package moe.bemly.mrboto.demo
 
-import com.mrboto.MrbotoActivityBase
+import moe.bemly.mrboto.MrbotoActivityBase
 
 /**
  * Demo Activity — fully driven by Ruby.

@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.mrboto"
+    namespace = "moe.bemly.mrboto"
     compileSdk = 36
     ndkVersion = "29.0.14206865"
 
@@ -54,9 +54,9 @@ android {
 publishing {
     publications {
         register<MavenPublication>("release") {
-            groupId = "com.mrboto"
+            groupId = "moe.bemly.mrboto"
             artifactId = "mrboto"
-            version = "1.0.0"
+            version = "26.4.11"
 
             pom {
                 name.set("mrboto")

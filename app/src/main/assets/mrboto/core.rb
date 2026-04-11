@@ -8,6 +8,7 @@ module Mrboto
   class << self
     attr_accessor :current_activity_id
     attr_accessor :current_activity
+    attr_accessor :_ruby_activity_class
 
     # ── Callback Registry ──────────────────────────────────────────
     @@callbacks = {}

@@ -159,7 +159,7 @@ extern "C" {
  * @return Native pointer (as jlong) to mrb_state, or 0 on failure.
  */
 JNIEXPORT jlong JNICALL
-Java_com_mrboto_MRuby_nativeOpen(JNIEnv *env, jobject thiz)
+Java_moe_bemly_mrboto_MRuby_nativeOpen(JNIEnv *env, jobject thiz)
 {
     (void)thiz;
 
@@ -178,7 +178,7 @@ Java_com_mrboto_MRuby_nativeOpen(JNIEnv *env, jobject thiz)
  * @param mrbPtr Native pointer from nativeOpen.
  */
 JNIEXPORT void JNICALL
-Java_com_mrboto_MRuby_nativeClose(JNIEnv *env, jobject thiz, jlong mrbPtr)
+Java_moe_bemly_mrboto_MRuby_nativeClose(JNIEnv *env, jobject thiz, jlong mrbPtr)
 {
     (void)env;
     (void)thiz;
@@ -200,7 +200,7 @@ Java_com_mrboto_MRuby_nativeClose(JNIEnv *env, jobject thiz, jlong mrbPtr)
  * @return Result as a Java String, or an error message string if evaluation fails.
  */
 JNIEXPORT jstring JNICALL
-Java_com_mrboto_MRuby_nativeEvalString(JNIEnv *env, jobject thiz,
+Java_moe_bemly_mrboto_MRuby_nativeEvalString(JNIEnv *env, jobject thiz,
                                        jlong mrbPtr, jstring code)
 {
     (void)thiz;
@@ -257,7 +257,7 @@ Java_com_mrboto_MRuby_nativeEvalString(JNIEnv *env, jobject thiz,
  * @return Result as a Java String, or an error message string if execution fails.
  */
 JNIEXPORT jstring JNICALL
-Java_com_mrboto_MRuby_nativeEvalBytecode(JNIEnv *env, jobject thiz,
+Java_moe_bemly_mrboto_MRuby_nativeEvalBytecode(JNIEnv *env, jobject thiz,
                                          jlong mrbPtr, jbyteArray bytecode)
 {
     (void)thiz;
@@ -314,7 +314,7 @@ Java_com_mrboto_MRuby_nativeEvalBytecode(JNIEnv *env, jobject thiz,
  * @return Version string like "3.4.0".
  */
 JNIEXPORT jstring JNICALL
-Java_com_mrboto_MRuby_nativeVersion(JNIEnv *env, jobject thiz, jlong mrbPtr)
+Java_moe_bemly_mrboto_MRuby_nativeVersion(JNIEnv *env, jobject thiz, jlong mrbPtr)
 {
     (void)thiz;
 
@@ -346,7 +346,7 @@ Java_com_mrboto_MRuby_nativeVersion(JNIEnv *env, jobject thiz, jlong mrbPtr)
  * Run a full garbage collection cycle.
  */
 JNIEXPORT void JNICALL
-Java_com_mrboto_MRuby_nativeGC(JNIEnv *env, jobject thiz, jlong mrbPtr)
+Java_moe_bemly_mrboto_MRuby_nativeGC(JNIEnv *env, jobject thiz, jlong mrbPtr)
 {
     (void)env;
     (void)thiz;

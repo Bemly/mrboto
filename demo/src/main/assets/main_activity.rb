@@ -1,7 +1,8 @@
 # main_activity.rb — Demo Ruby Activity using mrboto DSL
 #
 # This file is loaded by DemoActivity.kt which extends MrbotoActivityBase.
-# It defines a Ruby class inheriting from Mrboto::Activity and instantiates it.
+# It defines a Ruby class inheriting from Mrboto::Activity.
+# Kotlin side handles instantiation and lifecycle dispatch.
 
 class MainActivity < Mrboto::Activity
   def on_create(bundle)
@@ -41,6 +42,5 @@ class MainActivity < Mrboto::Activity
   end
 end
 
-# Instantiate and set as current activity
-Mrboto.current_activity = MainActivity.new(Mrboto.current_activity_id)
-Mrboto.current_activity.on_create(nil)
+# Tell Kotlin which class to instantiate
+Mrboto._ruby_activity_class = MainActivity

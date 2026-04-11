@@ -1,4 +1,4 @@
-package com.mrboto
+package moe.bemly.mrboto
 
 import android.app.Application
 import android.content.res.AssetManager
@@ -9,7 +9,7 @@ import android.util.Log
  * at app startup. All Activities share this single MRuby instance.
  *
  * To use, add to AndroidManifest.xml:
- *   <application android:name="com.mrboto.MrbotoApplication" ...>
+ *   <application android:name="moe.bemly.mrboto.MrbotoApplication" ...>
  */
 class MrbotoApplication : Application() {
 

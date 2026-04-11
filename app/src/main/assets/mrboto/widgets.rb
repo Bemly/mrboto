@@ -257,4 +257,7 @@ module Mrboto
   end
 
   include DSL
+
+  # Also make DSL methods available on Activity instances
+  Mrboto::Activity.include(DSL)
 end

@@ -1,12 +1,12 @@
-package com.mrboto
+package moe.bemly.mrboto
 
 import android.app.Activity
 import android.os.Bundle
 import android.util.Log
 import android.view.View
-import com.mrboto.MrbotoCheckChangeListener
-import com.mrboto.MrbotoClickListener
-import com.mrboto.MrbotoTextWatcher
+import moe.bemly.mrboto.MrbotoCheckChangeListener
+import moe.bemly.mrboto.MrbotoClickListener
+import moe.bemly.mrboto.MrbotoTextWatcher
 
 /**
  * Base class for Ruby-backed Activities.
@@ -46,24 +46,52 @@ abstract class MrbotoActivityBase : Activity() {
         // Wrap 'this' Activity as a JavaObject in mruby
         val activityRefId = mruby.registerJavaObject(this)
 
-        // Set the Java activity reference before loading the script
+        // Set the Java activity reference BEFORE loading the script
         mruby.eval("Mrboto.current_activity_id = $activityRefId")
 
-        // Load the Ruby script (defines the Activity class and instantiates it)
+        // Load the Ruby script (should define a class inheriting Mrboto::Activity)
         try {
             val script = assets.open(getScriptPath()).bufferedReader().use { it.readText() }
-            mruby.loadScript(script)
+            val result = mruby.loadScript(script)
+            if (result != "ok") {
+                Log.e(TAG, "Script load error: $result")
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to load script ${getScriptPath()}: ${e.message}")
         }
 
-        // Dispatch on_create
+        // Debug: check what the script defined
+        val checkResult1 = mruby.eval("defined?(Mrboto) ? 'yes' : 'no'")
+        val checkResult2 = mruby.eval("defined?(Mrboto::Activity) ? 'yes' : 'no'")
+        Log.i(TAG, "Debug: Mrboto=$checkResult1, Mrboto::Activity=$checkResult2")
+
+        // Try to get the class directly
+        val checkResult3 = mruby.eval("Mrboto._ruby_activity_class.to_s rescue 'error:' + \$!.message")
+        Log.i(TAG, "Debug: _ruby_activity_class = $checkResult3")
+
+        // Instantiate the Ruby Activity class
+        val instantiateResult = mruby.eval(
+            "klass = Mrboto._ruby_activity_class\n" +
+            "if klass\n" +
+            "  act = klass.new(Mrboto.current_activity_id)\n" +
+            "  Mrboto.current_activity = act\n" +
+            "  'instantiated'\n" +
+            "else\n" +
+            "  'no class defined'\n" +
+            "end"
+        )
+        Log.i(TAG, "Ruby activity instantiation: $instantiateResult")
+
+        // Dispatch on_create (bundle will be passed as argument to the Ruby method)
         val bundleId = if (savedInstanceState != null) {
             mruby.registerJavaObject(savedInstanceState)
         } else {
             0
         }
-        mruby.dispatchLifecycle(activityRefId, "on_create", bundleId)
+        val dispatchResult = mruby.dispatchLifecycle(activityRefId, "on_create", bundleId)
+        if (dispatchResult != "ok") {
+            Log.e(TAG, "on_create dispatch error: $dispatchResult")
+        }
         rubyInstanceId = activityRefId
 
         Log.i(TAG, "Activity created, script: ${getScriptPath()}")

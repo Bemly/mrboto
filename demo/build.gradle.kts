@@ -3,15 +3,15 @@ plugins {
 }
 
 android {
-    namespace = "com.mrboto.demo"
+    namespace = "moe.bemly.mrboto.demo"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.mrboto.demo"
+        applicationId = "moe.bemly.mrboto.demo"
         minSdk = 33
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 260411
+        versionName = "26.4.11"
     }
 
     buildTypes {

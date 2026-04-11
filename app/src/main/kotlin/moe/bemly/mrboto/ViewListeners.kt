@@ -1,4 +1,4 @@
-package com.mrboto
+package moe.bemly.mrboto
 
 import android.text.Editable
 import android.text.TextWatcher

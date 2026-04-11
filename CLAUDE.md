@@ -13,7 +13,7 @@ Architecture:
 ## Key Directories
 
 - `mrboto/src/main/cpp/` — C JNI bridge (`native-lib.c`, `android-jni-bridge.c`), CMake, vendored mruby headers/libs
-- `mrboto/src/main/kotlin/com/mrboto/` — Kotlin API layer
+- `mrboto/src/main/kotlin/moe/bemly/mrboto/` — Kotlin API layer
   - `MRuby.kt` — core eval API + framework APIs (registerAndroidClasses, dispatchLifecycle, loadScript, registerJavaObject, lookupJavaObject)
   - `MrbotoApplication.kt` — bootstraps global MRuby, loads core Ruby scripts
   - `MrbotoActivityBase.kt` — Activity base class, lifecycle delegation, setViewClickListener
@@ -92,7 +92,7 @@ Ruby `linear_layout { }` → `Mrboto::Widgets.create_view(class_name, attrs)` �
 
 ## Publishing
 
-- Maven coordinates: `com.mrboto:mrboto:1.0.0`
+- Maven coordinates: `moe.bemly.mrboto:mrboto:26.4.11`
 - `maven-publish` plugin configured in `mrboto/build.gradle.kts`
 - AGP 9 auto-associates release variant (no explicit component needed)
 
