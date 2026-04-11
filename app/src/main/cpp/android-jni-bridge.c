@@ -936,24 +936,22 @@ Java_moe_bemly_mrboto_MRuby_nativeDispatchLifecycle(JNIEnv *env, jobject thiz,
 
     jstring result = NULL;
     if (!mrb_nil_p(activity)) {
-        /* Only on_create and on_post_create accept a bundle argument.
+        /* on_create and on_post_create accept 1 argument (bundle, may be nil).
          * Other hooks (on_start, on_resume, etc.) take no arguments. */
         mrb_value bundle_val = mrb_nil_value();
-        int pass_bundle = 0;
-        if (argsId > 0) {
+        int needs_bundle = (strcmp(cname, "on_create") == 0 ||
+                            strcmp(cname, "on_post_create") == 0);
+
+        if (needs_bundle && argsId > 0) {
             JNIEnv *env2 = mrboto_get_env();
             jobject bundle = mrboto_lookup_ref(env2, (int)argsId);
-            if (bundle != NULL && (strcmp(cname, "on_create") == 0 ||
-                                   strcmp(cname, "post_create") == 0)) {
+            if (bundle != NULL) {
                 bundle_val = mrboto_wrap_java_object(mrb, env2, bundle);
-                if (!mrb_nil_p(bundle_val)) {
-                    pass_bundle = 1;
-                }
             }
         }
 
-        /* Call the method on the activity with correct arg count */
-        if (pass_bundle) {
+        /* Call the method with the correct number of arguments */
+        if (needs_bundle) {
             mrb_funcall(mrb, activity, cname, 1, bundle_val);
         } else {
             mrb_funcall(mrb, activity, cname, 0);
