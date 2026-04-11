@@ -929,10 +929,23 @@ Java_moe_bemly_mrboto_MRuby_nativeDispatchLifecycle(JNIEnv *env, jobject thiz,
     /* Convert callbackName from jstring to C string */
     const char *cname = (*env)->GetStringUTFChars(env, callbackName, NULL);
 
-    /* Get Mrboto.current_activity via method call (attr_accessor on class << self) */
+    /* Get Mrboto.current_activity. Use mrb_load_string because mrb_funcall
+     * on the module object may not find methods defined in class << self
+     * in mruby 3.4. */
     mrb_value mrboto_mod = mrb_const_get(mrb, mrb_obj_value(mrb->object_class),
                                          mrb_intern_lit(mrb, "Mrboto"));
     mrb_value activity = mrb_funcall(mrb, mrboto_mod, "current_activity", 0);
+    if (mrb->exc) { mrb->exc = NULL; }
+
+    /* If mrb_funcall failed, try via mrb_load_string as fallback */
+    if (mrb_nil_p(activity)) {
+        mrb_value val = mrb_load_string(mrb, "Mrboto.current_activity");
+        if (!mrb->exc && !mrb_nil_p(val)) {
+            activity = val;
+        } else if (mrb->exc) {
+            mrb->exc = NULL;
+        }
+    }
 
     jstring result = NULL;
     if (!mrb_nil_p(activity)) {
