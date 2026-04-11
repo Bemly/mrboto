@@ -51,22 +51,24 @@ android {
     }
 }
 
-publishing {
-    publications {
-        register<MavenPublication>("release") {
-            groupId = "com.mrboto"
-            artifactId = "mrboto"
-            version = "1.0.0"
+afterEvaluate {
+    publishing {
+        publications {
+            create<MavenPublication>("release") {
+                groupId = "com.mrboto"
+                artifactId = "mrboto"
+                version = "1.0.0"
 
-            from(components.getByName("release"))
+                from(components.getByName("release"))
 
-            pom {
-                name.set("mrboto")
-                description.set("Embed mruby 3.4.0 in Android applications")
-                licenses {
-                    license {
-                        name.set("MIT")
-                        url.set("https://opensource.org/licenses/MIT")
+                pom {
+                    name.set("mrboto")
+                    description.set("Embed mruby 3.4.0 in Android applications")
+                    licenses {
+                        license {
+                            name.set("MIT")
+                            url.set("https://opensource.org/licenses/MIT")
+                        }
                     }
                 }
             }
