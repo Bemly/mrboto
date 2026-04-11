@@ -129,7 +129,7 @@ class WidgetsTest {
     }
 
     @Test
-    fun `visibility accepts :gone, :invisible, and default`() {
+    fun `visibility accepts gone invisible and default`() {
         setupActivity()
         val ctxId = mruby.eval("Mrboto._test_ctx_id")
         mruby.eval("""

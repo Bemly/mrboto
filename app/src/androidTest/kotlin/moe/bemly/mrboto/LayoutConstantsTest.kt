@@ -84,7 +84,7 @@ class LayoutConstantsTest {
     }
 
     @Test
-    fun `dp returns roughly 1.5x multiplier`() {
+    fun `dp returns roughly one and a half x multiplier`() {
         val result = mruby.eval("dp(100)")
         val px = result.toIntOrNull()
         assertNotNull(px)

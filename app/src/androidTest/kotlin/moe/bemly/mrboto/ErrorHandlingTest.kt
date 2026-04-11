@@ -82,7 +82,7 @@ class ErrorHandlingTest {
 
     @Test
     fun `eval with very long string works`() {
-        val longString = "a" * 10000
+        val longString = "a".repeat(10000)
         val result = mruby.eval("'$longString'.length")
         assertEquals("10000", result)
     }

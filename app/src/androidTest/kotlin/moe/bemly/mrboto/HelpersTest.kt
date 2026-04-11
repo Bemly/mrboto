@@ -104,7 +104,7 @@ class HelpersTest {
     }
 
     @Test
-    fun `Helpers.toast is callable`() {
+    fun `Helpers toast is callable`() {
         setupActivity()
         val result = mruby.eval("Mrboto::Helpers.toast('Helper toast'); 'ok'")
         assertEquals("ok", result)
