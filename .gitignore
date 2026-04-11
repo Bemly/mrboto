@@ -52,6 +52,10 @@ captures/
 
 # mruby build artifacts (keep in git but ignore the build dirs)
 mruby/build/
+build_config.rb.lock
+
+# Claude Code config
+.claude/
 
 # OS-specific files
 .DS_Store
