@@ -30,9 +30,10 @@ end
 
 # ── DP to PX ────────────────────────────────────────────────────────
 def dp(value)
-  activity = Mrboto.current_activity
-  return value unless activity
-  # We call through Java to get display metrics
-  # For simplicity, use a rough approximation (works on most devices)
-  (value * 1.5 + 0.5).to_i
+  ctx = Mrboto._app_context
+  return (value * 1.5 + 0.5).to_i unless ctx
+  # Use real display metrics: density = getResources().getDisplayMetrics().density
+  display_metrics = ctx.call_java_method("getResources").call_java_method("getDisplayMetrics")
+  density = display_metrics.call_java_method("getDensity") rescue 1.5
+  (value * density + 0.5).to_i
 end
