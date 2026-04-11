@@ -670,7 +670,6 @@ static mrb_value mrb_mrboto_dp_to_px(mrb_state *mrb, mrb_value self) {
     JNIEnv *env = mrboto_get_env();
     if (env == NULL) return mrb_fixnum_value((mrb_int)(value * 1.5 + 0.5));
 
-    /* Try to get density from Resources.getSystem().getDisplayMetrics().density */
     jclass res_cls = (*env)->FindClass(env, "android/content/res/Resources");
     if (res_cls == NULL) {
         (*env)->ExceptionClear(env);
@@ -685,15 +684,17 @@ static mrb_value mrb_mrboto_dp_to_px(mrb_state *mrb, mrb_value self) {
     }
 
     jobject resources = (*env)->CallStaticObjectMethod(env, res_cls, get_system);
-    if (resources == NULL) {
-        (*env)->DeleteLocalRef(env, res_cls);
+    (*env)->DeleteLocalRef(env, res_cls);
+    if (resources == NULL) return mrb_fixnum_value((mrb_int)(value * 1.5 + 0.5));
+
+    jclass res_cls2 = (*env)->GetObjectClass(env, resources);
+    jmethodID get_metrics = (*env)->GetMethodID(env, res_cls2, "getDisplayMetrics",
+                                                "()Landroid/util/DisplayMetrics;");
+    (*env)->DeleteLocalRef(env, res_cls2);
+    if (get_metrics == NULL) {
+        (*env)->DeleteLocalRef(env, resources);
         return mrb_fixnum_value((mrb_int)(value * 1.5 + 0.5));
     }
-
-    jmethodID get_metrics = (*env)->GetMethodID(env, res_cls, "getDisplayMetrics",
-                                                "()Landroid/util/DisplayMetrics;");
-    (*env)->DeleteLocalRef(env, res_cls);
-    if (get_metrics == NULL) return mrb_fixnum_value((mrb_int)(value * 1.5 + 0.5));
 
     jobject metrics = (*env)->CallObjectMethod(env, resources, get_metrics);
     (*env)->DeleteLocalRef(env, resources);
@@ -701,13 +702,17 @@ static mrb_value mrb_mrboto_dp_to_px(mrb_state *mrb, mrb_value self) {
 
     jclass dm_cls = (*env)->GetObjectClass(env, metrics);
     jfieldID fid = (*env)->GetFieldID(env, dm_cls, "density", "F");
+
+    mrb_int px;
+    if (fid == NULL) {
+        px = (mrb_int)(value * 1.5 + 0.5);
+    } else {
+        jfloat density = (*env)->GetFloatField(env, metrics, fid);
+        px = (mrb_int)(value * (double)density + 0.5);
+    }
+
     (*env)->DeleteLocalRef(env, dm_cls);
     (*env)->DeleteLocalRef(env, metrics);
-
-    if (fid == NULL) return mrb_fixnum_value((mrb_int)(value * 1.5 + 0.5));
-
-    jfloat density = (*env)->GetFloatField(env, metrics, fid);
-    mrb_int px = (mrb_int)(value * (double)density + 0.5);
     return mrb_fixnum_value(px);
 }
 
