@@ -579,8 +579,7 @@ static mrb_value mrb_mrboto_set_content_view(mrb_state *mrb, mrb_value self) {
 static mrb_value mrb_mrboto_toast(mrb_state *mrb, mrb_value self) {
     mrb_int context_id, duration;
     const char *msg;
-    mrb_int msg_len;
-    mrb_get_args(mrb, "isi", &context_id, &msg, &msg_len, &duration);
+    mrb_get_args(mrb, "izi", &context_id, &msg, &duration);
     mrboto_toast(mrb, (int)context_id, msg, (int)duration);
     return mrb_nil_value();
 }
@@ -588,36 +587,29 @@ static mrb_value mrb_mrboto_toast(mrb_state *mrb, mrb_value self) {
 static mrb_value mrb_mrboto_start_activity(mrb_state *mrb, mrb_value self) {
     mrb_int context_id;
     const char *cls_name;
-    mrb_int cls_len;
-    mrb_value extras;
-    mrb_get_args(mrb, "is|H", &context_id, &cls_name, &cls_len, &extras);
-    mrboto_start_activity(mrb, (int)context_id, cls_name, mrb_nil_p(extras) ? mrb_nil_value() : extras);
+    mrb_get_args(mrb, "iz", &context_id, &cls_name);
+    mrboto_start_activity(mrb, (int)context_id, cls_name, mrb_nil_value());
     return mrb_nil_value();
 }
 
 static mrb_value mrb_mrboto_get_extra(mrb_state *mrb, mrb_value self) {
     mrb_int activity_id;
     const char *key;
-    mrb_int key_len;
-    mrb_get_args(mrb, "is", &activity_id, &key, &key_len);
+    mrb_get_args(mrb, "iz", &activity_id, &key);
     return mrboto_get_extra(mrb, (int)activity_id, key);
 }
 
 static mrb_value mrb_mrboto_sp_get_string(mrb_state *mrb, mrb_value self) {
     mrb_int context_id;
     const char *name, *key, *default_val = NULL;
-    mrb_int name_len, key_len, default_len = 0;
-    mrb_get_args(mrb, "is|s", &context_id, &name, &name_len, &key, &key_len,
-                 &default_val, &default_len);
+    mrb_get_args(mrb, "izzz", &context_id, &name, &key, &default_val);
     return mrboto_sp_get_string(mrb, (int)context_id, name, key, default_val);
 }
 
 static mrb_value mrb_mrboto_sp_put_string(mrb_state *mrb, mrb_value self) {
     mrb_int context_id;
     const char *name, *key, *value;
-    mrb_int name_len, key_len, value_len;
-    mrb_get_args(mrb, "iss", &context_id, &name, &name_len, &key, &key_len,
-                 &value, &value_len);
+    mrb_get_args(mrb, "izz", &context_id, &name, &key, &value);
     mrboto_sp_put_string(mrb, (int)context_id, name, key, value);
     return mrb_nil_value();
 }
@@ -625,19 +617,15 @@ static mrb_value mrb_mrboto_sp_put_string(mrb_state *mrb, mrb_value self) {
 static mrb_value mrb_mrboto_sp_get_int(mrb_state *mrb, mrb_value self) {
     mrb_int context_id, default_val = 0;
     const char *name, *key;
-    mrb_int name_len, key_len;
-    mrb_get_args(mrb, "iss|i", &context_id, &name, &name_len, &key, &key_len,
-                 &default_val);
-    (void)default_val; /* simplified: return nil for now */
+    mrb_get_args(mrb, "izz", &context_id, &name, &key);
+    (void)default_val;
     return mrb_nil_value();
 }
 
 static mrb_value mrb_mrboto_sp_put_int(mrb_state *mrb, mrb_value self) {
     mrb_int context_id, value;
     const char *name, *key;
-    mrb_int name_len, key_len;
-    mrb_get_args(mrb, "issi", &context_id, &name, &name_len, &key, &key_len, &value);
-    /* Would need a separate C impl; simplified for now */
+    mrb_get_args(mrb, "izz", &context_id, &name, &key);
     return mrb_nil_value();
 }
 
@@ -682,9 +670,8 @@ static mrb_value mrb_mrboto_string_res(mrb_state *mrb, mrb_value self) {
 static mrb_value mrb_mrboto_create_view(mrb_state *mrb, mrb_value self) {
     mrb_int context_id;
     const char *class_name;
-    mrb_int class_len;
     mrb_value attrs;
-    mrb_get_args(mrb, "is&H", &context_id, &class_name, &class_len, &attrs);
+    mrb_get_args(mrb, "izH", &context_id, &class_name, &attrs);
     int view_id = mrboto_create_view(mrb, (int)context_id, class_name, attrs);
     return mrb_fixnum_value(view_id);
 }

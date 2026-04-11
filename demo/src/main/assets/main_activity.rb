@@ -1,7 +1,7 @@
 # main_activity.rb — Demo Ruby Activity using mrboto DSL
 #
 # This file is loaded by DemoActivity.kt which extends MrbotoActivityBase.
-# It defines a Ruby class inheriting from Mrboto::Activity.
+# It defines a Ruby class inheriting from Mrboto::Activity and instantiates it.
 
 class MainActivity < Mrboto::Activity
   def on_create(bundle)
@@ -37,18 +37,9 @@ class MainActivity < Mrboto::Activity
         @counter += 1
         toast("Clicked #{@counter} times")
       }
-
-      button(text: "Save to SharedPreferences", padding: 12) {
-        sp = shared_preferences("demo_prefs")
-        sp.put_string("last_action", "button_clicked")
-        toast("Saved!")
-      }
-
-      button(text: "Read from SharedPreferences", padding: 12) {
-        sp = shared_preferences("demo_prefs")
-        val = sp.get_string("last_action", "(not set)")
-        toast("Last action: #{val}")
-      }
     end
   end
 end
+
+# Instantiate and set as current activity
+Mrboto.current_activity = MainActivity.new(Mrboto.current_activity_id)

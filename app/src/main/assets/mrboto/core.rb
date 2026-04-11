@@ -74,7 +74,7 @@ module Mrboto
   def self._call_java_method(id, name, *args); end
   def self._register_object(obj); end
   def self._toast(context_id, msg, duration); end
-  def self._start_activity(context_id, cls_name, extras); end
+  def self._start_activity(context_id, cls_name); end
   def self._get_extra(activity_id, key); end
   def self._app_context; end
   def self._create_view(context_id, class_name, attrs); end

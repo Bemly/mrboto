@@ -20,14 +20,11 @@ module Mrboto
     end
 
     # Start another Activity
-    def self.start_activity(class_name:, package: nil, extras: nil)
+    def self.start_activity(class_name:, package: nil)
       activity = Mrboto.current_activity
       return unless activity
-
-      pkg = package || Mrboto.package_name
-      extras_map = extras.is_a?(Hash) ? extras : {}
-
-      Mrboto._start_activity(activity._registry_id, pkg, class_name, extras_map)
+      cls = package ? "#{package}.#{class_name}" : "#{Mrboto.package_name}.#{class_name}"
+      Mrboto._start_activity(activity._registry_id, cls)
     end
 
     # Get an Intent extra passed to the current Activity
@@ -97,8 +94,8 @@ def toast(message, duration = :short)
   Mrboto::Helpers.toast(message, duration)
 end
 
-def start_activity(class_name:, package: nil, extras: nil)
-  Mrboto::Helpers.start_activity(class_name: class_name, package: package, extras: extras)
+def start_activity(class_name:, package: nil)
+  Mrboto::Helpers.start_activity(class_name: class_name, package: package)
 end
 
 def get_extra(key)
