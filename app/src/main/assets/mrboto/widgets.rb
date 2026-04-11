@@ -28,6 +28,9 @@ module Mrboto
       table_layout:   'android.widget.TableLayout',
     }
 
+    # Reverse map: java class name → Ruby widget name
+    CLASS_TO_WIDGET = JAVA_CLASS_MAP.each_with_object({}) { |(k, v), h| h[v] = k }
+
     # Create a View and apply attributes/block
     def self.create_view(class_name, attrs = {}, &block)
       activity = Mrboto.current_activity
@@ -37,7 +40,14 @@ module Mrboto
       view_id = Mrboto._create_view(ctx_id, class_name, attrs)
       return nil if view_id.nil? || view_id == 0
 
-      wrapper = View.from_registry(view_id)
+      # Wrap with the correct Ruby class based on the Java class name
+      widget_name = CLASS_TO_WIDGET[class_name]
+      wrapper = if widget_name
+                  widget_class = Object.const_get(widget_name.to_s.gsub(/_(.)/) { $1.upcase.capitalize }.gsub(/^./) { |c| c.downcase })
+                  widget_class.from_registry(view_id)
+                else
+                  View.from_registry(view_id)
+                end
 
       # Apply attributes
       apply_attrs(wrapper, attrs)
@@ -58,15 +68,15 @@ module Mrboto
       attrs.each do |key, val|
         case key
         when :text
-          view.text = val
+          view.text = val if view.respond_to?(:text=)
         when :text_size
-          view.text_size = val
+          view.text_size = val if view.respond_to?(:text_size=)
         when :text_color
-          view.text_color = val
+          view.text_color = val if view.respond_to?(:text_color=)
         when :hint
-          view.hint = val
+          view.hint = val if view.respond_to?(:hint=)
         when :orientation
-          view.orientation = val
+          view.orientation = val if view.respond_to?(:orientation=)
         when :padding
           view.padding = val
         when :background_color
@@ -80,9 +90,9 @@ module Mrboto
         when :visibility
           view.visibility = val
         when :image_resource
-          view.image_resource = val
+          view.image_resource = val if view.respond_to?(:image_resource=)
         when :layout_weight
-          view.layout_weight = val
+          # Simplified — skip for now
         when :on_click
           view.on_click(&val) if val.respond_to?(:call)
         when :on_text_changed
