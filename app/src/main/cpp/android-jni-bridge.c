@@ -727,7 +727,7 @@ Java_com_mrboto_MRuby_nativeLoadScript(JNIEnv *env, jobject thiz,
     if (c_script == NULL) return NULL;
 
     int ai = mrb_gc_arena_save(mrb);
-    mrb_value result mrb_load_string(mrb, c_script);
+    mrb_value result = mrb_load_string(mrb, c_script);
     (void)result;
     (*env)->ReleaseStringUTFChars(env, script, c_script);
 
