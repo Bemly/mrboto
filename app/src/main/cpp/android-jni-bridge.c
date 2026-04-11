@@ -155,7 +155,7 @@ int mrboto_create_view(mrb_state *mrb, int context_id, const char *class_name,
     jclass cls = (*env)->FindClass(env, jni_class);
     if (cls == NULL) {
         LOGE("FindClass failed: %s", jni_class);
-        (*env)->ExceptionClear();
+        (*env)->ExceptionClear(env);
         return 0;
     }
 
@@ -164,15 +164,15 @@ int mrboto_create_view(mrb_state *mrb, int context_id, const char *class_name,
                                         "(Landroid/content/Context;)V");
     if (cid == NULL) {
         LOGE("Constructor not found for %s", jni_class);
-        (*env)->ExceptionClear();
+        (*env)->ExceptionClear(env);
         (*env)->DeleteLocalRef(env, cls);
         return 0;
     }
 
     jobject view = (*env)->NewObject(env, cls, cid, context);
-    if ((*env)->ExceptionCheck()) {
+    if ((*env)->ExceptionCheck(env)) {
         LOGE("NewObject failed for %s", jni_class);
-        (*env)->ExceptionClear();
+        (*env)->ExceptionClear(env);
         (*env)->DeleteLocalRef(env, cls);
         return 0;
     }
