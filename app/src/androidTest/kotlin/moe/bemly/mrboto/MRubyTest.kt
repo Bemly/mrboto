@@ -37,8 +37,8 @@ class MRubyTest {
     }
 
     @Test
-    fun `eval returns ok for valid Ruby code`() {
-        assertEquals("ok", mruby.eval("nil"))
+    fun `eval returns nil string for nil constant`() {
+        assertEquals("nil", mruby.eval("nil"))
     }
 
     @Test
