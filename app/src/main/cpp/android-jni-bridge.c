@@ -131,110 +131,6 @@ int mrboto_register_java_object(mrb_state *mrb, JNIEnv *env, jobject obj) {
     return data->registry_id;
 }
 
-/* ── Helper: Call Java Method via Reflection ──────────────────────── */
-
-static mrb_value mrboto_call_java_method(mrb_state *mrb, int obj_id,
-                                          const char *method_name, int argc,
-                                          mrb_value *argv, const char *ret_type) {
-    JNIEnv *env = mrboto_get_env();
-    jobject obj = mrboto_lookup_ref(env, obj_id);
-    if (obj == NULL) return mrb_nil_value();
-
-    jclass cls = (*env)->GetObjectClass(env, obj);
-    jmethodID mid = (*env)->GetMethodID(env, cls, method_name, "()V"); /* stub */
-
-    /* Build JNI method signature from return type and argument types */
-    char sig[256] = "(";
-    int sig_len = 1;
-    for (int i = 0; i < argc; i++) {
-        if (mrb_integer_p(argv[i])) {
-            sig[sig_len++] = 'I';
-        } else if (mrb_string_p(argv[i])) {
-            sig[sig_len++] = 'L'; sig[sig_len++] = 'j'; sig[sig_len++] = 'a';
-            sig[sig_len++] = 'v'; sig[sig_len++] = 'a'; sig[sig_len++] = '/';
-            sig[sig_len++] = 'l'; sig[sig_len++] = 'a'; sig[sig_len++] = 'n';
-            sig[sig_len++] = 'g'; sig[sig_len++] = '/'; sig[sig_len++] = 'S';
-            sig[sig_len++] = 't'; sig[sig_len++] = 'r'; sig[sig_len++] = 'i';
-            sig[sig_len++] = 'n'; sig[sig_len++] = 'g'; sig[sig_len++] = ';';
-        } else if (mrb_true_p(argv[i]) || mrb_false_p(argv[i])) {
-            sig[sig_len++] = 'Z';
-        } else {
-            sig[sig_len++] = 'L'; sig[sig_len++] = 'j'; sig[sig_len++] = 'a';
-            sig[sig_len++] = 'v'; sig[sig_len++] = 'a'; sig[sig_len++] = '/';
-            sig[sig_len++] = 'l'; sig[sig_len++] = 'a'; sig[sig_len++] = 'n';
-            sig[sig_len++] = 'g'; sig[sig_len++] = '/'; sig[sig_len++] = 'O';
-            sig[sig_len++] = 'b'; sig[sig_len++] = 'j'; sig[sig_len++] = 'e';
-            sig[sig_len++] = 'c'; sig[sig_len++] = 't'; sig[sig_len++] = ';';
-        }
-    }
-    sig[sig_len++] = ')';
-    if (ret_type) {
-        strcat(sig + sig_len, ret_type);
-    } else {
-        sig[sig_len++] = 'V';
-        sig[sig_len] = '\0';
-    }
-
-    mid = (*env)->GetMethodID(env, cls, method_name, sig);
-    if (mid == NULL) {
-        LOGE("Method not found: %s signature: %s", method_name, sig);
-        (*env)->DeleteLocalRef(env, cls);
-        return mrb_nil_value();
-    }
-
-    /* Build jvalue array for arguments */
-    jvalue *jargs = (jvalue *)calloc(argc > 0 ? argc : 1, sizeof(jvalue));
-    for (int i = 0; i < argc; i++) {
-        if (mrb_integer_p(argv[i])) {
-            jargs[i].i = (jint)mrb_integer(argv[i]);
-        } else if (mrb_string_p(argv[i])) {
-            const char *s = mrb_string_value_cstr(mrb, &argv[i]);
-            jargs[i].l = (*env)->NewStringUTF(env, s);
-        } else if (mrb_true_p(argv[i])) {
-            jargs[i].z = JNI_TRUE;
-        } else if (mrb_false_p(argv[i])) {
-            jargs[i].z = JNI_FALSE;
-        }
-    }
-
-    mrb_value result = mrb_nil_value();
-
-    if (ret_type == NULL || ret_type[0] == 'V') {
-        (*env)->CallVoidMethodA(env, obj, mid, jargs);
-    } else if (ret_type[0] == 'I') {
-        jint r = (*env)->CallIntMethodA(env, obj, mid, jargs);
-        result = mrb_fixnum_value((mrb_int)r);
-    } else if (ret_type[0] == 'Z') {
-        jboolean r = (*env)->CallBooleanMethodA(env, obj, mid, jargs);
-        result = r ? mrb_true_value() : mrb_false_value();
-    } else if (ret_type[0] == 'L') {
-        jobject r = (*env)->CallObjectMethodA(env, obj, mid, jargs);
-        if (r != NULL) {
-            result = mrboto_wrap_java_object(mrb, env, r);
-            /* Release local ref for string results */
-            if (ret_type[0] == 'L' && strstr(ret_type, "String")) {
-                (*env)->DeleteLocalRef(env, r);
-            }
-        }
-    } else if (ret_type[0] == 'F') {
-        jfloat r = (*env)->CallFloatMethodA(env, obj, mid, jargs);
-        result = mrb_float_value(mrb, (mrb_float)r);
-    }
-
-    /* Clean up local refs for string arguments */
-    for (int i = 0; i < argc; i++) {
-        if (mrb_string_p(argv[i])) {
-            if (jargs[i].l != NULL) {
-                (*env)->DeleteLocalRef(env, jargs[i].l);
-            }
-        }
-    }
-    free(jargs);
-    (*env)->DeleteLocalRef(env, cls);
-
-    return result;
-}
-
 /* ── View Creation ────────────────────────────────────────────────── */
 
 int mrboto_create_view(mrb_state *mrb, int context_id, const char *class_name,
@@ -626,6 +522,7 @@ static mrb_value mrb_mrboto_sp_put_int(mrb_state *mrb, mrb_value self) {
     mrb_int context_id, value;
     const char *name, *key;
     mrb_get_args(mrb, "izz", &context_id, &name, &key);
+    (void)value; /* placeholder */
     return mrb_nil_value();
 }
 
@@ -830,7 +727,8 @@ Java_com_mrboto_MRuby_nativeLoadScript(JNIEnv *env, jobject thiz,
     if (c_script == NULL) return NULL;
 
     int ai = mrb_gc_arena_save(mrb);
-    mrb_value result = mrb_load_string(mrb, c_script);
+    mrb_value result mrb_load_string(mrb, c_script);
+    (void)result;
     (*env)->ReleaseStringUTFChars(env, script, c_script);
 
     jstring jresult = NULL;
