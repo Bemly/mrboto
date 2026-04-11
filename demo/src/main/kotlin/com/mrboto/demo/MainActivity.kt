@@ -5,13 +5,12 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.mrboto.demo.databinding.ActivityMainBinding
 import com.mrboto.MRuby
-import java.io.IOException
 
 /**
  * mrboto Demo — 执行嵌入的 Ruby 脚本
  *
- * 所有 Ruby 脚本以 .mrb 预编译字节码形式存储在 assets/ 目录中，
- * 点击按钮时加载并执行对应的字节码文件。
+ * 所有 Ruby 脚本以 .rb 源码形式存储在 assets/ 目录中，
+ * 点击按钮时读取源码并用 mruby 运行时编译器执行。
  */
 class MainActivity : AppCompatActivity() {
 
@@ -37,36 +36,35 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupExamples() {
         binding.btnBasicArithmetic.setOnClickListener {
-            runMrb("arithmetic")
+            runRuby("arithmetic")
         }
 
         binding.btnStringOps.setOnClickListener {
-            runMrb("strings")
+            runRuby("strings")
         }
 
         binding.btnArrayOps.setOnClickListener {
-            runMrb("arrays")
+            runRuby("arrays")
         }
 
         binding.btnFibonacci.setOnClickListener {
-            runMrb("fibonacci")
+            runRuby("fibonacci")
         }
 
         binding.btnHashOps.setOnClickListener {
-            runMrb("hashes")
+            runRuby("hashes")
         }
 
         binding.btnSyntaxError.setOnClickListener {
-            // 语法错误无法预编译，使用运行时 eval 方式
-            appendResult("语法错误", mruby.eval("def foo("))
+            runRuby("syntax_error")
         }
 
         binding.btnRuntimeError.setOnClickListener {
-            runMrb("runtime_error")
+            runRuby("runtime_error")
         }
 
         binding.btnMultiEval.setOnClickListener {
-            runMrb("multi_eval")
+            runRuby("multi_eval")
         }
 
         binding.btnGc.setOnClickListener {
@@ -80,16 +78,17 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * 从 assets 加载并执行 .mrb 字节码文件。
+     * 从 assets 加载并执行 .rb 源码文件。
+     * mruby 包含运行时编译器，可直接编译执行 Ruby 源码字符串。
      */
-    private fun runMrb(name: String) {
-        try {
-            val bytecode = assets.open("${name}.mrb").use { it.readBytes() }
-            val result = mruby.evalBytecode(bytecode)
-            appendResult(name, result)
-        } catch (e: IOException) {
-            appendResult(name, "Error: 无法加载 ${name}.mrb — ${e.message}")
+    private fun runRuby(name: String) {
+        val result = try {
+            val source = assets.open("${name}.rb").bufferedReader().use { it.readText() }
+            mruby.eval(source)
+        } catch (e: java.io.IOException) {
+            "Error: 无法加载 ${name}.rb — ${e.message}"
         }
+        appendResult(name, result)
     }
 
     private fun appendResult(label: String, result: String) {
