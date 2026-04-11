@@ -17,8 +17,7 @@ class MrbotoApplication : Application() {
         private const val TAG = "MrbotoApp"
     }
 
-    lateinit var mruby: MRuby
-        private set
+    internal lateinit var mruby: MRuby
 
     override fun onCreate() {
         super.onCreate()

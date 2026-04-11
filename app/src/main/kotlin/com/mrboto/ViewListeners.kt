@@ -53,7 +53,7 @@ class MrbotoCheckChangeListener(
     private val activity: MrbotoActivityBase,
     private val callbackId: Int
 ) : CompoundButton.OnCheckedChangeListener {
-    override fun onCheckedChanged(button: CompoundButton?, isChecked: Boolean) {
+    override fun onCheckedChanged(button: CompoundButton, isChecked: Boolean) {
         activity.mruby.eval("Mrboto.dispatch_checked($callbackId, $isChecked)")
     }
 }

@@ -11,12 +11,14 @@
 
 #include <jni.h>
 #include <android/log.h>
+#include <stdlib.h>
 #include <mruby.h>
 #include <mruby/data.h>
 #include <mruby/hash.h>
 #include <mruby/array.h>
 #include <mruby/string.h>
 #include <mruby/variable.h>
+#include <mruby/compile.h>
 
 #include "android-jni-bridge.h"
 #include <string.h>
@@ -102,12 +104,9 @@ mrb_value mrboto_wrap_java_object(mrb_state *mrb, JNIEnv *env, jobject obj) {
     mrboto_data_t *data = (mrboto_data_t *)mrb_malloc(mrb, sizeof(mrboto_data_t));
     data->registry_id = id;
 
-    mrb_value klass = mrb_const_get(mrb, mrb_obj_value(mrb->object_class),
-                                    mrb_intern_lit(mrb, "Mrboto"));
-    klass = mrb_const_get(mrb, klass, mrb_intern_lit(mrb, "JavaObject"));
-
-    mrb_value val = mrb_obj_new_datap(mrb, (struct RClass *)mrb_ptr(klass),
-                                      data, &mrboto_java_object_type);
+    /* Wrap as Ruby Data object */
+    struct RData *rdata = mrb_data_object_alloc(mrb, NULL, data, &mrboto_java_object_type);
+    mrb_value val = mrb_obj_value(rdata);
     return val;
 }
 
@@ -116,7 +115,7 @@ jobject mrboto_unwrap_java_object(mrb_state *mrb, mrb_value val, JNIEnv **out_en
     if (out_env) *out_env = env;
     if (mrb_nil_p(val)) return NULL;
 
-    mrboto_data_t *data = (mrboto_data_t *)mrb_check_data_type(mrb, val, &mrboto_java_object_type);
+    mrboto_data_t *data = (mrboto_data_t *)mrb_data_get_ptr(mrb, val, &mrboto_java_object_type);
     if (data == NULL) {
         LOGE("Expected JavaObject, got different type");
         return NULL;
@@ -293,24 +292,22 @@ void mrboto_set_on_click(int view_id, int callback_id) {
     if (view == NULL || env == NULL) return;
 
     /*
-     * Create an OnClickListener via anonymous inner class pattern.
-     * We use a Kotlin helper class MrbotoClickListener that's registered
-     * at startup. Here we just store the callback ID as a tag on the view
-     * and set a generic click listener via the Kotlin side.
-     *
-     * For simplicity, we store the callback_id in the view's tag and
-     * use a pre-registered generic OnClickListener from Kotlin.
+     * Set the callback ID as a tag on the View.
+     * The actual OnClickListener is set by the Kotlin side via ViewListeners.
+     * We store the callback ID for reference.
      */
-    (*env)->SetIntField(env, view,
-        (*env)->GetMethodID(env, (*env)->GetObjectClass(env, view), "setTag", "(I)V") /* wrong */,
-        (jint)callback_id);
+    jclass view_cls = (*env)->GetObjectClass(env, view);
+    jmethodID setTag = (*env)->GetMethodID(env, view_cls, "setTag", "(Ljava/lang/Object;)V");
+    if (setTag != NULL) {
+        jclass integer_cls = (*env)->FindClass(env, "java/lang/Integer");
+        jmethodID int_init = (*env)->GetMethodID(env, integer_cls, "<init>", "(I)V");
+        jobject int_obj = (*env)->NewObject(env, integer_cls, int_init, (jint)callback_id);
+        (*env)->CallVoidMethod(env, view, setTag, int_obj);
+        (*env)->DeleteLocalRef(env, int_obj);
+        (*env)->DeleteLocalRef(env, integer_cls);
+    }
+    (*env)->DeleteLocalRef(env, view_cls);
 
-    /*
-     * Actually, we can't easily call setOnClickListener from C because
-     * it needs a Java interface implementation. We'll use eval to call
-     * a Kotlin-side helper.
-     */
-    /* This is handled by the Kotlin ViewListeners class instead. */
     LOGD("set_on_click: view=%d callback=%d", view_id, callback_id);
 }
 
@@ -372,32 +369,16 @@ void mrboto_toast(mrb_state *mrb, int context_id, const char *msg, int duration)
 
 void mrboto_start_activity(mrb_state *mrb, int context_id, const char *cls_name,
                            mrb_value extras) {
+    (void)mrb;
+    (void)extras;
     JNIEnv *env = mrboto_get_env();
     jobject context = mrboto_lookup_ref(env, context_id);
     if (context == NULL) return;
 
-    /* Create Intent */
-    jclass intent_cls = (*env)->FindClass(env, "android/content/Intent");
-    if (intent_cls == NULL) return;
-
-    jmethodID init = (*env)->GetMethodID(env, intent_cls, "<init>",
-                                         "(Landroid/content/Context;Ljava/lang/Class;)V");
-
-    /* We need the Class object. For now, we use the ACTION_MAIN approach */
-    /* Simplified: use ComponentName approach */
-    jmethodID init2 = (*env)->GetMethodID(env, intent_cls, "<init>",
-                                          "(Landroid/content/Context;Ljava/lang/Class;)V");
-
-    /* Actually, we'll use the package manager approach which is simpler from JNI */
     /* Get package name from context */
     jclass context_cls = (*env)->GetObjectClass(env, context);
     jmethodID get_pkg = (*env)->GetMethodID(env, context_cls, "getPackageName", "()Ljava/lang/String;");
     jstring pkg = (jstring)(*env)->CallObjectMethod(env, context, get_pkg);
-
-    const char *pkg_str = (*env)->GetStringUTFChars(env, pkg, NULL);
-    char full_class[512];
-    snprintf(full_class, sizeof(full_class), "%s/%s", pkg_str, cls_name);
-    (*env)->ReleaseStringUTFChars(env, pkg, pkg_str);
 
     /* Use ComponentName */
     jclass cn_cls = (*env)->FindClass(env, "android/content/ComponentName");
@@ -406,6 +387,8 @@ void mrboto_start_activity(mrb_state *mrb, int context_id, const char *cls_name,
     jstring jcls = (*env)->NewStringUTF(env, cls_name);
     jobject cn = (*env)->NewObject(env, cn_cls, cn_init, pkg, jcls);
 
+    /* Create Intent */
+    jclass intent_cls = (*env)->FindClass(env, "android/content/Intent");
     jmethodID intent_init = (*env)->GetMethodID(env, intent_cls, "<init>", "()V");
     jobject intent = (*env)->NewObject(env, intent_cls, intent_init);
 
@@ -593,7 +576,7 @@ Java_com_mrboto_MRuby_nativeRegisterAndroidClasses(JNIEnv *env, jobject thiz, jl
 
     /* Define JavaObject class under Mrboto */
     struct RClass *java_obj = mrb_define_class_under(mrb, mrboto, "JavaObject", mrb->object_class);
-    mrb_define_method(mrb, java_obj, "initialize", mrb_obj_value(mrb->object_class), MRB_ARGS_NONE());
+    (void)java_obj; /* methods defined on Ruby side via core.rb */
 
     LOGI("Android classes registered in mruby");
 }
@@ -634,7 +617,7 @@ Java_com_mrboto_MRuby_nativeDispatchLifecycle(JNIEnv *env, jobject thiz,
         }
 
         /* Call the method on the activity: activity.on_xxx(bundle) */
-        mrb_value r = mrb_funcall(mrb, activity, cname, 1, bundle_val);
+        mrb_funcall(mrb, activity, cname, 1, bundle_val);
 
         if (mrb->exc) {
             /* Exception occurred */

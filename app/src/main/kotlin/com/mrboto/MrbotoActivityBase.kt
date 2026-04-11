@@ -3,6 +3,7 @@ package com.mrboto
 import android.app.Activity
 import android.os.Bundle
 import android.util.Log
+import android.view.View
 import com.mrboto.MrbotoCheckChangeListener
 import com.mrboto.MrbotoClickListener
 import com.mrboto.MrbotoTextWatcher
@@ -23,7 +24,7 @@ abstract class MrbotoActivityBase : Activity() {
         private const val TAG = "MrbotoActivity"
     }
 
-    protected lateinit var mruby: MRuby
+    internal lateinit var mruby: MRuby
     protected var rubyInstanceId: Int = 0
 
     /** Override to return the Ruby script asset path */
