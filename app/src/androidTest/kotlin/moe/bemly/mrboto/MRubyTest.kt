@@ -96,9 +96,9 @@ class MRubyTest {
             def add(a, b)
               a + b
             end
-            add(3, 4).to_s
             """.trimIndent()
         )
-        assertEquals("7", result)
+        assertEquals("ok", result)
+        assertEquals("7", mruby.eval("add(3, 4).to_s"))
     }
 }

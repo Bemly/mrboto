@@ -68,25 +68,11 @@ module Mrboto
     end
   end
 
-  # ── Native Method Stubs ───────────────────────────────────────────
-  # These are implemented in android-jni-bridge.c
-  # They are called from Ruby and bridge to native code.
+  # ── Native Methods (implemented in android-jni-bridge.c) ──────────
+  # Most methods are registered on the Mrboto module by C code via mrb_define_method.
+  # Two stubs that are not yet implemented in C:
 
-  def self._java_object_for(id); end
-  def self._call_java_method(id, name, *args); end
-  def self._register_object(obj); end
-  def self._toast(context_id, msg, duration); end
-  def self._start_activity(context_id, cls_name); end
-  def self._get_extra(activity_id, key); end
-  def self._app_context; end
-  def self._create_view(context_id, class_name, attrs); end
-  def self._set_content_view(activity_id, view_id); end
-  def self._set_on_click(view_id, callback_id); end
-  def self._set_text_watcher(view_id, callback_id); end
-  def self._sp_get_string(context_id, name, key, default_val); end
-  def self._sp_put_string(context_id, name, key, value); end
-  def self._sp_get_int(context_id, name, key, default_val); end
-  def self._sp_put_int(context_id, name, key, value); end
-  def self._string_res(activity_id, res_id); end
-  def self._run_on_ui_thread(activity_id, callback_id); end
+  def self._java_object_for(id); nil; end
+  def self._call_java_method(id, name, *args); nil; end
+  def self._register_object(obj); nil; end
 end

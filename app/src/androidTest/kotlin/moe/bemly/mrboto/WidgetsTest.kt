@@ -49,7 +49,7 @@ class WidgetsTest {
 
     @Test
     fun `View class exists`() {
-        assertEquals("true", mruby.eval("defined?(Mrboto::View).to_s"))
+        assertEquals("true", mruby.eval("Mrboto.const_defined?(:View).to_s"))
     }
 
     @Test
@@ -95,7 +95,7 @@ class WidgetsTest {
     @Test
     fun `View responds to common attribute setters`() {
         setupActivity()
-        val setters = listOf("id", "enabled", "visibility", "background_color", "padding", "gravity")
+        val setters = listOf("id=", "enabled=", "visibility=", "background_color=", "padding=", "gravity=")
         for (setter in setters) {
             val result = mruby.eval("Mrboto::View.instance_methods.include?(:$setter).to_s")
             assertEquals("View should respond to $setter", "true", result)
@@ -104,7 +104,7 @@ class WidgetsTest {
 
     @Test
     fun `TextView responds to text setters`() {
-        val setters = listOf("text", "text_size", "text_color", "hint")
+        val setters = listOf("text=", "text_size=", "text_color=", "hint=")
         for (s in setters) {
             val result = mruby.eval("Mrboto::TextView.instance_methods.include?(:$s).to_s")
             assertEquals("TextView should respond to $s", "true", result)
@@ -195,27 +195,26 @@ class WidgetsTest {
 
     @Test
     fun `LinearLayout responds to orientation`() {
-        assertEquals("true", mruby.eval("Mrboto::LinearLayout.instance_methods.include?(:orientation).to_s"))
+        assertEquals("true", mruby.eval("Mrboto::LinearLayout.instance_methods.include?(:orientation=).to_s"))
     }
 
     @Test
     fun `create_view returns positive registry ID`() {
         setupActivity()
         val ctxId = mruby.eval("Mrboto._test_ctx_id")
-        val result = mruby.eval("""
-            id = Mrboto._create_view($ctxId, "android.widget.TextView", {})
-            id > 0
-        """.trimIndent())
-        assertEquals("true", result)
+        val result = mruby.eval("Mrboto._create_view($ctxId, 'android.widget.TextView', {})")
+        val id = result.toIntOrNull()
+        assertNotNull("Should return an integer, got: $result", id)
+        assertTrue("View ID should be positive, got: $id", id!! > 0)
     }
 
     @Test
     fun `apply_attrs does not crash on unknown attr`() {
         setupActivity()
         val ctxId = mruby.eval("Mrboto._test_ctx_id")
+        val viewId = mruby.eval("Mrboto._create_view($ctxId, 'android.widget.TextView', {})")
         val result = mruby.eval("""
-            view_id = Mrboto._create_view($ctxId, "android.widget.TextView", {})
-            view = Mrboto::TextView.from_registry(view_id)
+            view = Mrboto::TextView.from_registry($viewId)
             Mrboto::Widgets.apply_attrs(view, { unknown_attr: "test" })
             'ok'
         """.trimIndent())

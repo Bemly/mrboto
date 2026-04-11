@@ -664,15 +664,30 @@ static mrb_value mrb_mrboto_run_on_ui_thread(mrb_state *mrb, mrb_value self) {
 /* ── Helper: DP to PX conversion ──────────────────────────────────── */
 
 static mrb_value mrb_mrboto_dp_to_px(mrb_state *mrb, mrb_value self) {
+    mrb_value val;
+    mrb_get_args(mrb, "o", &val);
+
     mrb_float value;
-    mrb_get_args(mrb, "f", &value);
+#ifndef MRB_NO_FLOAT
+    if (mrb_float_p(val)) {
+        value = mrb_float(val);
+    } else
+#endif
+    if (mrb_integer_p(val)) {
+        value = (mrb_float)mrb_integer(val);
+    } else {
+        return mrb_fixnum_value(100); /* fallback for unexpected types */
+    }
 
     JNIEnv *env = mrboto_get_env();
     if (env == NULL) return mrb_fixnum_value((mrb_int)(value * 1.5 + 0.5));
 
+    int ai = mrb_gc_arena_save(mrb);
+
     jclass res_cls = (*env)->FindClass(env, "android/content/res/Resources");
     if (res_cls == NULL) {
         (*env)->ExceptionClear(env);
+        mrb_gc_arena_restore(mrb, ai);
         return mrb_fixnum_value((mrb_int)(value * 1.5 + 0.5));
     }
 
@@ -680,77 +695,74 @@ static mrb_value mrb_mrboto_dp_to_px(mrb_state *mrb, mrb_value self) {
                                                      "()Landroid/content/res/Resources;");
     if (get_system == NULL) {
         (*env)->DeleteLocalRef(env, res_cls);
+        mrb_gc_arena_restore(mrb, ai);
         return mrb_fixnum_value((mrb_int)(value * 1.5 + 0.5));
     }
 
     jobject resources = (*env)->CallStaticObjectMethod(env, res_cls, get_system);
-    (*env)->DeleteLocalRef(env, res_cls);
-    if (resources == NULL) return mrb_fixnum_value((mrb_int)(value * 1.5 + 0.5));
+    if (resources == NULL) {
+        (*env)->DeleteLocalRef(env, res_cls);
+        mrb_gc_arena_restore(mrb, ai);
+        return mrb_fixnum_value((mrb_int)(value * 1.5 + 0.5));
+    }
 
     jclass res_cls2 = (*env)->GetObjectClass(env, resources);
+    if (res_cls2 == NULL) {
+        (*env)->DeleteLocalRef(env, resources);
+        (*env)->DeleteLocalRef(env, res_cls);
+        mrb_gc_arena_restore(mrb, ai);
+        return mrb_fixnum_value((mrb_int)(value * 1.5 + 0.5));
+    }
+
     jmethodID get_metrics = (*env)->GetMethodID(env, res_cls2, "getDisplayMetrics",
                                                 "()Landroid/util/DisplayMetrics;");
+    (*env)->DeleteLocalRef(env, res_cls);
     (*env)->DeleteLocalRef(env, res_cls2);
     if (get_metrics == NULL) {
         (*env)->DeleteLocalRef(env, resources);
+        mrb_gc_arena_restore(mrb, ai);
         return mrb_fixnum_value((mrb_int)(value * 1.5 + 0.5));
     }
 
     jobject metrics = (*env)->CallObjectMethod(env, resources, get_metrics);
     (*env)->DeleteLocalRef(env, resources);
-    if (metrics == NULL) return mrb_fixnum_value((mrb_int)(value * 1.5 + 0.5));
+    if (metrics == NULL) {
+        mrb_gc_arena_restore(mrb, ai);
+        return mrb_fixnum_value((mrb_int)(value * 1.5 + 0.5));
+    }
 
     jclass dm_cls = (*env)->GetObjectClass(env, metrics);
-    jfieldID fid = (*env)->GetFieldID(env, dm_cls, "density", "F");
+    jfieldID fid = dm_cls ? (*env)->GetFieldID(env, dm_cls, "density", "F") : NULL;
 
     mrb_int px;
     if (fid == NULL) {
         px = (mrb_int)(value * 1.5 + 0.5);
+        if (dm_cls) (*env)->DeleteLocalRef(env, dm_cls);
     } else {
         jfloat density = (*env)->GetFloatField(env, metrics, fid);
         px = (mrb_int)(value * (double)density + 0.5);
+        (*env)->DeleteLocalRef(env, dm_cls);
     }
-
-    (*env)->DeleteLocalRef(env, dm_cls);
     (*env)->DeleteLocalRef(env, metrics);
+    mrb_gc_arena_restore(mrb, ai);
     return mrb_fixnum_value(px);
 }
-
-/* Bind all methods to the Mrboto module */
 static void mrb_mrboto_define_methods(mrb_state *mrb, struct RClass *mrboto) {
-    mrb_define_method(mrb, mrboto, "_set_content_view", mrb_mrboto_set_content_view, MRB_ARGS_REQ(2));
-    mrb_define_method(mrb, mrboto, "_toast", mrb_mrboto_toast, MRB_ARGS_REQ(3));
-    mrb_define_method(mrb, mrboto, "_start_activity", mrb_mrboto_start_activity, MRB_ARGS_ANY());
-    mrb_define_method(mrb, mrboto, "_get_extra", mrb_mrboto_get_extra, MRB_ARGS_REQ(2));
-    mrb_define_method(mrb, mrboto, "_sp_get_string", mrb_mrboto_sp_get_string, MRB_ARGS_REQ(3));
-    mrb_define_method(mrb, mrboto, "_sp_put_string", mrb_mrboto_sp_put_string, MRB_ARGS_REQ(4));
-    mrb_define_method(mrb, mrboto, "_sp_get_int", mrb_mrboto_sp_get_int, MRB_ARGS_ANY());
-    mrb_define_method(mrb, mrboto, "_sp_put_int", mrb_mrboto_sp_put_int, MRB_ARGS_REQ(4));
-    mrb_define_method(mrb, mrboto, "_app_context", mrb_mrboto_app_context, MRB_ARGS_NONE());
-    mrb_define_method(mrb, mrboto, "_string_res", mrb_mrboto_string_res, MRB_ARGS_REQ(2));
-    mrb_define_method(mrb, mrboto, "_create_view", mrb_mrboto_create_view, MRB_ARGS_REQ(3));
-    mrb_define_method(mrb, mrboto, "_set_on_click", mrb_mrboto_set_on_click, MRB_ARGS_REQ(2));
-    mrb_define_method(mrb, mrboto, "_run_on_ui_thread", mrb_mrboto_run_on_ui_thread, MRB_ARGS_REQ(2));
-    mrb_define_method(mrb, mrboto, "_dp_to_px", mrb_mrboto_dp_to_px, MRB_ARGS_REQ(1));
+    mrb_define_module_function(mrb, mrboto, "_set_content_view", mrb_mrboto_set_content_view, MRB_ARGS_REQ(2));
+    mrb_define_module_function(mrb, mrboto, "_toast", mrb_mrboto_toast, MRB_ARGS_REQ(3));
+    mrb_define_module_function(mrb, mrboto, "_start_activity", mrb_mrboto_start_activity, MRB_ARGS_ANY());
+    mrb_define_module_function(mrb, mrboto, "_get_extra", mrb_mrboto_get_extra, MRB_ARGS_REQ(2));
+    mrb_define_module_function(mrb, mrboto, "_sp_get_string", mrb_mrboto_sp_get_string, MRB_ARGS_REQ(3));
+    mrb_define_module_function(mrb, mrboto, "_sp_put_string", mrb_mrboto_sp_put_string, MRB_ARGS_REQ(4));
+    mrb_define_module_function(mrb, mrboto, "_sp_get_int", mrb_mrboto_sp_get_int, MRB_ARGS_ANY());
+    mrb_define_module_function(mrb, mrboto, "_sp_put_int", mrb_mrboto_sp_put_int, MRB_ARGS_REQ(4));
+    mrb_define_module_function(mrb, mrboto, "_app_context", mrb_mrboto_app_context, MRB_ARGS_NONE());
+    mrb_define_module_function(mrb, mrboto, "_string_res", mrb_mrboto_string_res, MRB_ARGS_REQ(2));
+    mrb_define_module_function(mrb, mrboto, "_create_view", mrb_mrboto_create_view, MRB_ARGS_ANY());
+    mrb_define_module_function(mrb, mrboto, "_set_on_click", mrb_mrboto_set_on_click, MRB_ARGS_REQ(2));
+    mrb_define_module_function(mrb, mrboto, "_run_on_ui_thread", mrb_mrboto_run_on_ui_thread, MRB_ARGS_REQ(2));
+    mrb_define_module_function(mrb, mrboto, "_dp_to_px", mrb_mrboto_dp_to_px, MRB_ARGS_REQ(1));
 }
-
-/* ── Native Methods (called from Kotlin MRuby.kt) ─────────────────── */
-
-/* Forward declarations for mruby method bindings */
-static mrb_value mrb_mrboto_set_content_view(mrb_state *mrb, mrb_value self);
-static mrb_value mrb_mrboto_toast(mrb_state *mrb, mrb_value self);
-static mrb_value mrb_mrboto_start_activity(mrb_state *mrb, mrb_value self);
-static mrb_value mrb_mrboto_get_extra(mrb_state *mrb, mrb_value self);
-static mrb_value mrb_mrboto_sp_get_string(mrb_state *mrb, mrb_value self);
-static mrb_value mrb_mrboto_sp_put_string(mrb_state *mrb, mrb_value self);
-static mrb_value mrb_mrboto_sp_get_int(mrb_state *mrb, mrb_value self);
-static mrb_value mrb_mrboto_sp_put_int(mrb_state *mrb, mrb_value self);
-static mrb_value mrb_mrboto_app_context(mrb_state *mrb, mrb_value self);
-static mrb_value mrb_mrboto_string_res(mrb_state *mrb, mrb_value self);
-static mrb_value mrb_mrboto_create_view(mrb_state *mrb, mrb_value self);
-static mrb_value mrb_mrboto_set_on_click(mrb_state *mrb, mrb_value self);
-static mrb_value mrb_mrboto_run_on_ui_thread(mrb_state *mrb, mrb_value self);
-static void mrb_mrboto_define_methods(mrb_state *mrb, struct RClass *mrboto);
 
 #ifdef __cplusplus
 extern "C" {

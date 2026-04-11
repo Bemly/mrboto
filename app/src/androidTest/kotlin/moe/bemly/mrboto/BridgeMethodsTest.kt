@@ -61,7 +61,7 @@ class BridgeMethodsTest {
     }
 
     @Test
-    fun `_sp_get_int returns nil (stub)`() {
+    fun `sp_get_int returns nil as stub`() {
         val result = mruby.eval("Mrboto._sp_get_int($ctxId, 'test_int_prefs', 'count', 99)")
         // C stub returns nil, not the default value
         assertEquals("nil", result)
@@ -104,16 +104,16 @@ class BridgeMethodsTest {
     fun `_create_view returns positive ID for TextView`() {
         val result = mruby.eval("Mrboto._create_view($ctxId, 'android.widget.TextView', {})")
         val id = result.toIntOrNull()
-        assertNotNull("Should return an integer", id)
-        assertTrue("View ID should be positive", id!! > 0)
+        assertNotNull("Should return an integer, got: $result", id)
+        assertTrue("View ID should be positive, got: $id", id!! > 0)
     }
 
     @Test
     fun `_create_view returns positive ID for LinearLayout`() {
         val result = mruby.eval("Mrboto._create_view($ctxId, 'android.widget.LinearLayout', {})")
         val id = result.toIntOrNull()
-        assertNotNull("Should return an integer", id)
-        assertTrue("View ID should be positive", id!! > 0)
+        assertNotNull("Should return an integer, got: $result", id)
+        assertTrue("View ID should be positive, got: $id", id!! > 0)
     }
 
     // ── _set_on_click ────────────────────────────────────────────────
@@ -143,7 +143,8 @@ class BridgeMethodsTest {
         mruby.eval("Mrboto.current_activity_id = $actId")
         mruby.eval("class TestRUITActivity < Mrboto::JavaObject; end")
         mruby.eval("Mrboto.current_activity = TestRUITActivity.from_registry($actId)")
-        mruby.eval("\$run_result = nil; cid = Mrboto.register_callback { \$run_result = 'executed' }")
+        mruby.eval("\$run_result = nil")
+        mruby.eval("cid = Mrboto.register_callback { \$run_result = 'executed' }")
         val cid = mruby.eval("cid")
         val result = mruby.eval("Mrboto._run_on_ui_thread($actId, $cid)")
         assertEquals("nil", result)
