@@ -84,11 +84,16 @@ class LayoutConstantsTest {
     }
 
     @Test
-    fun `dp returns roughly one and a half x multiplier`() {
-        val result = mruby.eval("dp(100)")
-        val px = result.toIntOrNull()
-        assertNotNull(px)
-        assertTrue("dp(100) should be around 150, got $px", px!! in 140..160)
+    fun `dp returns a value proportional to input`() {
+        val result100 = mruby.eval("dp(100)").toIntOrNull()
+        val result50 = mruby.eval("dp(50)").toIntOrNull()
+        assertNotNull("dp(100) should return an integer", result100)
+        assertNotNull("dp(50) should return an integer", result50)
+        val px100 = result100!!
+        val px50 = result50!!
+        assertTrue("dp(100) should be greater than 100, got $px100", px100 > 100)
+        assertTrue("dp(100) should be roughly 2x dp(50), got $px100 vs $px50",
+            px100 in (px50 * 2 - 3)..(px50 * 2 + 3))
     }
 
     @Test

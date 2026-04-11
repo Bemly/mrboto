@@ -590,7 +590,7 @@ static mrb_value mrb_mrboto_sp_get_string(mrb_state *mrb, mrb_value self) {
 static mrb_value mrb_mrboto_sp_put_string(mrb_state *mrb, mrb_value self) {
     mrb_int context_id;
     const char *name, *key, *value;
-    mrb_get_args(mrb, "izz", &context_id, &name, &key, &value);
+    mrb_get_args(mrb, "izzz", &context_id, &name, &key, &value);
     mrboto_sp_put_string(mrb, (int)context_id, name, key, value);
     return mrb_nil_value();
 }
@@ -719,18 +719,17 @@ static mrb_value mrb_mrboto_set_on_click(mrb_state *mrb, mrb_value self) {
 static mrb_value mrb_mrboto_run_on_ui_thread(mrb_state *mrb, mrb_value self) {
     mrb_int activity_id, callback_id;
     mrb_get_args(mrb, "ii", &activity_id, &callback_id);
-    /* Execute the callback immediately via Ruby-side dispatch_callback.
-     * Using mrb_load_string instead of mrb_funcall because dispatch_callback
-     * is defined in class << self (singleton class) which mrb_funcall
-     * on the module object doesn't find correctly. */
-    char code[128];
-    snprintf(code, sizeof(code), "Mrboto.dispatch_callback(%ld)", (long)callback_id);
-    mrb_value result = mrb_load_string(mrb, code);
-    if (mrb->exc) {
-        mrb->exc = NULL;
+    /* Execute the callback directly via mruby C API instead of
+     * mrb_load_string, to avoid dynamic code generation issues. */
+    mrb_value mrboto_mod = mrb_module_get(mrb, "Mrboto");
+    if (!mrb_nil_p(mrboto_mod)) {
+        mrb_value args[1];
+        args[0] = mrb_fixnum_value((mrb_int)callback_id);
+        mrb_funcall(mrb, mrboto_mod, "dispatch_callback", 1, args);
+        if (mrb->exc) { mrb->exc = NULL; }
     }
-    (void)result;
     (void)activity_id;
+    (void)self;
     return mrb_nil_value();
 }
 
@@ -929,22 +928,15 @@ Java_moe_bemly_mrboto_MRuby_nativeDispatchLifecycle(JNIEnv *env, jobject thiz,
     /* Convert callbackName from jstring to C string */
     const char *cname = (*env)->GetStringUTFChars(env, callbackName, NULL);
 
-    /* Get Mrboto.current_activity. Use mrb_load_string because mrb_funcall
-     * on the module object may not find methods defined in class << self
-     * in mruby 3.4. */
-    mrb_value mrboto_mod = mrb_const_get(mrb, mrb_obj_value(mrb->object_class),
-                                         mrb_intern_lit(mrb, "Mrboto"));
-    mrb_value activity = mrb_funcall(mrb, mrboto_mod, "current_activity", 0);
-    if (mrb->exc) { mrb->exc = NULL; }
-
-    /* If mrb_funcall failed, try via mrb_load_string as fallback */
-    if (mrb_nil_p(activity)) {
-        mrb_value val = mrb_load_string(mrb, "Mrboto.current_activity");
-        if (!mrb->exc && !mrb_nil_p(val)) {
-            activity = val;
-        } else if (mrb->exc) {
-            mrb->exc = NULL;
-        }
+    /* Get Mrboto.current_activity. Use mrb_iv_get directly because
+     * attr_accessor in class << self may not be resolvable via mrb_funcall
+     * on the module object in mruby 3.4. The instance variable @current_activity
+     * is stored on the module itself. */
+    mrb_value mrboto_mod = mrb_module_get(mrb, "Mrboto");
+    mrb_value activity = mrb_nil_value();
+    if (!mrb_nil_p(mrboto_mod)) {
+        mrb_sym iv_name = mrb_intern_lit(mrb, "@current_activity");
+        activity = mrb_iv_get(mrb, mrboto_mod, iv_name);
     }
 
     jstring result = NULL;
