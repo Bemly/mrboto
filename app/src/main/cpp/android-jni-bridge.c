@@ -441,21 +441,44 @@ jobject mrboto_get_app_context(mrb_state *mrb) {
     JNIEnv *env = mrboto_get_env();
     if (env == NULL) return NULL;
 
-    /* Get current ActivityThread's Application */
+    /* Try ActivityThread.currentApplication() first — works reliably in both
+       real app and instrumented test. Falls back to older method if needed. */
     jclass at_cls = (*env)->FindClass(env, "android/app/ActivityThread");
     if (at_cls == NULL) return NULL;
 
-    jmethodID current = (*env)->GetStaticMethodID(env, at_cls, "currentActivityThread",
-                                                  "()Landroid/app/ActivityThread;");
-    jobject at = (*env)->CallStaticObjectMethod(env, at_cls, current);
+    jobject app = NULL;
 
-    jmethodID get_app = (*env)->GetMethodID(env, at_cls, "getApplication",
-                                            "()Landroid/app/Application;");
-    jobject app = (*env)->CallObjectMethod(env, at, get_app);
+    /* Primary: currentApplication() static method */
+    jmethodID current_app = (*env)->GetStaticMethodID(env, at_cls, "currentApplication",
+                                                      "()Landroid/app/Application;");
+    if (current_app != NULL) {
+        app = (*env)->CallStaticObjectMethod(env, at_cls, current_app);
+        if (app != NULL) {
+            app = (*env)->NewGlobalRef(env, app);
+        }
+    }
 
-    (*env)->DeleteLocalRef(env, at);
+    /* Fallback: currentActivityThread().getApplication() */
+    if (app == NULL) {
+        jmethodID current = (*env)->GetStaticMethodID(env, at_cls, "currentActivityThread",
+                                                      "()Landroid/app/ActivityThread;");
+        if (current != NULL) {
+            jobject at = (*env)->CallStaticObjectMethod(env, at_cls, current);
+            if (at != NULL) {
+                jmethodID get_app = (*env)->GetMethodID(env, at_cls, "getApplication",
+                                                        "()Landroid/app/Application;");
+                if (get_app != NULL) {
+                    app = (*env)->CallObjectMethod(env, at, get_app);
+                    if (app != NULL) {
+                        app = (*env)->NewGlobalRef(env, app);
+                    }
+                }
+                (*env)->DeleteLocalRef(env, at);
+            }
+        }
+    }
+
     (*env)->DeleteLocalRef(env, at_cls);
-
     return app;
 }
 
@@ -538,9 +561,45 @@ static mrb_value mrb_mrboto_sp_put_int(mrb_state *mrb, mrb_value self) {
 }
 
 static mrb_value mrb_mrboto_app_context(mrb_state *mrb, mrb_value self) {
-    jobject ctx = mrboto_get_app_context(mrb);
-    if (ctx) return mrboto_wrap_java_object(mrb, mrboto_get_env(), ctx);
-    return mrb_nil_value();
+    JNIEnv *env = mrboto_get_env();
+    if (env == NULL) return mrb_nil_value();
+
+    jclass at_cls = (*env)->FindClass(env, "android/app/ActivityThread");
+    if (at_cls == NULL) return mrb_nil_value();
+
+    jobject app = NULL;
+
+    /* Primary: currentApplication() static method */
+    jmethodID current_app = (*env)->GetStaticMethodID(env, at_cls, "currentApplication",
+                                                      "()Landroid/app/Application;");
+    if (current_app != NULL) {
+        app = (*env)->CallStaticObjectMethod(env, at_cls, current_app);
+    }
+
+    /* Fallback: currentActivityThread().getApplication() */
+    if (app == NULL) {
+        jmethodID current = (*env)->GetStaticMethodID(env, at_cls, "currentActivityThread",
+                                                      "()Landroid/app/ActivityThread;");
+        if (current != NULL) {
+            jobject at = (*env)->CallStaticObjectMethod(env, at_cls, current);
+            if (at != NULL) {
+                jmethodID get_app = (*env)->GetMethodID(env, at_cls, "getApplication",
+                                                        "()Landroid/app/Application;");
+                if (get_app != NULL) {
+                    app = (*env)->CallObjectMethod(env, at, get_app);
+                }
+                (*env)->DeleteLocalRef(env, at);
+            }
+        }
+    }
+
+    mrb_value result = mrb_nil_value();
+    if (app != NULL) {
+        result = mrboto_wrap_java_object(mrb, env, app);
+    }
+
+    (*env)->DeleteLocalRef(env, at_cls);
+    return result;
 }
 
 static mrb_value mrb_mrboto_string_res(mrb_state *mrb, mrb_value self) {

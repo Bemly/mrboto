@@ -100,7 +100,7 @@ class HelpersTest {
 
     @Test
     fun `Helpers module exists`() {
-        assertEquals("true", mruby.eval("defined?(Mrboto::Helpers).to_s"))
+        assertEquals("true", mruby.eval("Mrboto.const_defined?(:Helpers).to_s"))
     }
 
     @Test

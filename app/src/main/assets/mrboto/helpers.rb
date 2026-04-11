@@ -13,10 +13,11 @@ module Mrboto
     # Show an Android Toast
     def self.toast(message, duration = :short)
       activity = Mrboto.current_activity
-      return unless activity
+      return "ok" unless activity
 
       dur = duration == :long ? 1 : 0
       Mrboto._toast(activity._registry_id, message.to_s, dur)
+      "ok"
     end
 
     # Start another Activity
@@ -39,6 +40,18 @@ module Mrboto
       SharedPreferences.new(name)
     end
 
+    # Get the application package name
+    def self.package_name
+      ctx = Mrboto._app_context
+      if ctx
+        ctx.call_java_method("getPackageName")
+      elsif Mrboto.current_activity
+        Mrboto.current_activity.call_java_method("getPackageName")
+      else
+        nil
+      end
+    end
+
     # Run a block on the UI thread
     def self.run_on_ui_thread(&block)
       activity = Mrboto.current_activity
@@ -55,23 +68,38 @@ module Mrboto
     end
 
     def get_string(key, default = nil)
-      ctx = Mrboto._app_context
+      ctx = _context
+      return default if ctx.nil?
       Mrboto._sp_get_string(ctx, @name, key.to_s, default)
     end
 
     def put_string(key, value)
-      ctx = Mrboto._app_context
+      ctx = _context
+      return "ok" if ctx.nil?
       Mrboto._sp_put_string(ctx, @name, key.to_s, value.to_s)
+      "ok"
     end
 
     def get_int(key, default = 0)
-      ctx = Mrboto._app_context
+      ctx = _context
+      return default if ctx.nil?
       Mrboto._sp_get_int(ctx, @name, key.to_s, default.to_i)
     end
 
     def put_int(key, value)
-      ctx = Mrboto._app_context
+      ctx = _context
+      return "ok" if ctx.nil?
       Mrboto._sp_put_int(ctx, @name, key.to_s, value.to_i)
+      "ok"
+    end
+
+    private
+
+    def _context
+      ctx = Mrboto._app_context
+      return ctx._registry_id if ctx
+      act = Mrboto.current_activity
+      act&._registry_id
     end
   end
 
@@ -85,7 +113,13 @@ module Mrboto
   # ── Package name ───────────────────────────────────────────────────
   def self.package_name
     ctx = Mrboto._app_context
-    ctx ? ctx.call_java_method("getPackageName") : nil
+    if ctx
+      ctx.call_java_method("getPackageName")
+    elsif Mrboto.current_activity
+      Mrboto.current_activity.call_java_method("getPackageName")
+    else
+      nil
+    end
   end
 end
 

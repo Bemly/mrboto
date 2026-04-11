@@ -47,5 +47,10 @@ class MrbotoTestRule : TestRule {
                 throw RuntimeException("Failed to load $file: $result")
             }
         }
+        // In instrumented tests, C-side _app_context returns null because
+        // ActivityThread.currentApplication() can't find the Application.
+        // Register the test context and override _app_context to return it as a JavaObject.
+        val ctxId = mruby.registerJavaObject(context)
+        mruby.eval("class << Mrboto; def _app_context; Mrboto::JavaObject.from_registry($ctxId); end; end")
     }
 }
