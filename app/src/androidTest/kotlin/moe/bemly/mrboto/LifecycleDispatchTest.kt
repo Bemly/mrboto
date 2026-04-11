@@ -26,8 +26,8 @@ class LifecycleDispatchTest {
     fun `dispatchLifecycle ok when current_activity is set`() {
         val actId = mruby.registerJavaObject(Any())
         mruby.eval("Mrboto.current_activity_id = $actId")
-        mruby.eval("class TestActivity < Mrboto::JavaObject; end")
-        // Combine into single eval to avoid local variable loss across mrb_load_string calls
+        // Use Mrboto::Activity (which defines on_create) instead of JavaObject
+        mruby.eval("class TestActivity < Mrboto::Activity; end")
         mruby.eval("Mrboto.current_activity = TestActivity.from_registry($actId)")
         val result = mruby.dispatchLifecycle(actId, "on_create")
         assertEquals("ok", result)
