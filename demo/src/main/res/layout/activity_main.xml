@@ -30,7 +30,7 @@
             android:textColor="#00FF00"
             android:fontFamily="monospace"
             android:textSize="13sp"
-            android:text="Tap a button to execute Ruby code.\n\n" />
+            android:text="点击按钮执行嵌入的 Ruby 脚本。\n\n" />
     </ScrollView>
 
     <LinearLayout
@@ -40,10 +40,10 @@
         android:layout_marginTop="8dp"
         android:layout_marginBottom="4dp">
 
-        <Button android:id="@+id/btnBasicArithmetic" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="3+4*2" android:textSize="11sp" />
-        <Button android:id="@+id/btnStringOps" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="String" android:textSize="11sp" />
-        <Button android:id="@+id/btnArrayOps" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Array" android:textSize="11sp" />
-        <Button android:id="@+id/btnFibonacci" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Fib(15)" android:textSize="11sp" />
+        <Button android:id="@+id/btnBasicArithmetic" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="算术" android:textSize="11sp" />
+        <Button android:id="@+id/btnStringOps" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="字符串" android:textSize="11sp" />
+        <Button android:id="@+id/btnArrayOps" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="数组" android:textSize="11sp" />
+        <Button android:id="@+id/btnFibonacci" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="斐波那契" android:textSize="11sp" />
     </LinearLayout>
 
     <LinearLayout
@@ -52,10 +52,9 @@
         android:orientation="horizontal"
         android:layout_marginBottom="4dp">
 
-        <Button android:id="@+id/btnHashOps" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Hash" android:textSize="11sp" />
-        <Button android:id="@+id/btnSyntaxError" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Syntax Err" android:textSize="11sp" />
-        <Button android:id="@+id/btnRuntimeError" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Runtime Err" android:textSize="11sp" />
-        <Button android:id="@+id/btnEvalMrb" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text=".mrb file" android:textSize="11sp" />
+        <Button android:id="@+id/btnHashOps" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="哈希" android:textSize="11sp" />
+        <Button android:id="@+id/btnSyntaxError" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="语法错误" android:textSize="11sp" />
+        <Button android:id="@+id/btnRuntimeError" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="运行错误" android:textSize="11sp" />
     </LinearLayout>
 
     <LinearLayout
@@ -64,9 +63,9 @@
         android:orientation="horizontal"
         android:layout_marginBottom="4dp">
 
-        <Button android:id="@+id/btnMultipleEvals" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Multi-eval" android:textSize="11sp" />
+        <Button android:id="@+id/btnMultiEval" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="多步骤" android:textSize="11sp" />
         <Button android:id="@+id/btnGc" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="GC" android:textSize="11sp" />
-        <Button android:id="@+id/btnClear" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Clear" android:textSize="11sp" />
+        <Button android:id="@+id/btnClear" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="清除" android:textSize="11sp" />
     </LinearLayout>
 
 </LinearLayout>

@@ -7,6 +7,12 @@ import com.mrboto.demo.databinding.ActivityMainBinding
 import com.mrboto.MRuby
 import java.io.IOException
 
+/**
+ * mrboto Demo — 执行嵌入的 Ruby 脚本
+ *
+ * 所有 Ruby 脚本以 .mrb 预编译字节码形式存储在 assets/ 目录中，
+ * 点击按钮时加载并执行对应的字节码文件。
+ */
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
@@ -31,55 +37,41 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupExamples() {
         binding.btnBasicArithmetic.setOnClickListener {
-            appendResult("Basic Arithmetic", mruby.eval("3 + 4 * 2"))
+            runMrb("arithmetic")
         }
 
         binding.btnStringOps.setOnClickListener {
-            appendResult("String Operations",
-                mruby.eval("\"hello world\".upcase.reverse"))
+            runMrb("strings")
         }
 
         binding.btnArrayOps.setOnClickListener {
-            appendResult("Array Operations",
-                mruby.eval("[3, 1, 4, 1, 5].sort.uniq.join(\", \")"))
+            runMrb("arrays")
         }
 
         binding.btnFibonacci.setOnClickListener {
-            appendResult("Fibonacci (recursive)",
-                mruby.eval("""
-                    def fib(n)
-                      n <= 1 ? n : fib(n - 1) + fib(n - 2)
-                    end
-                    fib(15)
-                """.trimIndent()))
+            runMrb("fibonacci")
         }
 
         binding.btnHashOps.setOnClickListener {
-            appendResult("Hash Operations",
-                mruby.eval("{ name: \"mruby\", version: 3.4 }[:name].to_s"))
+            runMrb("hashes")
         }
 
         binding.btnSyntaxError.setOnClickListener {
-            appendResult("Syntax Error Demo",
-                mruby.eval("def foo("))
+            // 语法错误无法预编译，使用运行时 eval 方式
+            appendResult("语法错误", mruby.eval("def foo("))
         }
 
         binding.btnRuntimeError.setOnClickListener {
-            appendResult("Runtime Error Demo",
-                mruby.eval("1 / 0"))
+            runMrb("runtime_error")
         }
 
-        binding.btnEvalMrb.setOnClickListener {
-            loadAndEvalMrb()
-        }
-
-        binding.btnMultipleEvals.setOnClickListener {
-            runMultipleEvals()
+        binding.btnMultiEval.setOnClickListener {
+            runMrb("multi_eval")
         }
 
         binding.btnGc.setOnClickListener {
             mruby.gc()
-            appendResult("Garbage Collection", "GC completed")
+            appendResult("垃圾回收", "GC completed")
         }
 
         binding.btnClear.setOnClickListener {
@@ -87,26 +79,17 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun loadAndEvalMrb() {
+    /**
+     * 从 assets 加载并执行 .mrb 字节码文件。
+     */
+    private fun runMrb(name: String) {
         try {
-            val bytecode = assets.open("hello.mrb").use { it.readBytes() }
+            val bytecode = assets.open("${name}.mrb").use { it.readBytes() }
             val result = mruby.evalBytecode(bytecode)
-            appendResult("Bytecode (hello.mrb)", result)
+            appendResult(name, result)
         } catch (e: IOException) {
-            appendResult("Bytecode Error", "Could not load hello.mrb from assets: ${e.message}")
+            appendResult(name, "Error: 无法加载 ${name}.mrb — ${e.message}")
         }
-    }
-
-    private fun runMultipleEvals() {
-        val sb = StringBuilder()
-
-        sb.appendLine("--- Multiple Evals ---")
-        sb.appendLine("Define variable: ${mruby.eval("x = 42")}")
-        sb.appendLine("Use variable:    ${mruby.eval("x * 2")}")
-        sb.appendLine("Define method:   ${mruby.eval("def double(n); n * 2; end")}")
-        sb.appendLine("Call method:     ${mruby.eval("double(21)")}")
-
-        appendResult("State Persistence", sb.toString().trim())
     }
 
     private fun appendResult(label: String, result: String) {
