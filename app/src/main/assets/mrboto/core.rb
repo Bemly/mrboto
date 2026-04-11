@@ -69,10 +69,6 @@ module Mrboto
   end
 
   # ── Native Methods (implemented in android-jni-bridge.c) ──────────
-  # Most methods are registered on the Mrboto module by C code via mrb_define_method.
-  # Two stubs that are not yet implemented in C:
-
-  def self._java_object_for(id); nil; end
-  def self._call_java_method(id, name, *args); nil; end
-  def self._register_object(obj); nil; end
+  # These are registered by C code via mrb_define_method:
+  # _java_object_for, _call_java_method, _register_object, etc.
 end

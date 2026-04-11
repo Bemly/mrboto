@@ -875,6 +875,166 @@ static mrb_value mrb_mrboto_package_name(mrb_state *mrb, mrb_value self) {
     return mrb_str_new_cstr(mrb, "unknown");
 }
 
+/* ── Java Object Registry Methods ─────────────────────────────────── */
+
+/* Mrboto._register_object(obj) → registry_id
+ * Registers a Java object (passed as mrb Data wrapping a JNI GlobalRef)
+ * and returns its integer registry ID. */
+static mrb_value mrb_mrboto_register_object(mrb_state *mrb, mrb_value self) {
+    mrb_value obj;
+    mrb_get_args(mrb, "o", &obj);
+    if (!mrb_data_p(obj)) {
+        return mrb_fixnum_value(0);
+    }
+    mrboto_data_t *data = (mrboto_data_t *)DATA_PTR(obj);
+    if (data == NULL) return mrb_fixnum_value(0);
+    JNIEnv *env = mrboto_get_env();
+    return mrb_fixnum_value((mrb_int)data->registry_id);
+}
+
+/* Mrboto._java_object_for(registry_id) → JavaObject wrapper
+ * Returns the Ruby-side JavaObject for a given registry ID. */
+static mrb_value mrb_mrboto_java_object_for(mrb_state *mrb, mrb_value self) {
+    mrb_int registry_id;
+    mrb_get_args(mrb, "i", &registry_id);
+    JNIEnv *env = mrboto_get_env();
+    jobject java_obj = mrboto_lookup_ref(env, (int)registry_id);
+    if (java_obj == NULL) return mrb_nil_value();
+    return mrboto_wrap_java_object(mrb, env, java_obj);
+}
+
+/* Mrboto._call_java_method(registry_id, method_name, *args)
+ * Calls a Java method on the object identified by registry_id.
+ * Args can be integers (registry IDs), strings, booleans, or numbers. */
+static mrb_value mrb_mrboto_call_java_method(mrb_state *mrb, mrb_value self) {
+    mrb_int registry_id;
+    const char *method_name;
+    mrb_value *args;
+    mrb_int argc;
+    mrb_get_args(mrb, "iz*", &registry_id, &method_name, &args, &argc);
+
+    JNIEnv *env = mrboto_get_env();
+    if (env == NULL) return mrb_nil_value();
+
+    jobject target = mrboto_lookup_ref(env, (int)registry_id);
+    if (target == NULL) return mrb_nil_value();
+
+    int ai = mrb_gc_arena_save(mrb);
+    mrb_value result = mrb_nil_value();
+
+    jclass cls = (*env)->GetObjectClass(env, target);
+    if (cls != NULL && !(*env)->ExceptionCheck(env)) {
+        /* Build JNI signature and convert args */
+        char sig[256];
+        int pos = snprintf(sig, sizeof(sig), "(");
+        jobject *jni_args = NULL;
+        int arg_count = 0;
+
+        if (argc > 0) {
+            jni_args = (jobject *)malloc(sizeof(jobject) * argc);
+        }
+
+        for (mrb_int i = 0; i < argc; i++) {
+            mrb_value arg = args[i];
+            if (mrb_integer_p(arg)) {
+                pos += snprintf(sig + pos, sizeof(sig) - pos, "J");
+                jvalue jval;
+                jval.j = (jlong)mrb_integer(arg);
+                jni_args[i] = NULL; /* primitive, handle separately */
+            } else if (mrb_true_p(arg)) {
+                pos += snprintf(sig + pos, sizeof(sig) - pos, "Z");
+                jni_args[i] = NULL;
+            } else if (mrb_false_p(arg)) {
+                pos += snprintf(sig + pos, sizeof(sig) - pos, "Z");
+                jni_args[i] = NULL;
+            } else if (mrb_float_p(arg)) {
+                pos += snprintf(sig + pos, sizeof(sig) - pos, "D");
+                jni_args[i] = NULL;
+            } else if (mrb_string_p(arg)) {
+                pos += snprintf(sig + pos, sizeof(sig) - pos, "Ljava/lang/String;");
+                const char *s = mrb_string_value_cstr(mrb, &arg);
+                jni_args[i] = (*env)->NewStringUTF(env, s);
+            } else if (mrb_data_p(arg)) {
+                mrboto_data_t *d = (mrboto_data_t *)DATA_PTR(arg);
+                if (d != NULL) {
+                    /* It's a wrapped JavaObject — get its registry ID and lookup */
+                    jobject jobj = mrboto_lookup_ref(env, d->registry_id);
+                    if (jobj != NULL) {
+                        jni_args[i] = jobj;
+                        /* Get the class name for signature */
+                        jclass acls = (*env)->GetObjectClass(env, jobj);
+                        if (acls != NULL) {
+                            pos += snprintf(sig + pos, sizeof(sig) - pos, "Ljava/lang/Object;");
+                            (*env)->DeleteLocalRef(env, acls);
+                        }
+                    } else {
+                        pos += snprintf(sig + pos, sizeof(sig) - pos, "Ljava/lang/Object;");
+                        jni_args[i] = NULL;
+                    }
+                } else {
+                    pos += snprintf(sig + pos, sizeof(sig) - pos, "Ljava/lang/Object;");
+                    jni_args[i] = NULL;
+                }
+            } else {
+                pos += snprintf(sig + pos, sizeof(sig) - pos, "Ljava/lang/Object;");
+                jni_args[i] = NULL;
+            }
+        }
+        snprintf(sig + pos, sizeof(sig) - pos, ")Ljava/lang/Object;");
+
+        jmethodID mid = (*env)->GetMethodID(env, cls, method_name, sig);
+        if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); }
+
+        if (mid != NULL) {
+            /* Build jvalue array for call */
+            jvalue *jvals = NULL;
+            if (argc > 0) {
+                jvals = (jvalue *)malloc(sizeof(jvalue) * argc);
+                for (mrb_int i = 0; i < argc; i++) {
+                    mrb_value arg = args[i];
+                    if (mrb_integer_p(arg)) {
+                        jvals[i].j = (jlong)mrb_integer(arg);
+                    } else if (mrb_true_p(arg)) {
+                        jvals[i].z = JNI_TRUE;
+                    } else if (mrb_false_p(arg)) {
+                        jvals[i].z = JNI_FALSE;
+                    } else if (mrb_float_p(arg)) {
+                        jvals[i].d = (jdouble)mrb_float(arg);
+                    } else if (mrb_string_p(arg)) {
+                        jvals[i].l = jni_args[i];
+                    } else if (mrb_data_p(arg)) {
+                        jvals[i].l = jni_args[i];
+                    } else {
+                        jvals[i].l = jni_args[i];
+                    }
+                }
+            }
+
+            jobject jresult = (*env)->CallObjectMethodA(env, target, mid, jvals);
+            if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); }
+
+            if (jresult != NULL) {
+                result = mrboto_wrap_java_object(mrb, env, jresult);
+                (*env)->DeleteLocalRef(env, jresult);
+            }
+
+            if (jvals != NULL) free(jvals);
+        }
+
+        /* Clean up JNI string args */
+        for (mrb_int i = 0; i < argc; i++) {
+            if (mrb_string_p(args[i]) && jni_args[i] != NULL) {
+                (*env)->DeleteLocalRef(env, jni_args[i]);
+            }
+        }
+        if (jni_args != NULL) free(jni_args);
+        (*env)->DeleteLocalRef(env, cls);
+    }
+
+    mrb_gc_arena_restore(mrb, ai);
+    return result;
+}
+
 static void mrb_mrboto_define_methods(mrb_state *mrb, struct RClass *mrboto) {
     mrb_define_module_function(mrb, mrboto, "_set_content_view", mrb_mrboto_set_content_view, MRB_ARGS_REQ(2));
     mrb_define_module_function(mrb, mrboto, "_toast", mrb_mrboto_toast, MRB_ARGS_REQ(3));
@@ -891,6 +1051,9 @@ static void mrb_mrboto_define_methods(mrb_state *mrb, struct RClass *mrboto) {
     mrb_define_module_function(mrb, mrboto, "_run_on_ui_thread", mrb_mrboto_run_on_ui_thread, MRB_ARGS_REQ(2));
     mrb_define_module_function(mrb, mrboto, "_dp_to_px", mrb_mrboto_dp_to_px, MRB_ARGS_REQ(1));
     mrb_define_module_function(mrb, mrboto, "_package_name", mrb_mrboto_package_name, MRB_ARGS_NONE());
+    mrb_define_module_function(mrb, mrboto, "_register_object", mrb_mrboto_register_object, MRB_ARGS_REQ(1));
+    mrb_define_module_function(mrb, mrboto, "_java_object_for", mrb_mrboto_java_object_for, MRB_ARGS_REQ(1));
+    mrb_define_module_function(mrb, mrboto, "_call_java_method", mrb_mrboto_call_java_method, MRB_ARGS_ANY());
 }
 
 #ifdef __cplusplus
