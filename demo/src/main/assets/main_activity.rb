@@ -43,3 +43,4 @@ end
 
 # Instantiate and set as current activity
 Mrboto.current_activity = MainActivity.new(Mrboto.current_activity_id)
+Mrboto.current_activity.on_create(nil)

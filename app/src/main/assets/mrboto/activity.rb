@@ -5,7 +5,7 @@
 
 module Mrboto
   class Activity < JavaObject
-    attr_accessor :bundle, :content_view
+    attr_accessor :bundle
 
     def initialize(java_activity_registry_id)
       @_registry_id = java_activity_registry_id
@@ -13,6 +13,15 @@ module Mrboto
       @bundle = nil
       @content_view = nil
     end
+
+    # Override to also call native setContentView
+    def content_view=(view)
+      @content_view = view
+      return unless view.is_a?(View) && view._registry_id
+      Mrboto._set_content_view(@_registry_id, view._registry_id)
+    end
+
+    attr_reader :content_view
 
     # ── Lifecycle Hooks (override in subclasses) ───────────────────
     def on_create(bundle = nil)
