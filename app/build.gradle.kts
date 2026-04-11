@@ -58,9 +58,7 @@ publishing {
             artifactId = "mrboto"
             version = "1.0.0"
 
-            afterEvaluate {
-                from(components["release"])
-            }
+            from(components.getByName("release"))
 
             pom {
                 name.set("mrboto")
