@@ -1,18 +1,15 @@
 plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.android")
+    id("com.android.library")
+    id("maven-publish")
 }
 
 android {
     namespace = "com.mrboto"
-    compileSdk = 35
+    compileSdk = 36
+    ndkVersion = "29.0.14206865"
 
     defaultConfig {
-        applicationId = "com.mrboto"
         minSdk = 33
-        targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
 
         ndk {
             abiFilters += listOf("arm64-v8a", "x86_64")
@@ -27,11 +24,8 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = true
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
+            isMinifyEnabled = false
+            consumerProguardFiles("proguard-rules.pro")
         }
         debug {
             isMinifyEnabled = false
@@ -43,25 +37,41 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
+    tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        }
     }
 
     externalNativeBuild {
         cmake {
             path = file("src/main/cpp/CMakeLists.txt")
-            version = "3.31.0"
+            version = "4.1.2"
         }
-    }
-
-    buildFeatures {
-        viewBinding = true
     }
 }
 
-dependencies {
-    implementation("androidx.core:core-ktx:1.15.0")
-    implementation("androidx.appcompat:appcompat:1.7.0")
-    implementation("com.google.android.material:material:1.12.0")
-    implementation("androidx.constraintlayout:constraintlayout:2.2.0")
+publishing {
+    publications {
+        register<MavenPublication>("release") {
+            groupId = "com.mrboto"
+            artifactId = "mrboto"
+            version = "1.0.0"
+
+            afterEvaluate {
+                from(components["release"])
+            }
+
+            pom {
+                name.set("mrboto")
+                description.set("Embed mruby 3.4.0 in Android applications")
+                licenses {
+                    license {
+                        name.set("MIT")
+                        url.set("https://opensource.org/licenses/MIT")
+                    }
+                }
+            }
+        }
+    }
 }

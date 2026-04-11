@@ -11,17 +11,53 @@
 - 支持 `arm64-v8a` 和 `x86_64` ABI
 - 示例 Demo App，展示 11 种用法
 
+## 使用方式
+
+### 作为 Gradle 依赖
+
+```kotlin
+dependencies {
+    implementation("com.mrboto:mrboto:1.0.0")
+}
+```
+
+### 本地开发 / 发布到本地 Maven
+
+```bash
+./gradlew :mrboto:publishToMavenLocal
+```
+
+然后在你的项目中：
+
+```kotlin
+dependencies {
+    implementation("com.mrboto:mrboto:1.0.0")
+}
+```
+
+### 直接依赖子模块
+
+```kotlin
+// settings.gradle.kts
+include(":mrboto")
+project(":mrboto").projectDir = file("path/to/mrboto")
+
+// app/build.gradle.kts
+dependencies {
+    implementation(project(":mrboto"))
+}
+```
+
 ## 技术栈
 
 | 组件 | 版本 |
 |------|------|
 | mruby | 3.4.0 |
-| Android NDK | r29 |
+| Android NDK | r29 (29.0.14206865) |
 | minSdk | API 33 (Android 13) |
-| targetSdk | API 35 |
-| Kotlin | 2.1.0 |
-| AGP | 8.7.3 |
-| CMake | 3.31 |
+| targetSdk | API 36 |
+| AGP | 9.1.0 |
+| CMake | 4.1.2 |
 
 ## 快速开始
 
@@ -34,7 +70,7 @@
 ### 1. 克隆项目
 
 ```bash
-git clone --recursive https://github.com/YOUR_USERNAME/mrboto.git
+git clone --recursive https://github.com/Bemly/mrboto.git
 cd mrboto
 ```
 
@@ -48,24 +84,22 @@ export ANDROID_NDK_HOME=/path/to/android-ndk-r29
 此脚本会自动：
 - 编译 host 工具 (生成 `mrbc`)
 - 交叉编译 arm64-v8a 和 x86_64 静态库
-- 复制头文件和 `.a` 到 `app/src/main/cpp/mruby/`
+- 复制头文件和 `.a` 到 `mrboto/src/main/cpp/mruby/`
 
 ### 3. 编译 Ruby 脚本为字节码 (可选)
 
 ```bash
-mruby/build/host/bin/mrbc -o app/src/main/assets/hello.mrb hello.rb
+mruby/build/host/bin/mrbc -o demo/src/main/assets/hello.mrb hello.rb
 ```
 
-### 4. 构建 Android 应用
+### 4. 运行 Demo
 
-**Android Studio 方式：**
-1. 打开 Android Studio → Open → 选择项目根目录
-2. 等待 Gradle 同步和 CMake 构建
-3. 点击 Run 按钮
+在 Android Studio 中打开项目，选择 `demo` 配置，点击 Run。
 
-**命令行方式：**
+或在命令行：
+
 ```bash
-./gradlew assembleDebug
+./gradlew :demo:assembleDebug
 ```
 
 ## 使用方法
@@ -106,24 +140,27 @@ MRuby().use { mruby ->
 
 ```
 mrboto/
-├── build_config.rb            # mruby 构建配置
-├── build-android.sh           # 一键构建脚本
-├── hello.rb                   # 示例 Ruby 脚本
-├── app/
-│   ├── build.gradle.kts       # Android 应用构建配置
+├── mrboto/                  # ← Android Library 模块 (可发布为 AAR)
+│   ├── build.gradle.kts     #   com.android.library + maven-publish
+│   ├── proguard-rules.pro
 │   └── src/main/
 │       ├── cpp/
-│       │   ├── CMakeLists.txt # CMake 构建配置
-│       │   ├── native-lib.c   # JNI 桥接层
+│       │   ├── CMakeLists.txt
+│       │   ├── native-lib.c      # JNI 桥接层
 │       │   └── mruby/
-│       │       ├── include/   # mruby 头文件
-│       │       └── lib/       # 预编译静态库 (按 ABI 分类)
-│       ├── kotlin/com/mrboto/
-│       │   ├── MRuby.kt       # Kotlin 封装类
-│       │   └── MainActivity.kt# 示例 Demo
-│       └── assets/
-│           └── hello.mrb      # 预编译 Ruby 字节码
-└── mruby/                     # mruby 3.4.0 git submodule
+│       │       ├── include/      # mruby 头文件
+│       │       └── lib/          # 预编译静态库
+│       └── kotlin/com/mrboto/
+│           └── MRuby.kt          # 公共 API
+├── demo/                    # ← Demo App (展示如何使用 mrboto)
+│   └── src/main/
+│       ├── kotlin/com/mrboto/demo/MainActivity.kt
+│       ├── assets/hello.mrb
+│       └── res/...
+├── build_config.rb          # mruby 构建配置
+├── build-android.sh         # 一键构建脚本
+├── hello.rb                 # 示例 Ruby 脚本
+└── mruby/                   # mruby 3.4.0 git submodule
 ```
 
 ## 架构
@@ -151,10 +188,7 @@ mrboto/
 如果需要修改 `build_config.rb` (添加/删除 gembox) 或升级 mruby 版本：
 
 ```bash
-# 清理旧构建
 cd mruby && rake deep_clean && cd ..
-
-# 重新构建
 ./build-android.sh
 ```
 

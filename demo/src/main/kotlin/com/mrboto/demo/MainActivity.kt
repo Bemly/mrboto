@@ -1,9 +1,10 @@
-package com.mrboto
+package com.mrboto.demo
 
 import android.os.Bundle
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.mrboto.databinding.ActivityMainBinding
+import com.mrboto.demo.databinding.ActivityMainBinding
+import com.mrboto.MRuby
 import java.io.IOException
 
 class MainActivity : AppCompatActivity() {
@@ -16,7 +17,6 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Initialize mruby VM
         try {
             mruby = MRuby()
             binding.tvVersion.text = "mruby version: ${mruby.version()}"
@@ -87,9 +87,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * Load a .mrb bytecode file from assets and execute it.
-     */
     private fun loadAndEvalMrb() {
         try {
             val bytecode = assets.open("hello.mrb").use { it.readBytes() }
@@ -100,9 +97,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * Demonstrate that state persists across multiple eval calls.
-     */
     private fun runMultipleEvals() {
         val sb = StringBuilder()
 
