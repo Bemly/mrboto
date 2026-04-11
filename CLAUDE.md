@@ -125,3 +125,8 @@ Ruby `linear_layout { }` → `Mrboto::Widgets.create_view(class_name, attrs)` �
 - Keep C code simple — no abstractions for one-time operations
 - Kotlin idiomatic style (use `AutoCloseable`, `check()`, extension functions)
 - Auto git commit + push after each change
+
+## Git Workflow
+
+- After every code change (fix, refactor, doc update), commit and push to `origin/main`
+- For wiki changes, commit and push to the wiki repo (`mrboto.wiki.git`) on `master` branch
