@@ -979,28 +979,64 @@ static mrb_value mrb_mrboto_call_java_method(mrb_state *mrb, mrb_value self) {
         return mrb_nil_value();
     }
 
-    /* cls is already a java.lang.Class object (from GetObjectClass).
-     * We can call getMethod directly on it — no FindClass("java/lang/Class") needed. */
-    jmethodID get_method = (*env)->GetMethodID(env, cls, "getMethod",
+    /* Get the java.lang.Class object by calling Object.getClass() on target.
+     * We cannot use GetObjectClass result directly for JNI method calls because
+     * JNI treats jclass as the class being represented, not as a java.lang.Class
+     * instance on which we can call getMethod. Calling getClass() on target
+     * returns the same Class object but as a jobject that JNI handles correctly. */
+    jmethodID get_class_mid = (*env)->GetMethodID(env, cls, "getClass",
+                                                   "()Ljava/lang/Class;");
+    if (get_class_mid == NULL || (*env)->ExceptionCheck(env)) {
+        if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
+        (*env)->DeleteLocalRef(env, cls);
+        mrb_gc_arena_restore(mrb, ai);
+        return mrb_nil_value();
+    }
+    jobject target_class = (*env)->CallObjectMethod(env, target, get_class_mid);
+    (*env)->DeleteLocalRef(env, cls);
+    if (target_class == NULL || (*env)->ExceptionCheck(env)) {
+        if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
+        mrb_gc_arena_restore(mrb, ai);
+        return mrb_nil_value();
+    }
+
+    /* Now target_class is a jobject (java.lang.Class instance) — we can
+     * call getMethod on it via GetMethodID + CallObjectMethod. */
+    jclass class_cls = (*env)->GetObjectClass(env, target_class);
+    if (class_cls == NULL || (*env)->ExceptionCheck(env)) {
+        if (class_cls) (*env)->DeleteLocalRef(env, class_cls);
+        (*env)->ExceptionClear(env);
+        (*env)->DeleteLocalRef(env, target_class);
+        mrb_gc_arena_restore(mrb, ai);
+        return mrb_nil_value();
+    }
+    jmethodID get_method = (*env)->GetMethodID(env, class_cls, "getMethod",
         "(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;");
+    if (get_method == NULL || (*env)->ExceptionCheck(env)) {
+        if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
+        (*env)->DeleteLocalRef(env, class_cls);
+        (*env)->DeleteLocalRef(env, target_class);
+        mrb_gc_arena_restore(mrb, ai);
+        return mrb_nil_value();
+    }
 
     /* Build parameter type array for getMethod */
     jclass string_cls = (*env)->FindClass(env, "java/lang/String");
-    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, cls); mrb_gc_arena_restore(mrb, ai); return mrb_nil_value(); }
+    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, class_cls); (*env)->DeleteLocalRef(env, target_class); mrb_gc_arena_restore(mrb, ai); return mrb_nil_value(); }
     jclass integer_cls = (*env)->FindClass(env, "java/lang/Integer");
-    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, string_cls); (*env)->DeleteLocalRef(env, cls); mrb_gc_arena_restore(mrb, ai); return mrb_nil_value(); }
+    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, string_cls); (*env)->DeleteLocalRef(env, class_cls); (*env)->DeleteLocalRef(env, target_class); mrb_gc_arena_restore(mrb, ai); return mrb_nil_value(); }
     jclass float_cls = (*env)->FindClass(env, "java/lang/Float");
-    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, string_cls); (*env)->DeleteLocalRef(env, integer_cls); (*env)->DeleteLocalRef(env, cls); mrb_gc_arena_restore(mrb, ai); return mrb_nil_value(); }
+    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, string_cls); (*env)->DeleteLocalRef(env, integer_cls); (*env)->DeleteLocalRef(env, class_cls); (*env)->DeleteLocalRef(env, target_class); mrb_gc_arena_restore(mrb, ai); return mrb_nil_value(); }
     jclass boolean_cls = (*env)->FindClass(env, "java/lang/Boolean");
-    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, string_cls); (*env)->DeleteLocalRef(env, integer_cls); (*env)->DeleteLocalRef(env, float_cls); (*env)->DeleteLocalRef(env, cls); mrb_gc_arena_restore(mrb, ai); return mrb_nil_value(); }
+    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, string_cls); (*env)->DeleteLocalRef(env, integer_cls); (*env)->DeleteLocalRef(env, float_cls); (*env)->DeleteLocalRef(env, class_cls); (*env)->DeleteLocalRef(env, target_class); mrb_gc_arena_restore(mrb, ai); return mrb_nil_value(); }
     jclass object_cls = (*env)->FindClass(env, "java/lang/Object");
-    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, string_cls); (*env)->DeleteLocalRef(env, integer_cls); (*env)->DeleteLocalRef(env, float_cls); (*env)->DeleteLocalRef(env, boolean_cls); (*env)->DeleteLocalRef(env, cls); mrb_gc_arena_restore(mrb, ai); return mrb_nil_value(); }
+    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, string_cls); (*env)->DeleteLocalRef(env, integer_cls); (*env)->DeleteLocalRef(env, float_cls); (*env)->DeleteLocalRef(env, boolean_cls); (*env)->DeleteLocalRef(env, class_cls); (*env)->DeleteLocalRef(env, target_class); mrb_gc_arena_restore(mrb, ai); return mrb_nil_value(); }
 
     jobjectArray param_types = NULL;
     jobjectArray java_args = NULL;
 
     if (argc > 0) {
-        param_types = (*env)->NewObjectArray(env, (jsize)argc, cls, object_cls);
+        param_types = (*env)->NewObjectArray(env, (jsize)argc, class_cls, object_cls);
         java_args = (*env)->NewObjectArray(env, (jsize)argc,
                                           object_cls, NULL);
     }
@@ -1049,9 +1085,9 @@ static mrb_value mrb_mrboto_call_java_method(mrb_state *mrb, mrb_value self) {
     /* Convert method name to jstring */
     jstring jmethod_name = (*env)->NewStringUTF(env, method_name);
 
-    /* Call Class.getMethod(name, paramTypes) */
+    /* Call Class.getMethod(name, paramTypes) on target_class */
     if (get_method != NULL && !(*env)->ExceptionCheck(env)) {
-        jobject method = (*env)->CallObjectMethod(env, cls, get_method,
+        jobject method = (*env)->CallObjectMethod(env, target_class, get_method,
                                                    jmethod_name, param_types);
         if ((*env)->ExceptionCheck(env)) {
             (*env)->ExceptionClear(env);
@@ -1076,6 +1112,8 @@ static mrb_value mrb_mrboto_call_java_method(mrb_state *mrb, mrb_value self) {
     }
 
     /* Cleanup */
+    (*env)->DeleteLocalRef(env, class_cls);
+    (*env)->DeleteLocalRef(env, target_class);
     (*env)->DeleteLocalRef(env, jmethod_name);
     if (param_types != NULL) (*env)->DeleteLocalRef(env, param_types);
     if (java_args != NULL) (*env)->DeleteLocalRef(env, java_args);
@@ -1084,7 +1122,6 @@ static mrb_value mrb_mrboto_call_java_method(mrb_state *mrb, mrb_value self) {
     (*env)->DeleteLocalRef(env, float_cls);
     (*env)->DeleteLocalRef(env, boolean_cls);
     (*env)->DeleteLocalRef(env, object_cls);
-    (*env)->DeleteLocalRef(env, cls);
 
     mrb_gc_arena_restore(mrb, ai);
     return result;
