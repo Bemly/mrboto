@@ -74,7 +74,7 @@ Mrboto._ruby_activity_class = MainActivity
 |---|---|
 | Kotlin API | [Wiki](https://github.com/Bemly/mrboto/wiki/Kotlin-API) |
 | Ruby DSL | [Wiki](https://github.com/Bemly/mrboto/wiki/Ruby-DSL) |
-| C Bridge | [Wiki](https://github.com/Bemly/mrboto/wiki/C-Bridge) |
+| C Bridge | [Wiki](https://github.com/Bemly/mrboto/wiki/C-Bridge) / [中文版](https://github.com/Bemly/mrboto/wiki/C-Bridge-zh) |
 | Architecture | [Wiki](https://github.com/Bemly/mrboto/wiki/Architecture) |
 | Testing | [Wiki](https://github.com/Bemly/mrboto/wiki/Testing) |
 

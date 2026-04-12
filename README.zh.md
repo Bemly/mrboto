@@ -68,6 +68,15 @@ end
 Mrboto._ruby_activity_class = MainActivity
 ```
 
+## API 参考
+
+| 文档 | 链接 |
+|---|---|
+| Kotlin API | [Wiki](https://github.com/Bemly/mrboto/wiki/Kotlin-API) |
+| Ruby DSL | [Wiki](https://github.com/Bemly/mrboto/wiki/Ruby-DSL) / [中文版](https://github.com/Bemly/mrboto/wiki/Ruby-DSL-zh) |
+| C Bridge | [Wiki](https://github.com/Bemly/mrboto/wiki/C-Bridge) / [中文版](https://github.com/Bemly/mrboto/wiki/C-Bridge-zh) |
+| 架构 | [Wiki](https://github.com/Bemly/mrboto/wiki/Architecture) / [中文版](https://github.com/Bemly/mrboto/wiki/Architecture-zh) |
+
 ## Ruby DSL 可用方法
 
 | 方法 | 说明 |

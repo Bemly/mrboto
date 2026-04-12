@@ -152,21 +152,58 @@ class BridgeMethodsTest {
         assertEquals("executed", mruby.eval("\$run_result"))
     }
 
-    // ── _java_object_for (stub) ──────────────────────────────────────
+    // ── _java_object_for ─────────────────────────────────────────────
 
     @Test
-    fun `_java_object_for is a stub returning nil`() {
-        val id = mruby.registerJavaObject(Any())
-        val result = mruby.eval("Mrboto._java_object_for($id).nil?.to_s")
-        assertEquals("true", result)
+    fun `_java_object_for returns wrapper for valid ID`() {
+        val id = mruby.registerJavaObject("test object")
+        val result = mruby.eval("Mrboto._java_object_for($id)")
+        assertNotEquals("nil", result)
     }
 
-    // ── _call_java_method (stub) ─────────────────────────────────────
+    @Test
+    fun `_java_object_for returns nil for invalid ID`() {
+        val result = mruby.eval("Mrboto._java_object_for(99999)")
+        assertEquals("nil", result)
+    }
+
+    // ── _call_java_method ────────────────────────────────────────────
 
     @Test
-    fun `_call_java_method is a stub returning nil`() {
+    fun `_call_java_method invokes toString on String object`() {
+        val id = mruby.registerJavaObject("hello")
+        val result = mruby.eval("Mrboto._call_java_method($id, 'toString')")
+        assertEquals("hello", result)
+    }
+
+    @Test
+    fun `_call_java_method returns nil for non-existent method`() {
         val id = mruby.registerJavaObject("test")
-        val result = mruby.eval("Mrboto._call_java_method($id, 'toString').nil?.to_s")
-        assertEquals("true", result)
+        val result = mruby.eval("Mrboto._call_java_method($id, 'nonExistentMethod')")
+        assertEquals("nil", result)
+    }
+
+    @Test
+    fun `_call_java_method with integer argument`() {
+        val sbId = mruby.registerJavaObject(java.lang.StringBuilder())
+        mruby.eval("Mrboto._call_java_method($sbId, 'append', 'test')")
+        val len = mruby.eval("Mrboto._call_java_method($sbId, 'length')")
+        assertEquals("4", len)
+    }
+
+    // ── _register_object ─────────────────────────────────────────────
+
+    @Test
+    fun `_register_object returns registry ID from wrapper`() {
+        val id = mruby.registerJavaObject(Any())
+        mruby.eval("obj = Mrboto._java_object_for($id)")
+        val result = mruby.eval("Mrboto._register_object(obj).to_s")
+        assertEquals(id.toString(), result)
+    }
+
+    @Test
+    fun `_register_object returns 0 for non-data object`() {
+        val result = mruby.eval("Mrboto._register_object(42)")
+        assertEquals("0", result)
     }
 }
