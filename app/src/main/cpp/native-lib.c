@@ -180,20 +180,6 @@ Java_moe_bemly_mrboto_MRuby_nativeClose(JNIEnv *env, jobject thiz, jlong mrbPtr)
     mrb_close(mrb);
 }
 
-/* Context for mrb_protect — pass code string via CPTR */
-typedef struct {
-    mrb_state *mrb;
-    const char *code;
-    mrb_value result;
-} mrboto_eval_ctx_t;
-
-static mrb_value mrboto_safe_load_string(mrb_state *mrb, mrb_value self) {
-    (void)self;
-    mrboto_eval_ctx_t *ctx = (mrboto_eval_ctx_t *)mrb_cptr(self);
-    ctx->result = mrb_load_string(ctx->mrb, ctx->code);
-    return ctx->result;
-}
-
 /**
  * Evaluate a Ruby source code string.
  * @param mrbPtr Native pointer to mrb_state.
@@ -283,29 +269,31 @@ Java_moe_bemly_mrboto_MRuby_nativeEvalBytecode(JNIEnv *env, jobject thiz,
         return (*env)->NewStringUTF(env, "Error: failed to get bytecode array");
     }
 
-    /* Save the GC arena */
-    int ai = mrb_gc_arena_save(mrb);
+    /* Use a fresh temporary VM to isolate from shared VM state */
+    mrb_state *tmp = mrb_open();
+    if (tmp == NULL) {
+        (*env)->ReleaseByteArrayElements(env, bytecode, bytes, JNI_ABORT);
+        return (*env)->NewStringUTF(env, "Error: out of memory");
+    }
 
     /*
      * mrb_load_irep_buf reads the .mrb bytecode buffer and executes it.
      * This is simpler than manually parsing the irep and creating a proc.
      */
-    mrb_value result = mrb_load_irep_buf(mrb, (const void *)bytes, (size_t)len);
+    mrb_value result = mrb_load_irep_buf(tmp, (const void *)bytes, (size_t)len);
 
     (*env)->ReleaseByteArrayElements(env, bytecode, bytes, JNI_ABORT);
 
-    /* Restore the GC arena */
-    mrb_gc_arena_restore(mrb, ai);
-
-    /* Check for exceptions */
-    if (mrb->exc) {
+    /* Convert result to jstring from the temporary VM */
+    jstring jresult;
+    if (tmp->exc) {
         LOGD("Bytecode execution error");
-        return extract_error_message(env, mrb);
+        jresult = extract_error_message(env, tmp);
+    } else {
+        jresult = mrb_value_to_jstring(env, tmp, result);
     }
 
-    jstring jresult = mrb_value_to_jstring(env, mrb, result);
-    mrb_gc_arena_restore(mrb, ai);
-
+    mrb_close(tmp);
     return jresult;
 }
 
