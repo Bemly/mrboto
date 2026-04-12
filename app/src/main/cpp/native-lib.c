@@ -222,46 +222,31 @@ Java_moe_bemly_mrboto_MRuby_nativeEvalString(JNIEnv *env, jobject thiz,
         return (*env)->NewStringUTF(env, "Error: failed to get string UTF chars");
     }
 
-    /* Save the GC arena index so we can restore it after evaluation */
-    int ai = mrb_gc_arena_save(mrb);
+    /*
+     * Create a fresh temporary VM for this eval. This isolates the eval
+     * from any corrupted state in the shared VM (e.g. stale mrb->exc,
+     * arena corruption from previous errors). After eval, we copy the
+     * string result back and discard the temporary VM entirely.
+     */
+    mrb_state *tmp = mrb_open();
+    if (tmp == NULL) {
+        (*env)->ReleaseStringUTFChars(env, code, c_code);
+        return (*env)->NewStringUTF(env, "Error: out of memory");
+    }
 
-    /* Clear any pre-existing exception before loading new code.
-     * mrb_load_string will crash if mrb->exc is already set from a
-     * previous failed eval, because it tries to compile and execute
-     * new code while the VM is in an error state. */
-    mrb->exc = NULL;
-
-    /* Execute via mrb_protect so exceptions during compilation/execution
-     * are caught without crashing. Even though we cleared mrb->exc above,
-     * internal mruby state corruption from a previous error could still
-     * cause mrb_load_string to fail. */
-    mrboto_eval_ctx_t ctx;
-    ctx.mrb = mrb;
-    ctx.code = c_code;
-    ctx.result = mrb_nil_value();
-
-    mrb_bool error = FALSE;
-    mrb_value data = mrb_cptr_value(mrb, &ctx);
-    mrb_protect(mrb, mrboto_safe_load_string, data, &error);
+    mrb_value result = mrb_load_string(tmp, c_code);
 
     (*env)->ReleaseStringUTFChars(env, code, c_code);
 
-    /* Check for exceptions BEFORE restoring GC arena.
-     * mrb->exc is a pointer into GC-managed memory — if we restore
-     * the arena first, the exception object may be freed and
-     * mrb_funcall on it will crash. */
-    if (mrb->exc || error) {
-        LOGD("Ruby evaluation error (exc=%p, error=%d)", (void *)mrb->exc, error);
-        jstring jerr = extract_error_message(env, mrb);
-        mrb_gc_arena_restore(mrb, ai);
-        return jerr;
+    /* Convert result to jstring from the temporary VM */
+    jstring jresult;
+    if (tmp->exc) {
+        jresult = extract_error_message(env, tmp);
+    } else {
+        jresult = mrb_value_to_jstring(env, tmp, result);
     }
 
-    jstring jresult = mrb_value_to_jstring(env, mrb, ctx.result);
-
-    /* Restore the GC arena after creating the result string */
-    mrb_gc_arena_restore(mrb, ai);
-
+    mrb_close(tmp);
     return jresult;
 }
 
