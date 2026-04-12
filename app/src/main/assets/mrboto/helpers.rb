@@ -138,22 +138,22 @@ module Mrboto
 
     # ── Animations ─────────────────────────────────────────────────────
     module Animations
-      def self.fade(view_id, from = 1.0, to = 0.0, duration = 300)
+      def fade(view_id, from = 1.0, to = 0.0, duration = 300)
         activity = Mrboto.current_activity
         return unless activity
         Mrboto._animate_fade(activity._registry_id, view_id, from.to_f, to.to_f, duration.to_i)
         "ok"
       end
 
-      def self.fade_in(view_id, duration = 300)
+      def fade_in(view_id, duration = 300)
         fade(view_id, 0.0, 1.0, duration)
       end
 
-      def self.fade_out(view_id, duration = 300)
+      def fade_out(view_id, duration = 300)
         fade(view_id, 1.0, 0.0, duration)
       end
 
-      def self.translate(view_id, from_x = 0.0, from_y = 0.0, to_x = 0.0, to_y = 0.0, duration = 300)
+      def translate(view_id, from_x = 0.0, from_y = 0.0, to_x = 0.0, to_y = 0.0, duration = 300)
         activity = Mrboto.current_activity
         return unless activity
         Mrboto._animate_translate(activity._registry_id, view_id,
@@ -161,11 +161,11 @@ module Mrboto
         "ok"
       end
 
-      def self.slide_in_bottom(view_id, duration = 300)
+      def slide_in_bottom(view_id, duration = 300)
         translate(view_id, 0.0, view_id.to_f, 0.0, 0.0, duration)
       end
 
-      def self.scale(view_id, from_x = 1.0, from_y = 1.0, to_x = 1.0, to_y = 1.0, duration = 300)
+      def scale(view_id, from_x = 1.0, from_y = 1.0, to_x = 1.0, to_y = 1.0, duration = 300)
         activity = Mrboto.current_activity
         return unless activity
         Mrboto._animate_scale(activity._registry_id, view_id,
@@ -173,9 +173,11 @@ module Mrboto
         "ok"
       end
 
-      def self.pulse(view_id, factor = 1.2, duration = 200)
+      def pulse(view_id, factor = 1.2, duration = 200)
         scale(view_id, 1.0, 1.0, factor.to_f, factor.to_f, duration)
       end
+
+      module_function :fade, :fade_in, :fade_out, :translate, :slide_in_bottom, :scale, :pulse
     end
   end
 end
