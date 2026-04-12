@@ -26,6 +26,39 @@ module Mrboto
       web_view:       'android.webkit.WebView',
       frame_layout:   'android.widget.FrameLayout',
       table_layout:   'android.widget.TableLayout',
+      # Standard controls
+      seek_bar:       'android.widget.SeekBar',
+      rating_bar:     'android.widget.RatingBar',
+      auto_complete_text_view: 'android.widget.AutoCompleteTextView',
+      search_view:    'android.widget.SearchView',
+      toolbar:        'androidx.appcompat.widget.Toolbar',
+      number_picker:  'android.widget.NumberPicker',
+      date_picker:    'android.widget.DatePicker',
+      time_picker:    'android.widget.TimePicker',
+      calendar_view:  'android.widget.CalendarView',
+      video_view:     'android.widget.VideoView',
+      chronometer:    'android.widget.Chronometer',
+      text_clock:     'android.widget.TextClock',
+      # Container controls
+      grid_view:      'android.widget.GridView',
+      list_view:      'android.widget.ListView',
+      nested_scroll_view: 'androidx.core.widget.NestedScrollView',
+      horizontal_scroll_view: 'android.widget.HorizontalScrollView',
+      view_pager:     'androidx.viewpager.widget.ViewPager',
+      tab_layout:     'com.google.android.material.tabs.TabLayout',
+      view_switcher:  'android.widget.ViewSwitcher',
+      # Material Design controls
+      floating_action_button: 'com.google.android.material.floatingactionbutton.FloatingActionButton',
+      material_button: 'com.google.android.material.button.MaterialButton',
+      card_view:      'com.google.android.material.card.MaterialCardView',
+      text_input_layout: 'com.google.android.material.textfield.TextInputLayout',
+      text_input_edit_text: 'com.google.android.material.textfield.TextInputEditText',
+      bottom_navigation_view: 'com.google.android.material.bottomnavigation.BottomNavigationView',
+      app_bar_layout: 'com.google.android.material.appbar.AppBarLayout',
+      # New dependency containers
+      drawer_layout:  'androidx.drawerlayout.widget.DrawerLayout',
+      coordinator_layout: 'androidx.coordinatorlayout.widget.CoordinatorLayout',
+      navigation_view: 'com.google.android.material.navigation.NavigationView',
     }
 
     # Reverse map: java class name → Ruby widget name
@@ -321,6 +354,266 @@ module Mrboto
   class ScrollView < ViewGroup; end
   class RelativeLayout < ViewGroup; end
   class FrameLayout < ViewGroup; end
+
+  # ── Standard Controls ────────────────────────────────────────────
+  class SeekBar < View
+    def progress=(val)
+      Mrboto._call_java_method(@_registry_id, 'setProgress', val.to_i)
+    end
+
+    def max=(val)
+      Mrboto._call_java_method(@_registry_id, 'setMax', val.to_i)
+    end
+  end
+
+  class RatingBar < View
+    def rating=(val)
+      Mrboto._call_java_method(@_registry_id, 'setRating', val.to_f)
+    end
+
+    def step_size=(val)
+      Mrboto._call_java_method(@_registry_id, 'setStepSize', val.to_f)
+    end
+
+    def max=(val)
+      Mrboto._call_java_method(@_registry_id, 'setMax', val.to_i)
+    end
+  end
+
+  class AutoCompleteTextView < EditText; end
+
+  class SearchView < View
+    def query=(val)
+      Mrboto._call_java_method(@_registry_id, 'setQuery', val.to_s, false)
+    end
+
+    def hint=(val)
+      Mrboto._call_java_method(@_registry_id, 'setQueryHint', val.to_s)
+    end
+  end
+
+  class Toolbar < ViewGroup
+    def title=(val)
+      Mrboto._call_java_method(@_registry_id, 'setTitle', val.to_s)
+    end
+
+    def subtitle=(val)
+      Mrboto._call_java_method(@_registry_id, 'setSubtitle', val.to_s)
+    end
+  end
+
+  class NumberPicker < View
+    def min_value=(val)
+      Mrboto._call_java_method(@_registry_id, 'setMinValue', val.to_i)
+    end
+
+    def max_value=(val)
+      Mrboto._call_java_method(@_registry_id, 'setMaxValue', val.to_i)
+    end
+
+    def value=(val)
+      Mrboto._call_java_method(@_registry_id, 'setValue', val.to_i)
+    end
+  end
+
+  class DatePicker < View
+    def date=(val)
+      # val: [year, month, day]
+      return unless val.is_a?(Array) && val.size == 3
+      Mrboto._call_java_method(@_registry_id, 'updateDate', val[0], val[1] - 1, val[2])
+    end
+  end
+
+  class TimePicker < View
+    def time=(val)
+      # val: [hour, minute]
+      return unless val.is_a?(Array) && val.size == 2
+      Mrboto._call_java_method(@_registry_id, 'setHour', val[0])
+      Mrboto._call_java_method(@_registry_id, 'setMinute', val[1])
+    end
+  end
+
+  class CalendarView < View
+    def date=(val)
+      # val: Time object or epoch milliseconds
+      ms = val.respond_to?(:to_i) ? val.to_i * 1000 : val.to_i
+      Mrboto._call_java_method(@_registry_id, 'setDate', ms)
+    end
+  end
+
+  class VideoView < View
+    def video_path=(val)
+      Mrboto._call_java_method(@_registry_id, 'setVideoPath', val.to_s)
+    end
+
+    def start
+      Mrboto._call_java_method(@_registry_id, 'start')
+    end
+
+    def pause
+      Mrboto._call_java_method(@_registry_id, 'pause')
+    end
+
+    def stop
+      Mrboto._call_java_method(@_registry_id, 'stopPlayback')
+    end
+  end
+
+  class Chronometer < View
+    def start
+      Mrboto._call_java_method(@_registry_id, 'start')
+    end
+
+    def stop
+      Mrboto._call_java_method(@_registry_id, 'stop')
+    end
+
+    def format=(val)
+      Mrboto._call_java_method(@_registry_id, 'setFormat', val.to_s)
+    end
+  end
+
+  class TextClock < View
+    def format_12_hour=(val)
+      Mrboto._call_java_method(@_registry_id, 'setFormat12Hour', val.to_s)
+    end
+
+    def format_24_hour=(val)
+      Mrboto._call_java_method(@_registry_id, 'setFormat24Hour', val.to_s)
+    end
+  end
+
+  # ── Additional Containers ────────────────────────────────────────
+  class GridView < ViewGroup
+    def num_columns=(val)
+      Mrboto._call_java_method(@_registry_id, 'setNumColumns', val.to_i)
+    end
+  end
+
+  class ListView < ViewGroup; end
+
+  class NestedScrollView < ViewGroup; end
+
+  class HorizontalScrollView < ViewGroup; end
+
+  class ViewPager < ViewGroup
+    def current_item=(val)
+      Mrboto._call_java_method(@_registry_id, 'setCurrentItem', val.to_i)
+    end
+  end
+
+  class TabLayout < ViewGroup
+    def selected_tab=(val)
+      Mrboto._call_java_method(@_registry_id, 'setScrollPosition', val.to_i, 0, true)
+    end
+
+    def tab_mode=(val)
+      mode = case val
+             when :fixed then 1  # MODE_FIXED
+             when :scrollable then 0  # MODE_SCROLLABLE
+             else 0
+             end
+      Mrboto._call_java_method(@_registry_id, 'setTabMode', mode)
+    end
+
+    def tab_gravity=(val)
+      g = case val
+          when :fill then 1  # GRAVITY_FILL
+          when :center then 0  # GRAVITY_CENTER
+          when :auto then -1  # GRAVITY_AUTO
+          else -1
+          end
+      Mrboto._call_java_method(@_registry_id, 'setTabGravity', g)
+    end
+  end
+
+  class ViewSwitcher < ViewGroup
+    def show_next
+      Mrboto._call_java_method(@_registry_id, 'showNext')
+    end
+
+    def show_previous
+      Mrboto._call_java_method(@_registry_id, 'showPrevious')
+    end
+  end
+
+  # ── Material Design Controls ─────────────────────────────────────
+  class FloatingActionButton < View
+    def src=(res_id)
+      Mrboto._call_java_method(@_registry_id, 'setImageResource', res_id)
+    end
+
+    def ripple_color=(val)
+      color = case val
+              when Integer then val
+              when String
+                v = val.to_i(16)
+                v < 0x1000000 ? (0xFF000000 | v) : v
+              else 0xFF000000
+              end
+      Mrboto._call_java_method(@_registry_id, 'setRippleColorResource', color)
+    end
+  end
+
+  class MaterialButton < Button
+    def icon=(res_id)
+      Mrboto._call_java_method(@_registry_id, 'setIconResource', res_id)
+    end
+
+    def ripple_color=(val)
+      color = case val
+              when Integer then val
+              when String
+                v = val.to_i(16)
+                v < 0x1000000 ? (0xFF000000 | v) : v
+              else 0xFF000000
+              end
+      Mrboto._call_java_method(@_registry_id, 'setRippleColorResource', color)
+    end
+  end
+
+  class CardView < ViewGroup
+    def card_elevation=(val)
+      px = dp(val)
+      Mrboto._call_java_method(@_registry_id, 'setCardElevation', px)
+    end
+
+    def card_corner_radius=(val)
+      px = dp(val)
+      Mrboto._call_java_method(@_registry_id, 'setRadius', px)
+    end
+  end
+
+  class TextInputLayout < ViewGroup
+    def hint=(val)
+      Mrboto._call_java_method(@_registry_id, 'setHint', val.to_s)
+    end
+
+    def error=(val)
+      Mrboto._call_java_method(@_registry_id, 'setError', val.to_s)
+    end
+  end
+
+  class TextInputEditText < EditText; end
+
+  class BottomNavigationView < ViewGroup
+    def selected_item=(val)
+      Mrboto._call_java_method(@_registry_id, 'setSelectedItemId', val.to_i)
+    end
+  end
+
+  class AppBarLayout < ViewGroup; end
+
+  # ── New Dependency Containers ────────────────────────────────────
+  class DrawerLayout < ViewGroup; end
+
+  class CoordinatorLayout < ViewGroup; end
+
+  class NavigationView < ViewGroup
+    def menu_item=(res_id)
+      Mrboto._call_java_method(@_registry_id, 'inflateMenu', res_id)
+    end
+  end
 
   # ── Top-level DSL Methods ────────────────────────────────────────
   # These make widget creation natural: linear_layout { ... }

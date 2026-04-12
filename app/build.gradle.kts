@@ -50,12 +50,19 @@ android {
             version = "4.1.2"
         }
     }
-    dependencies {
-        androidTestImplementation("androidx.test.ext:junit:1.2.1")
-        androidTestImplementation("androidx.test:runner:1.6.2")
-        androidTestImplementation("androidx.test:rules:1.6.1")
-        androidTestImplementation("org.jetbrains.kotlin:kotlin-test-junit:2.1.0")
-    }
+}
+
+dependencies {
+    api("androidx.core:core-ktx:1.18.0")
+    api("androidx.appcompat:appcompat:1.7.1")
+    api("com.google.android.material:material:1.13.0")
+    api("androidx.drawerlayout:drawerlayout:1.3.0")
+    api("androidx.coordinatorlayout:coordinatorlayout:1.3.0")
+    api("androidx.viewpager:viewpager:1.2.0")
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.test:runner:1.6.2")
+    androidTestImplementation("androidx.test:rules:1.6.1")
+    androidTestImplementation("org.jetbrains.kotlin:kotlin-test-junit:2.1.0")
 }
 
 publishing {

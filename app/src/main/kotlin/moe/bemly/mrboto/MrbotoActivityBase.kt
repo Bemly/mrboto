@@ -4,6 +4,13 @@ import android.app.Activity
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.view.animation.Animation
+import android.view.animation.AlphaAnimation
+import android.view.animation.TranslateAnimation
+import android.view.animation.ScaleAnimation
+import com.google.android.material.snackbar.Snackbar
+import androidx.appcompat.app.AlertDialog
+import android.widget.PopupMenu
 import moe.bemly.mrboto.MrbotoCheckChangeListener
 import moe.bemly.mrboto.MrbotoClickListener
 import moe.bemly.mrboto.MrbotoTextWatcher
@@ -207,5 +214,128 @@ abstract class MrbotoActivityBase : Activity() {
             Log.w(TAG, "evalRuby failed: ${e.message}")
             "Error: ${e.message}"
         }
+    }
+
+    // ── Dialog / Snackbar / Popup helpers ─────────────────────────
+
+    /**
+     * Show an AlertDialog. Called from Ruby via
+     * call_java_method("showDialog", title, message, buttons_json).
+     * buttons_json: JSON array of button labels, or null for single OK.
+     */
+    fun showDialog(title: CharSequence, message: CharSequence, buttonsJson: CharSequence?) {
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle(title)
+        builder.setMessage(message)
+
+        if (buttonsJson.isNullOrEmpty()) {
+            builder.setPositiveButton("OK") { d, _ -> d.dismiss() }
+        } else {
+            try {
+                val labels = org.json.JSONArray(buttonJson.toString())
+                if (labels.length() >= 2) {
+                    builder.setPositiveButton(labels.getString(0)) { d, _ -> d.dismiss() }
+                    builder.setNegativeButton(labels.getString(1)) { d, _ -> d.dismiss() }
+                    if (labels.length() >= 3) {
+                        builder.setNeutralButton(labels.getString(2)) { d, _ -> d.dismiss() }
+                    }
+                } else {
+                    builder.setPositiveButton(labels.getString(0)) { d, _ -> d.dismiss() }
+                }
+            } catch (e: Exception) {
+                builder.setPositiveButton("OK") { d, _ -> d.dismiss() }
+            }
+        }
+
+        builder.setCancelable(true)
+        builder.show()
+    }
+
+    /**
+     * Show a Snackbar. Called from Ruby via
+     * call_java_method("showSnackbar", viewRegistryId, message, duration).
+     */
+    fun showSnackbar(viewRegistryId: Int, message: CharSequence, duration: Int) {
+        val view = mruby.lookupJavaObject<View>(viewRegistryId)
+            ?: return
+        val dur = if (duration == 1) Snackbar.LENGTH_LONG else Snackbar.LENGTH_SHORT
+        Snackbar.make(view, message, dur).show()
+    }
+
+    /**
+     * Show a PopupMenu. Called from Ruby via
+     * call_java_method("showPopupMenu", anchorRegistryId, items_json).
+     * items_json: JSON array of item labels.
+     * Returns item index (0-based) or -1 on dismiss/error.
+     */
+    fun showPopupMenu(anchorRegistryId: Int, itemsJson: CharSequence) {
+        val anchor = mruby.lookupJavaObject<View>(anchorRegistryId)
+            ?: return
+        val popup = PopupMenu(this, anchor)
+        try {
+            val items = org.json.JSONArray(itemsJson.toString())
+            for (i in 0 until items.length()) {
+                popup.menu.add(0, i, 0, items.getString(i))
+            }
+        } catch (e: Exception) {
+            return
+        }
+        popup.setOnMenuItemClickListener { item ->
+            val callbackId = popup.javaClass.getDeclaredMethod("hashCode").let {
+                item.itemId
+            }
+            mruby.eval("Mrboto.dispatch_popup_select($callbackId, '${item.title}')")
+            true
+        }
+        popup.show()
+    }
+
+    // ── Animation helpers ──────────────────────────────────────────
+
+    /**
+     * Run a fade animation on a view.
+     * Called from Ruby: call_java_method("animateFade", viewRegistryId, fromAlpha, toAlpha, durationMs)
+     */
+    fun animateFade(viewRegistryId: Int, fromAlpha: Double, toAlpha: Double, durationMs: Long) {
+        val view = mruby.lookupJavaObject<View>(viewRegistryId)
+            ?: return
+        val anim = AlphaAnimation(fromAlpha.toFloat(), toAlpha.toFloat())
+        anim.duration = durationMs
+        anim.fillAfter = true
+        view.startAnimation(anim)
+    }
+
+    /**
+     * Run a translate animation on a view.
+     * Called from Ruby: call_java_method("animateTranslate", viewRegistryId, fromX, fromY, toX, toY, durationMs)
+     */
+    fun animateTranslate(viewRegistryId: Int, fromX: Double, fromY: Double, toX: Double, toY: Double, durationMs: Long) {
+        val view = mruby.lookupJavaObject<View>(viewRegistryId)
+            ?: return
+        val anim = TranslateAnimation(
+            fromX.toFloat(), toX.toFloat(),
+            fromY.toFloat(), toY.toFloat()
+        )
+        anim.duration = durationMs
+        anim.fillAfter = true
+        view.startAnimation(anim)
+    }
+
+    /**
+     * Run a scale animation on a view.
+     * Called from Ruby: call_java_method("animateScale", viewRegistryId, fromX, fromY, toX, toY, durationMs)
+     */
+    fun animateScale(viewRegistryId: Int, fromX: Double, fromY: Double, toX: Double, toY: Double, durationMs: Long) {
+        val view = mruby.lookupJavaObject<View>(viewRegistryId)
+            ?: return
+        val anim = ScaleAnimation(
+            fromX.toFloat(), toX.toFloat(),
+            fromY.toFloat(), toY.toFloat(),
+            Animation.RELATIVE_TO_SELF, 0.5f,
+            Animation.RELATIVE_TO_SELF, 0.5f
+        )
+        anim.duration = durationMs
+        anim.fillAfter = true
+        view.startAnimation(anim)
     }
 }

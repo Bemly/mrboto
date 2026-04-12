@@ -24,10 +24,10 @@ Architecture:
   - `layout.rb` — MATCH_PARENT, WRAP_CONTENT, Gravity, Orientation, dp()
   - `activity.rb` — Mrboto::Activity with lifecycle hooks, set_content_view
   - `widgets.rb` — Widget builders (linear_layout, button, text_view, etc.) + top-level DSL
-  - `helpers.rb` — toast, start_activity, get_extra, shared_preferences, run_on_ui_thread
+  - `helpers.rb` — toast, start_activity, get_extra, shared_preferences, run_on_ui_thread, dialog, snackbar, popup_menu, animations
 - `demo/` — Demo app showing Ruby-driven Activities
 - `mruby/` — git submodule at tag 3.4.0
-- `app/src/androidTest/kotlin/moe/bemly/mrboto/` — instrumented test suite (95+ tests)
+- `app/src/androidTest/kotlin/moe/bemly/mrboto/` — instrumented test suite (170+ tests)
 
 ## Common Tasks
 
@@ -69,6 +69,9 @@ cd mruby && rake deep_clean && cd ..
 - `androidx.appcompat:appcompat:1.7.1`
 - `com.google.android.material:material:1.13.0`
 - `androidx.constraintlayout:constraintlayout:2.2.1`
+- `androidx.drawerlayout:drawerlayout:1.3.0`
+- `androidx.coordinatorlayout:coordinatorlayout:1.3.0`
+- `androidx.viewpager:viewpager:1.2.0`
 
 ## Important Constraints
 
@@ -117,9 +120,9 @@ Ruby `linear_layout { }` → `Mrboto::Widgets.create_view(class_name, attrs)` �
 | `RegistryStressTest.kt` | 6 | sequential IDs, 4096 capacity limit, overflow rejection |
 | `LayoutConstantsTest.kt` | 16 | MATCH_PARENT, WRAP_CONTENT, Gravity, Orientation, dp() |
 | `ActivityClassTest.kt` | 11 | Activity instantiation, content_view, title, lifecycle hooks |
-| `WidgetsTest.kt` | 22 | Widget creation, attributes, nesting, View.from_registry |
+| `WidgetsTest.kt` | 74 | Widget creation, attributes, nesting, View.from_registry, 29 new widget hierarchy, 13 method existence, 10 functional tests |
 | `CallbackDispatchTest.kt` | 8 | register_callback, dispatch_callback, dispatch_text_changed, dispatch_checked |
-| `HelpersTest.kt` | 10 | toast, SharedPreferences, package_name |
+| `HelpersTest.kt` | 24 | toast, SharedPreferences, package_name, dialog, snackbar, popup_menu, animations |
 | `LifecycleDispatchTest.kt` | 7 | dispatchLifecycle, accessors, hook ordering |
 
 ## Style Guidelines

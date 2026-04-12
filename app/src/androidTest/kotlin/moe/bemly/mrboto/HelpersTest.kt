@@ -109,4 +109,103 @@ class HelpersTest {
         val result = mruby.eval("Mrboto::Helpers.toast('Helper toast'); 'ok'")
         assertEquals("ok", result)
     }
+
+    // ── Dialog Tests ──────────────────────────────────────────────
+
+    @Test
+    fun `dialog does not crash with no buttons`() {
+        setupActivity()
+        val result = mruby.eval("dialog('Title', 'Message'); 'ok'")
+        assertEquals("ok", result)
+    }
+
+    @Test
+    fun `dialog does not crash with buttons`() {
+        setupActivity()
+        val result = mruby.eval("dialog('Title', 'Message', ['Yes', 'No']); 'ok'")
+        assertEquals("ok", result)
+    }
+
+    @Test
+    fun `Helpers dialog does not crash`() {
+        setupActivity()
+        val result = mruby.eval("Mrboto::Helpers.dialog('T', 'M', ['OK']); 'ok'")
+        assertEquals("ok", result)
+    }
+
+    // ── Snackbar Tests ────────────────────────────────────────────
+
+    @Test
+    fun `snackbar does not crash`() {
+        setupActivity()
+        val ctxId = mruby.eval("Mrboto._test_ctx_id")
+        val result = mruby.eval("snackbar($ctxId, 'Hello Snackbar'); 'ok'")
+        assertEquals("ok", result)
+    }
+
+    @Test
+    fun `snackbar with long duration does not crash`() {
+        setupActivity()
+        val ctxId = mruby.eval("Mrboto._test_ctx_id")
+        val result = mruby.eval("snackbar($ctxId, 'Long Snackbar', :long); 'ok'")
+        assertEquals("ok", result)
+    }
+
+    // ── PopupMenu Tests ───────────────────────────────────────────
+
+    @Test
+    fun `popup_menu does not crash`() {
+        setupActivity()
+        val ctxId = mruby.eval("Mrboto._test_ctx_id")
+        val result = mruby.eval("popup_menu($ctxId, ['Item 1', 'Item 2', 'Item 3']); 'ok'")
+        assertEquals("ok", result)
+    }
+
+    @Test
+    fun `popup_menu with nil items returns nil`() {
+        setupActivity()
+        val result = mruby.eval("popup_menu(1, nil).nil?.to_s")
+        assertEquals("true", result)
+    }
+
+    // ── Animation Tests ───────────────────────────────────────────
+
+    @Test
+    fun `fade does not crash`() {
+        setupActivity()
+        val ctxId = mruby.eval("Mrboto._test_ctx_id")
+        val result = mruby.eval("fade($ctxId, 0.0, 1.0, 200); 'ok'")
+        assertEquals("ok", result)
+    }
+
+    @Test
+    fun `translate does not crash`() {
+        setupActivity()
+        val ctxId = mruby.eval("Mrboto._test_ctx_id")
+        val result = mruby.eval("translate($ctxId, 0.0, 100.0, 0.0, 0.0, 200); 'ok'")
+        assertEquals("ok", result)
+    }
+
+    @Test
+    fun `scale does not crash`() {
+        setupActivity()
+        val ctxId = mruby.eval("Mrboto._test_ctx_id")
+        val result = mruby.eval("scale($ctxId, 1.0, 1.0, 1.2, 1.2, 200); 'ok'")
+        assertEquals("ok", result)
+    }
+
+    @Test
+    fun `Animations module exists`() {
+        assertEquals("true", mruby.eval("Mrboto::Helpers.const_defined?(:Animations).to_s"))
+    }
+
+    @Test
+    fun `fade_in helper exists`() {
+        assertEquals("true", mruby.eval("Mrboto::Helpers::Animations.instance_methods.include?(:fade_in).to_s"))
+    }
+
+    @Test
+    fun `pulse helper exists`() {
+        assertEquals("true", mruby.eval("Mrboto::Helpers::Animations.instance_methods.include?(:pulse).to_s"))
+    }
 }
