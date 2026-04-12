@@ -175,7 +175,7 @@ abstract class MrbotoActivityBase : Activity() {
      */
     fun loadAssetScript(path: CharSequence): String {
         val script = assets.open(path.toString()).bufferedReader().use { it.readText() }
-        return mruby.loadScript(script)
+        return mruby.eval(script)
     }
 
     /**
