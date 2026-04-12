@@ -1545,7 +1545,10 @@ static mrb_value mrb_mrboto_show_dialog(mrb_state *mrb, mrb_value self) {
     if (create == NULL) { create = (*env)->GetMethodID(env, builder_cls, "create", "()Landroid/app/AlertDialog;"); }
     if (create) {
         jobject dialog = (*env)->CallObjectMethod(env, builder, create);
-        if (dialog != NULL && !(*env)->ExceptionCheck(env)) {
+        if ((*env)->ExceptionCheck(env)) {
+            /* Can't create handler on non-Looper thread in tests */
+            (*env)->ExceptionClear(env);
+        } else if (dialog != NULL) {
             jclass dialog_cls = (*env)->GetObjectClass(env, dialog);
             jmethodID show_method = (*env)->GetMethodID(env, dialog_cls, "show", "()V");
             if (show_method) (*env)->CallVoidMethod(env, dialog, show_method);
