@@ -31,6 +31,7 @@
 /* ── Global State ─────────────────────────────────────────────────── */
 
 static JavaVM *g_java_vm = NULL;
+static struct RClass *g_java_object_class = NULL;
 static mrboto_ref_registry_t g_registry = { {0}, {0}, 1 };
 
 mrboto_ref_registry_t *mrboto_registry(void) { return &g_registry; }
@@ -105,7 +106,7 @@ mrb_value mrboto_wrap_java_object(mrb_state *mrb, JNIEnv *env, jobject obj) {
     data->registry_id = id;
 
     /* Wrap as Ruby Data object */
-    struct RData *rdata = mrb_data_object_alloc(mrb, NULL, data, &mrboto_java_object_type);
+    struct RData *rdata = mrb_data_object_alloc(mrb, g_java_object_class, data, &mrboto_java_object_type);
     mrb_value val = mrb_obj_value(rdata);
     return val;
 }
@@ -1124,7 +1125,7 @@ Java_moe_bemly_mrboto_MRuby_nativeRegisterAndroidClasses(JNIEnv *env, jobject th
 
     /* Define JavaObject class under Mrboto */
     struct RClass *java_obj = mrb_define_class_under(mrb, mrboto, "JavaObject", mrb->object_class);
-    (void)java_obj; /* methods defined on Ruby side via core.rb */
+    g_java_object_class = java_obj; /* store for mrb_data_object_alloc in wrap */
 
     /* Bind native methods to Mrboto module */
     mrb_mrboto_define_methods(mrb, mrboto);
