@@ -201,11 +201,11 @@ class HelpersTest {
 
     @Test
     fun `fade_in_helper_exists`() {
-        assertEquals("true", mruby.eval("Mrboto::Helpers::Animations.instance_methods.include?(:fade_in).to_s"))
+        assertEquals("true", mruby.eval("Mrboto::Helpers::Animations.singleton_methods.include?(:fade_in).to_s"))
     }
 
     @Test
     fun `pulse_helper_exists`() {
-        assertEquals("true", mruby.eval("Mrboto::Helpers::Animations.instance_methods.include?(:pulse).to_s"))
+        assertEquals("true", mruby.eval("Mrboto::Helpers::Animations.singleton_methods.include?(:pulse).to_s"))
     }
 }
