@@ -1,6 +1,8 @@
 package moe.bemly.mrboto
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import androidx.test.core.app.ApplicationProvider
 import org.junit.rules.TestRule
 import org.junit.runner.Description
@@ -27,11 +29,35 @@ class MrbotoTestRule : TestRule {
                 try {
                     base.evaluate()
                 } finally {
+                    // Clear animation on the test View BEFORE closing the VM,
+                    // so we can still look up the View object
+                    clearTestViewAnimation()
                     mruby.close()
                     mruby.clearRegistry()
+                    drainPendingOperations()
                 }
             }
         }
+    }
+
+    private var testViewId: Int = 0
+    private var testViewRef: android.view.View? = null
+
+    private fun clearTestViewAnimation() {
+        testViewRef?.clearAnimation()
+    }
+
+    private fun drainPendingOperations() {
+        // Post a no-op to the main thread and wait — this ensures all
+        // previously posted messages (animation frames, dialog callbacks,
+        // etc.) from the prior test are fully processed before the next
+        // test starts.
+        val latch = java.util.concurrent.CountDownLatch(1)
+        Handler(Looper.getMainLooper()).post { latch.countDown() }
+        latch.await(500, java.util.concurrent.TimeUnit.MILLISECONDS)
+
+        // Trigger GC to clean up any dangling JNI references
+        System.gc()
     }
 
     private fun loadCoreScripts() {
@@ -58,7 +84,8 @@ class MrbotoTestRule : TestRule {
 
         // Create a simple View for snackbar/popup/animation tests
         val testView = android.view.View(context)
-        val viewId = mruby.registerJavaObject(testView)
-        mruby.eval("Mrboto._test_view_id = $viewId")
+        testViewRef = testView
+        testViewId = mruby.registerJavaObject(testView)
+        mruby.eval("Mrboto._test_view_id = $testViewId")
     }
 }
