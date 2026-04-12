@@ -888,7 +888,7 @@ static mrb_value mrb_mrboto_register_object(mrb_state *mrb, mrb_value self) {
     }
     mrboto_data_t *data = (mrboto_data_t *)DATA_PTR(obj);
     if (data == NULL) return mrb_fixnum_value(0);
-    JNIEnv *env = mrboto_get_env();
+    (void)mrb; /* env not needed — registry ID is already stored in data */
     return mrb_fixnum_value((mrb_int)data->registry_id);
 }
 
@@ -903,15 +903,63 @@ static mrb_value mrb_mrboto_java_object_for(mrb_state *mrb, mrb_value self) {
     return mrboto_wrap_java_object(mrb, env, java_obj);
 }
 
+/* ── Helper: Convert mruby value to JNI jobject for reflection call ── */
+
+static jobject mrboto_mruby_to_java_arg(JNIEnv *env, mrb_state *mrb, mrb_value arg) {
+    if (mrb_integer_p(arg)) {
+        /* Pass as Integer for reflection (auto-unboxed by JVM) */
+        jclass int_cls = (*env)->FindClass(env, "java/lang/Integer");
+        if (int_cls == NULL) { (*env)->ExceptionClear(env); return NULL; }
+        jmethodID init = (*env)->GetMethodID(env, int_cls, "<init>", "(I)V");
+        if (init == NULL) { (*env)->DeleteLocalRef(env, int_cls); return NULL; }
+        jobject obj = (*env)->NewObject(env, int_cls, init, (jint)mrb_integer(arg));
+        (*env)->DeleteLocalRef(env, int_cls);
+        return obj;
+    }
+#ifndef MRB_NO_FLOAT
+    if (mrb_float_p(arg)) {
+        jclass float_cls = (*env)->FindClass(env, "java/lang/Float");
+        if (float_cls == NULL) { (*env)->ExceptionClear(env); return NULL; }
+        jmethodID init = (*env)->GetMethodID(env, float_cls, "<init>", "(F)V");
+        if (init == NULL) { (*env)->DeleteLocalRef(env, float_cls); return NULL; }
+        jobject obj = (*env)->NewObject(env, float_cls, init, (jfloat)mrb_float(arg));
+        (*env)->DeleteLocalRef(env, float_cls);
+        return obj;
+    }
+#endif
+    if (mrb_true_p(arg) || mrb_false_p(arg)) {
+        jclass bool_cls = (*env)->FindClass(env, "java/lang/Boolean");
+        if (bool_cls == NULL) { (*env)->ExceptionClear(env); return NULL; }
+        jmethodID init = (*env)->GetMethodID(env, bool_cls, "<init>", "(Z)V");
+        if (init == NULL) { (*env)->DeleteLocalRef(env, bool_cls); return NULL; }
+        jobject obj = (*env)->NewObject(env, bool_cls, init, mrb_true_p(arg) ? JNI_TRUE : JNI_FALSE);
+        (*env)->DeleteLocalRef(env, bool_cls);
+        return obj;
+    }
+    if (mrb_string_p(arg)) {
+        const char *s = mrb_string_value_cstr(mrb, &arg);
+        return (*env)->NewStringUTF(env, s);
+    }
+    if (mrb_data_p(arg)) {
+        mrboto_data_t *d = (mrboto_data_t *)DATA_PTR(arg);
+        if (d != NULL) {
+            return mrboto_lookup_ref(env, d->registry_id);
+        }
+    }
+    return NULL;
+}
+
 /* Mrboto._call_java_method(registry_id, method_name, *args)
  * Calls a Java method on the object identified by registry_id.
- * Args can be integers (registry IDs), strings, booleans, or numbers. */
+ * Uses Java reflection (Class.getMethod + Method.invoke) to avoid
+ * needing exact JNI type signatures. */
 static mrb_value mrb_mrboto_call_java_method(mrb_state *mrb, mrb_value self) {
     mrb_int registry_id;
     const char *method_name;
     mrb_value *args;
     mrb_int argc;
     mrb_get_args(mrb, "iz*", &registry_id, &method_name, &args, &argc);
+    (void)self;
 
     JNIEnv *env = mrboto_get_env();
     if (env == NULL) return mrb_nil_value();
@@ -923,113 +971,114 @@ static mrb_value mrb_mrboto_call_java_method(mrb_state *mrb, mrb_value self) {
     mrb_value result = mrb_nil_value();
 
     jclass cls = (*env)->GetObjectClass(env, target);
-    if (cls != NULL && !(*env)->ExceptionCheck(env)) {
-        /* Build JNI signature and convert args */
-        char sig[256];
-        int pos = snprintf(sig, sizeof(sig), "(");
-        jobject *jni_args = NULL;
-        int arg_count = 0;
-
-        if (argc > 0) {
-            jni_args = (jobject *)malloc(sizeof(jobject) * argc);
-        }
-
-        for (mrb_int i = 0; i < argc; i++) {
-            mrb_value arg = args[i];
-            if (mrb_integer_p(arg)) {
-                pos += snprintf(sig + pos, sizeof(sig) - pos, "J");
-                jvalue jval;
-                jval.j = (jlong)mrb_integer(arg);
-                jni_args[i] = NULL; /* primitive, handle separately */
-            } else if (mrb_true_p(arg)) {
-                pos += snprintf(sig + pos, sizeof(sig) - pos, "Z");
-                jni_args[i] = NULL;
-            } else if (mrb_false_p(arg)) {
-                pos += snprintf(sig + pos, sizeof(sig) - pos, "Z");
-                jni_args[i] = NULL;
-            } else if (mrb_float_p(arg)) {
-                pos += snprintf(sig + pos, sizeof(sig) - pos, "D");
-                jni_args[i] = NULL;
-            } else if (mrb_string_p(arg)) {
-                pos += snprintf(sig + pos, sizeof(sig) - pos, "Ljava/lang/String;");
-                const char *s = mrb_string_value_cstr(mrb, &arg);
-                jni_args[i] = (*env)->NewStringUTF(env, s);
-            } else if (mrb_data_p(arg)) {
-                mrboto_data_t *d = (mrboto_data_t *)DATA_PTR(arg);
-                if (d != NULL) {
-                    /* It's a wrapped JavaObject — get its registry ID and lookup */
-                    jobject jobj = mrboto_lookup_ref(env, d->registry_id);
-                    if (jobj != NULL) {
-                        jni_args[i] = jobj;
-                        /* Get the class name for signature */
-                        jclass acls = (*env)->GetObjectClass(env, jobj);
-                        if (acls != NULL) {
-                            pos += snprintf(sig + pos, sizeof(sig) - pos, "Ljava/lang/Object;");
-                            (*env)->DeleteLocalRef(env, acls);
-                        }
-                    } else {
-                        pos += snprintf(sig + pos, sizeof(sig) - pos, "Ljava/lang/Object;");
-                        jni_args[i] = NULL;
-                    }
-                } else {
-                    pos += snprintf(sig + pos, sizeof(sig) - pos, "Ljava/lang/Object;");
-                    jni_args[i] = NULL;
-                }
-            } else {
-                pos += snprintf(sig + pos, sizeof(sig) - pos, "Ljava/lang/Object;");
-                jni_args[i] = NULL;
-            }
-        }
-        snprintf(sig + pos, sizeof(sig) - pos, ")Ljava/lang/Object;");
-
-        jmethodID mid = (*env)->GetMethodID(env, cls, method_name, sig);
-        if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); }
-
-        if (mid != NULL) {
-            /* Build jvalue array for call */
-            jvalue *jvals = NULL;
-            if (argc > 0) {
-                jvals = (jvalue *)malloc(sizeof(jvalue) * argc);
-                for (mrb_int i = 0; i < argc; i++) {
-                    mrb_value arg = args[i];
-                    if (mrb_integer_p(arg)) {
-                        jvals[i].j = (jlong)mrb_integer(arg);
-                    } else if (mrb_true_p(arg)) {
-                        jvals[i].z = JNI_TRUE;
-                    } else if (mrb_false_p(arg)) {
-                        jvals[i].z = JNI_FALSE;
-                    } else if (mrb_float_p(arg)) {
-                        jvals[i].d = (jdouble)mrb_float(arg);
-                    } else if (mrb_string_p(arg)) {
-                        jvals[i].l = jni_args[i];
-                    } else if (mrb_data_p(arg)) {
-                        jvals[i].l = jni_args[i];
-                    } else {
-                        jvals[i].l = jni_args[i];
-                    }
-                }
-            }
-
-            jobject jresult = (*env)->CallObjectMethodA(env, target, mid, jvals);
-            if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); }
-
-            if (jresult != NULL) {
-                result = mrboto_wrap_java_object(mrb, env, jresult);
-                (*env)->DeleteLocalRef(env, jresult);
-            }
-
-            if (jvals != NULL) free(jvals);
-        }
-
-        /* Clean up JNI string args */
-        for (mrb_int i = 0; i < argc; i++) {
-            if (mrb_string_p(args[i]) && jni_args[i] != NULL) {
-                (*env)->DeleteLocalRef(env, jni_args[i]);
-            }
-        }
-        if (jni_args != NULL) free(jni_args);
-        (*env)->DeleteLocalRef(env, cls);
+    if (cls == NULL || (*env)->ExceptionCheck(env)) {
+        if (cls) (*env)->DeleteLocalRef(env, cls);
+        (*env)->ExceptionClear(env);
+        mrb_gc_arena_restore(mrb, ai);
+        return mrb_nil_value();
     }
+
+    /* Build parameter type array for getMethod */
+    jclass string_cls = (*env)->FindClass(env, "java/lang/String");
+    jclass integer_cls = (*env)->FindClass(env, "java/lang/Integer");
+    jclass float_cls = (*env)->FindClass(env, "java/lang/Float");
+    jclass boolean_cls = (*env)->FindClass(env, "java/lang/Boolean");
+    jclass object_cls = (*env)->FindClass(env, "java/lang/Object");
+
+    jobjectArray param_types = NULL;
+    jobjectArray java_args = NULL;
+
+    if (argc > 0) {
+        param_types = (*env)->NewObjectArray(env, (jsize)argc,
+                                            (*env)->FindClass(env, "java/lang/Class"),
+                                            object_cls);
+        java_args = (*env)->NewObjectArray(env, (jsize)argc,
+                                          object_cls, NULL);
+    }
+
+    for (mrb_int i = 0; i < argc; i++) {
+        mrb_value arg = args[i];
+        jobject jarg = NULL;
+        jclass param_type = object_cls;
+
+        if (mrb_integer_p(arg)) {
+            param_type = integer_cls;
+        }
+#ifndef MRB_NO_FLOAT
+        else if (mrb_float_p(arg)) {
+            param_type = float_cls;
+        }
+#endif
+        else if (mrb_true_p(arg) || mrb_false_p(arg)) {
+            param_type = boolean_cls;
+        } else if (mrb_string_p(arg)) {
+            param_type = string_cls;
+        } else if (mrb_data_p(arg)) {
+            /* Wrapped JavaObject — use actual class for reflection */
+            mrboto_data_t *d = (mrboto_data_t *)DATA_PTR(arg);
+            if (d != NULL) {
+                jobject jobj = mrboto_lookup_ref(env, d->registry_id);
+                if (jobj != NULL) {
+                    param_type = (*env)->GetObjectClass(env, jobj);
+                    (*env)->DeleteLocalRef(env, jobj);
+                }
+            }
+        }
+
+        jarg = mrboto_mruby_to_java_arg(env, mrb, arg);
+        (*env)->SetObjectArrayElement(env, param_types, (jsize)i, param_type);
+        (*env)->SetObjectArrayElement(env, java_args, (jsize)i, jarg);
+        if (jarg != NULL && !mrb_data_p(arg)) {
+            /* Don't delete refs for JavaObject lookups (they're not new refs) */
+            if (mrb_string_p(arg) || mrb_integer_p(arg) || mrb_float_p(arg) ||
+                mrb_true_p(arg) || mrb_false_p(arg)) {
+                (*env)->DeleteLocalRef(env, jarg);
+            }
+        }
+    }
+
+    /* Convert method name to jstring */
+    jstring jmethod_name = (*env)->NewStringUTF(env, method_name);
+
+    /* Call Class.getMethod(name, paramTypes) */
+    jmethodID get_method = (*env)->GetMethodID(env, cls, "getMethod",
+        "(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;");
+
+    if (get_method != NULL && !(*env)->ExceptionCheck(env)) {
+        jobject method = (*env)->CallObjectMethod(env, cls, get_method,
+                                                   jmethod_name, param_types);
+        if ((*env)->ExceptionCheck(env)) {
+            (*env)->ExceptionClear(env);
+        } else if (method != NULL) {
+            /* Call Method.invoke(target, javaArgs) */
+            jclass method_cls = (*env)->GetObjectClass(env, method);
+            jmethodID invoke = (*env)->GetMethodID(env, method_cls, "invoke",
+                "(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;");
+            if (invoke != NULL && !(*env)->ExceptionCheck(env)) {
+                jobject jresult = (*env)->CallObjectMethod(env, method, invoke,
+                                                            target, java_args);
+                if ((*env)->ExceptionCheck(env)) {
+                    (*env)->ExceptionClear(env);
+                } else if (jresult != NULL) {
+                    result = mrboto_wrap_java_object(mrb, env, jresult);
+                    (*env)->DeleteLocalRef(env, jresult);
+                }
+            }
+            (*env)->DeleteLocalRef(env, method_cls);
+            (*env)->DeleteLocalRef(env, method);
+        }
+    }
+
+    /* Cleanup */
+    (*env)->DeleteLocalRef(env, jmethod_name);
+    if (param_types != NULL) (*env)->DeleteLocalRef(env, param_types);
+    if (java_args != NULL) (*env)->DeleteLocalRef(env, java_args);
+    (*env)->DeleteLocalRef(env, string_cls);
+    (*env)->DeleteLocalRef(env, integer_cls);
+    (*env)->DeleteLocalRef(env, float_cls);
+    (*env)->DeleteLocalRef(env, boolean_cls);
+    (*env)->DeleteLocalRef(env, object_cls);
+    (*env)->DeleteLocalRef(env, cls);
 
     mrb_gc_arena_restore(mrb, ai);
     return result;

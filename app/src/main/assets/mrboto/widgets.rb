@@ -43,7 +43,8 @@ module Mrboto
       # Wrap with the correct Ruby class based on the Java class name
       widget_name = CLASS_TO_WIDGET[class_name]
       wrapper = if widget_name
-                  widget_class = Object.const_get(widget_name.to_s.gsub(/_(.)/) { $1.upcase.capitalize }.gsub(/^./) { |c| c.downcase })
+                  camel = widget_name.to_s.gsub(/_(.)/) { $1.upcase }.capitalize
+                  widget_class = Mrboto.const_get(camel)
                   widget_class.from_registry(view_id)
                 else
                   View.from_registry(view_id)
