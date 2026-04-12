@@ -113,7 +113,7 @@ mrb_value mrb_mrboto_register_object(mrb_state *mrb, mrb_value self) {
     return mrb_fixnum_value((mrb_int)data->registry_id);
 }
 
-/* Mrboto._java_object_for(registry_id) → JavaObject wrapper
+/* Mrboto._java_object_for(registry_id) → JavaObject wrapper */
 
 mrb_value mrb_mrboto_java_object_for(mrb_state *mrb, mrb_value self) {
     mrb_int registry_id;

@@ -49,4 +49,9 @@ int mrboto_register_java_object(mrb_state *mrb, JNIEnv *env, jobject obj);
 /* The mruby class for JavaObject — needed for mrb_data_object_alloc */
 extern struct RClass *g_java_object_class;
 
+/* Internal struct stored inside mruby Data objects */
+typedef struct {
+    int registry_id;
+} mrboto_data_t;
+
 #endif /* JNI_REGISTRY_H */
