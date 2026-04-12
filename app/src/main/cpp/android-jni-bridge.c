@@ -12,6 +12,7 @@
 #include <jni.h>
 #include <android/log.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <mruby.h>
 #include <mruby/data.h>
 #include <mruby/hash.h>
@@ -1232,50 +1233,97 @@ static mrb_value mrb_mrboto_view_text(mrb_state *mrb, mrb_value self) {
     (void)self;
 
     JNIEnv *env = mrboto_get_env();
-    if (env == NULL) return mrb_nil_value();
+    if (env == NULL) { LOGE("_view_text: env is NULL"); return mrb_nil_value(); }
 
     jobject view = mrboto_lookup_ref(env, (int)registry_id);
-    if (view == NULL) return mrb_nil_value();
+    if (view == NULL) { LOGE("_view_text: view lookup failed for id=%d", (int)registry_id); return mrb_nil_value(); }
 
     int ai = mrb_gc_arena_save(mrb);
 
     jclass view_cls = (*env)->GetObjectClass(env, view);
-    jmethodID get_text = view_cls ? (*env)->GetMethodID(env, view_cls, "getText",
-        "()Landroid/text/Editable;") : NULL;
+    if (view_cls == NULL || (*env)->ExceptionCheck(env)) {
+        if (view_cls) (*env)->DeleteLocalRef(env, view_cls);
+        (*env)->ExceptionClear(env);
+        mrb_gc_arena_restore(mrb, ai);
+        LOGE("_view_text: GetObjectClass failed");
+        return mrb_nil_value();
+    }
+
+    /* Get the class name for debugging */
+    jmethodID get_name = (*env)->GetMethodID(env, view_cls, "getClass", "()Ljava/lang/Class;");
+    if (get_name) {
+        jclass cls_of_cls = (*env)->GetObjectClass(env, view_cls);
+        if (cls_of_cls) {
+            jmethodID get_simple_name = (*env)->GetMethodID(env, cls_of_cls, "getSimpleName", "()Ljava/lang/String;");
+            if (get_simple_name) {
+                jobject class_obj = (*env)->CallObjectMethod(env, view, get_name);
+                if (class_obj) {
+                    jclass cobj_cls = (*env)->GetObjectClass(env, class_obj);
+                    jmethodID cobj_get_name = (*env)->GetMethodID(env, cobj_cls, "getSimpleName", "()Ljava/lang/String;");
+                    if (cobj_get_name) {
+                        jstring name = (jstring)(*env)->CallObjectMethod(env, class_obj, cobj_get_name);
+                        if (name) {
+                            const char *s = (*env)->GetStringUTFChars(env, name, NULL);
+                            LOGI("_view_text: view class=%s id=%d", s, (int)registry_id);
+                            (*env)->ReleaseStringUTFChars(env, name, s);
+                            (*env)->DeleteLocalRef(env, name);
+                        }
+                    }
+                    (*env)->DeleteLocalRef(env, cobj_cls);
+                    (*env)->DeleteLocalRef(env, class_obj);
+                }
+            }
+            (*env)->DeleteLocalRef(env, cls_of_cls);
+        }
+    }
+
+    /* Try getText with Editable return type first, then CharSequence fallback.
+     * TextView.getText() returns Editable, but some subclasses declare CharSequence. */
+    jmethodID get_text = (*env)->GetMethodID(env, view_cls, "getText",
+        "()Landroid/text/Editable;");
+    if (get_text == NULL) {
+        (*env)->ExceptionClear(env);
+        get_text = (*env)->GetMethodID(env, view_cls, "getText",
+            "()Ljava/lang/CharSequence;");
+    }
     if (get_text == NULL) {
         (*env)->ExceptionClear(env);
         (*env)->DeleteLocalRef(env, view_cls);
+        LOGE("_view_text: getText method not found");
         mrb_gc_arena_restore(mrb, ai);
         return mrb_nil_value();
     }
 
-    jobject editable = (*env)->CallObjectMethod(env, view, get_text);
+    jobject text_obj = (*env)->CallObjectMethod(env, view, get_text);
+    LOGI("_view_text: text_obj=%p", text_obj);
     if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, view_cls); mrb_gc_arena_restore(mrb, ai); return mrb_nil_value(); }
 
-    /* Use TextUtils.toString(editable) — safe for CharSequence → String */
+    /* Use TextUtils.toString(textObj) — safe for CharSequence/Editable → String,
+     * and handles null by returning empty string. */
     jclass tu_cls = (*env)->FindClass(env, "android/text/TextUtils");
     jmethodID tu_to_str = tu_cls ? (*env)->GetStaticMethodID(env, tu_cls, "toString",
         "(Ljava/lang/CharSequence;)Ljava/lang/String;") : NULL;
-    if (tu_to_str == NULL) {
-        (*env)->ExceptionClear(env);
-        (*env)->DeleteLocalRef(env, view_cls);
-        mrb_gc_arena_restore(mrb, ai);
-        return mrb_nil_value();
-    }
+    if (tu_to_str == NULL) { (*env)->ExceptionClear(env); }
 
-    jstring jstr = (jstring)(*env)->CallStaticObjectMethod(env, tu_cls, tu_to_str, editable);
-    const char *str = NULL;
-    if (jstr != NULL) {
-        str = (*env)->GetStringUTFChars(env, jstr, NULL);
+    mrb_value result = mrb_nil_value();
+    if (tu_cls && tu_to_str) {
+        jstring jstr = (jstring)(*env)->CallStaticObjectMethod(env, tu_cls, tu_to_str, text_obj);
+        LOGI("_view_text: TextUtils.toString => jstr=%p", jstr);
+        if (jstr != NULL && !(*env)->ExceptionCheck(env)) {
+            const char *str = (*env)->GetStringUTFChars(env, jstr, NULL);
+            if (str != NULL) {
+                result = mrb_str_new_cstr(mrb, str);
+                (*env)->ReleaseStringUTFChars(env, jstr, str);
+            }
+            (*env)->DeleteLocalRef(env, jstr);
+        }
+        (*env)->DeleteLocalRef(env, tu_cls);
+    } else {
+        LOGE("_view_text: TextUtils or toString not found");
     }
-
-    mrb_value result = str ? mrb_str_new_cstr(mrb, str) : mrb_nil_value();
-    if (str) (*env)->ReleaseStringUTFChars(env, jstr, str);
 
     (*env)->DeleteLocalRef(env, view_cls);
-    if (jstr) (*env)->DeleteLocalRef(env, jstr);
-    if (editable) (*env)->DeleteLocalRef(env, editable);
-    if (tu_cls) (*env)->DeleteLocalRef(env, tu_cls);
+    if (text_obj) (*env)->DeleteLocalRef(env, text_obj);
 
     mrb_gc_arena_restore(mrb, ai);
     return result;
@@ -1454,7 +1502,11 @@ Java_moe_bemly_mrboto_MRuby_nativeLoadScript(JNIEnv *env, jobject thiz,
         mrb_value msg = mrb_funcall(mrb, mrb_obj_value(mrb->exc), "message", 0);
         if (mrb_string_p(msg)) {
             const char *s = mrb_string_value_cstr(mrb, &msg);
-            jresult = (*env)->NewStringUTF(env, s);
+            char buf[512];
+            snprintf(buf, sizeof(buf), "Error: %s", s);
+            jresult = (*env)->NewStringUTF(env, buf);
+        } else {
+            jresult = (*env)->NewStringUTF(env, "Error: unknown error");
         }
         mrb->exc = NULL;
     } else if (mrb_string_p(result)) {
