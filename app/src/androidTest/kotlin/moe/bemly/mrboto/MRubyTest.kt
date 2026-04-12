@@ -78,27 +78,29 @@ class MRubyTest {
     }
 
     @Test
-    fun `loadScript returns ok for valid script`() {
+    fun `loadScript returns result for valid script`() {
         val result = mruby.loadScript("x = 1 + 2")
-        assertEquals("ok", result)
+        assertFalse("Should not return error", result.startsWith("Error:"))
+        assertEquals("3", result)
     }
 
     @Test
     fun `loadScript returns error for invalid script`() {
         val result = mruby.loadScript("invalid_syntax {{{")
-        assertTrue("Expected error, got: $result", result.isNotEmpty() && result != "ok")
+        assertTrue("Expected error, got: $result", result.startsWith("Error:"))
     }
 
     @Test
-    fun `loadScript can define and call method`() {
+    fun `loadScript can define and use method`() {
         val result = mruby.loadScript(
             """
             def add(a, b)
               a + b
             end
+            add(3, 4)
             """.trimIndent()
         )
-        assertEquals("ok", result)
-        assertEquals("7", mruby.eval("add(3, 4).to_s"))
+        assertEquals("7", result)
+        assertEquals("10", mruby.eval("add(6, 4).to_s"))
     }
 }

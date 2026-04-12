@@ -89,7 +89,7 @@ class MRuby : AutoCloseable {
     /**
      * Load and execute a Ruby source script.
      *
-     * @return "ok" on success, or error message
+     * @return actual evaluation result (last expression), or error message
      */
     fun loadScript(script: String): String {
         check(mrbPtr != 0L) { "mruby VM is not open" }

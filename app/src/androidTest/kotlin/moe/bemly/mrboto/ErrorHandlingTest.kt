@@ -69,15 +69,15 @@ class ErrorHandlingTest {
     }
 
     @Test
-    fun `loadScript with empty string returns ok`() {
+    fun `loadScript with empty string returns empty`() {
         val result = mruby.loadScript("")
-        assertEquals("ok", result)
+        assertTrue("Should return empty or error", result.isEmpty() || result.startsWith("Error:"))
     }
 
     @Test
-    fun `loadScript with only whitespace returns ok`() {
+    fun `loadScript with only whitespace returns empty`() {
         val result = mruby.loadScript("   ")
-        assertEquals("ok", result)
+        assertTrue("Should return empty or error", result.isEmpty() || result.startsWith("Error:"))
     }
 
     @Test

@@ -191,6 +191,65 @@ class BridgeMethodsTest {
         assertEquals("4", len)
     }
 
+    // ── _eval ────────────────────────────────────────────────────────
+
+    @Test
+    fun `_eval returns actual expression result`() {
+        val result = mruby.eval("Mrboto._eval('1 + 2')")
+        assertEquals("3", result)
+    }
+
+    @Test
+    fun `_eval returns string concatenation`() {
+        val result = mruby.eval("Mrboto._eval('\"hello\" + \" world\"')")
+        assertEquals("hello world", result)
+    }
+
+    @Test
+    fun `_eval returns error message for syntax error`() {
+        val result = mruby.eval("Mrboto._eval('def broken(')")
+        assertNotEquals("ok", result)
+        assertTrue("Should contain error info", result.isNotEmpty())
+    }
+
+    @Test
+    fun `_eval returns nil for nil expression`() {
+        val result = mruby.eval("Mrboto._eval('nil')")
+        assertEquals("nil", result)
+    }
+
+    @Test
+    fun `_eval defines and uses method across calls`() {
+        mruby.eval("Mrboto._eval('def double(x); x * 2; end')")
+        val result = mruby.eval("Mrboto._eval('double(21)')")
+        assertEquals("42", result)
+    }
+
+    // ── _view_text ───────────────────────────────────────────────────
+
+    @Test
+    fun `_view_text returns text of TextView`() {
+        val viewId = mruby.eval("Mrboto._create_view($ctxId, 'android.widget.TextView', {})")
+        mruby.eval("Mrboto._call_java_method($viewId, 'setText', 'hello')")
+        val result = mruby.eval("Mrboto._view_text($viewId)")
+        assertEquals("hello", result)
+    }
+
+    @Test
+    fun `_view_text returns text set on EditText`() {
+        val viewId = mruby.eval("Mrboto._create_view($ctxId, 'android.widget.EditText', {})")
+        mruby.eval("Mrboto._call_java_method($viewId, 'setText', 'user input')")
+        val result = mruby.eval("Mrboto._view_text($viewId)")
+        assertEquals("user input", result)
+    }
+
+    @Test
+    fun `_view_text returns empty string for view with no text`() {
+        val viewId = mruby.eval("Mrboto._create_view($ctxId, 'android.widget.TextView', {})")
+        val result = mruby.eval("Mrboto._view_text($viewId)")
+        assertEquals("", result)
+    }
+
     // ── _register_object ─────────────────────────────────────────────
 
     @Test
