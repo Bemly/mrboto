@@ -6,7 +6,9 @@
 
 ## 截图
 
-![mrboto Demo](screenshot/1.jpg)
+<span>
+    <img src="screenshot/1.jpg" width="300"><img src="screenshot/2.png" width="300">
+</span>
 
 ## 架构
 
