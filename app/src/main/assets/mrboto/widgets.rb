@@ -67,7 +67,6 @@ module Mrboto
         @_view_children[wrapper.object_id] = []
         yield wrapper if block_given?
         children = @_view_children.delete(wrapper.object_id) || []
-        puts "flushing #{children.size} children to #{wrapper.class}(id=#{wrapper._registry_id})"
         children.each { |child| wrapper.add_child(child) }
         @_view_parent_stack.pop
       elsif !is_group && block_given?
@@ -79,7 +78,6 @@ module Mrboto
       # Register this view as a child of the current parent (if any)
       if (parent = @_view_parent_stack.last)
         (@_view_children[parent.object_id] ||= []) << wrapper
-        puts "create_view: #{class_name}(id=#{view_id}) queued as child of #{parent.class}(id=#{parent._registry_id})"
       end
 
       wrapper
@@ -126,6 +124,12 @@ module Mrboto
           view.on_text_changed(&val) if val.respond_to?(:call)
         when :on_checked_changed
           view.on_checked_changed(&val) if val.respond_to?(:call)
+        when :input_type
+          view.input_type = val if view.respond_to?(:input_type=)
+        when :single_line
+          view.single_line = val if view.respond_to?(:single_line=)
+        when :max_lines
+          view.max_lines = val if view.respond_to?(:max_lines=)
         end
       end
     end
@@ -230,6 +234,11 @@ module Mrboto
     def hint=(val)
       Mrboto._call_java_method(@_registry_id, 'setHint', val.to_s)
     end
+
+    # Append text without replacing existing content
+    def append_text(val)
+      Mrboto._call_java_method(@_registry_id, 'append', val.to_s)
+    end
   end
 
   # ── Button (extends TextView) ────────────────────────────────────
@@ -237,6 +246,25 @@ module Mrboto
 
   # ── EditText ─────────────────────────────────────────────────────
   class EditText < TextView
+    def input_type=(val)
+      t = case val
+          when Integer then val
+          when :text then 1  # TYPE_CLASS_TEXT
+          when :number then 2  # TYPE_CLASS_NUMBER
+          when :phone then 3   # TYPE_CLASS_PHONE
+          else 1
+          end
+      Mrboto._call_java_method(@_registry_id, 'setInputType', t)
+    end
+
+    def single_line=(val)
+      Mrboto._call_java_method(@_registry_id, 'setSingleLine', !!val)
+    end
+
+    def max_lines=(val)
+      Mrboto._call_java_method(@_registry_id, 'setMaxLines', val.to_i)
+    end
+
     def on_text_changed(&block)
       cid = Mrboto.register_callback(&block)
       activity = Mrboto.current_activity

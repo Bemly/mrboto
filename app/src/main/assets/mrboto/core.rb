@@ -69,6 +69,6 @@ module Mrboto
   end
 
   # ── Native Methods (implemented in android-jni-bridge.c) ──────────
-  # These are registered by C code via mrb_define_method:
+  # _eval(code) — evaluate Ruby code string, return result
   # _java_object_for, _call_java_method, _register_object, etc.
 end

@@ -1224,6 +1224,34 @@ static mrb_value mrb_mrboto_call_java_method(mrb_state *mrb, mrb_value self) {
     return result;
 }
 
+/* Mrboto._eval(code) — evaluate a Ruby string and return result.
+ * Like mruby's mrb_load_string but returns the value as mrb_value. */
+static mrb_value mrb_mrboto_eval(mrb_state *mrb, mrb_value self) {
+    const char *code;
+    mrb_get_args(mrb, "z", &code);
+    (void)self;
+
+    int ai = mrb_gc_arena_save(mrb);
+    mrb_value result = mrb_load_string(mrb, code);
+
+    mrb_value out;
+    if (mrb->exc) {
+        mrb_value msg = mrb_funcall(mrb, mrb_obj_value(mrb->exc), "message", 0);
+        if (mrb_string_p(msg)) {
+            const char *s = mrb_string_value_cstr(mrb, &msg);
+            out = mrb_str_new_cstr(mrb, s);
+        } else {
+            out = mrb_str_new_cstr(mrb, "Error");
+        }
+        mrb->exc = NULL;
+    } else {
+        out = result;
+    }
+
+    mrb_gc_arena_restore(mrb, ai);
+    return out;
+}
+
 static void mrb_mrboto_define_methods(mrb_state *mrb, struct RClass *mrboto) {
     mrb_define_module_function(mrb, mrboto, "_set_content_view", mrb_mrboto_set_content_view, MRB_ARGS_REQ(2));
     mrb_define_module_function(mrb, mrboto, "_toast", mrb_mrboto_toast, MRB_ARGS_REQ(3));
@@ -1243,6 +1271,7 @@ static void mrb_mrboto_define_methods(mrb_state *mrb, struct RClass *mrboto) {
     mrb_define_module_function(mrb, mrboto, "_register_object", mrb_mrboto_register_object, MRB_ARGS_REQ(1));
     mrb_define_module_function(mrb, mrboto, "_java_object_for", mrb_mrboto_java_object_for, MRB_ARGS_REQ(1));
     mrb_define_module_function(mrb, mrboto, "_call_java_method", mrb_mrboto_call_java_method, MRB_ARGS_ANY());
+    mrb_define_module_function(mrb, mrboto, "_eval", mrb_mrboto_eval, MRB_ARGS_REQ(1));
 }
 
 #ifdef __cplusplus

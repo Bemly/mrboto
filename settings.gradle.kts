@@ -20,4 +20,5 @@ dependencyResolutionManagement {
 rootProject.name = "mrboto"
 include(":app")
 include(":demo")
+include(":executor")
 project(":app").name = "mrboto"
