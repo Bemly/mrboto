@@ -17,7 +17,10 @@ set_target_properties(mruby PROPERTIES
 # ──────────────────────────────────────────────────────────────
 add_library(mrboto-native SHARED
     native-lib.c
-    android-jni-bridge.c
+    jni-registry.c
+    jni-helpers.c
+    jni-ui.c
+    jni-bindings.c
 )
 
 target_include_directories(mrboto-native PRIVATE
