@@ -166,4 +166,23 @@ abstract class MrbotoActivityBase : Activity() {
             ?: return
         view.addTextChangedListener(MrbotoTextWatcher(this, callbackId))
     }
+
+    /**
+     * Load and execute a Ruby script from assets.
+     * Called from Ruby via call_java_method("loadAssetScript", path).
+     * Uses CharSequence because C side maps Ruby strings to CharSequence
+     * for reflection.
+     */
+    fun loadAssetScript(path: CharSequence): String {
+        val script = assets.open(path.toString()).bufferedReader().use { it.readText() }
+        return mruby.loadScript(script)
+    }
+
+    /**
+     * Evaluate a raw Ruby string via mruby eval.
+     * Called from Ruby via call_java_method("evalRuby", code).
+     */
+    fun evalRuby(code: CharSequence): String {
+        return mruby.eval(code.toString())
+    }
 }

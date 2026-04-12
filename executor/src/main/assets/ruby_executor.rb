@@ -1,5 +1,6 @@
 # ruby_executor.rb — mruby demo with terminal output, demo buttons,
 # custom script input, and external .rb file import
+# All logic is 100% Ruby — Kotlin side only provides framework methods.
 
 class ExecutorActivity < Mrboto::Activity
   def on_create(bundle)
@@ -54,7 +55,7 @@ class ExecutorActivity < Mrboto::Activity
 
       # Custom script input
       @script_input = edit_text(
-        hint: "Ruby code...",
+        hint: "Ruby code or file path...",
         text_size: 13,
         padding: 4,
         single_line: true
@@ -68,6 +69,11 @@ class ExecutorActivity < Mrboto::Activity
     }
 
     @output.text = "点击按钮执行嵌入的 Ruby 脚本，或在输入框中输入代码。\n\n"
+  end
+
+  # Get input text as a proper Ruby string (not Java CharSequence)
+  def input_text
+    @script_input.java_object.getText.toString
   end
 
   # Load and run a demo script from assets, display result
@@ -87,11 +93,13 @@ class ExecutorActivity < Mrboto::Activity
 
   # Run custom Ruby code from input field
   def run_custom
-    code = @script_input.text
-    return if code.nil? || code.to_s.strip.empty?
+    code = input_text
+    return if code.nil? || code.strip.empty?
 
     @output.append_text("─── custom ───\n")
     begin
+      # Use evalRuby framework method which calls mruby.eval directly
+      # and returns the string result
       result = call_java_method("evalRuby", code)
       if result.nil? || result.to_s.empty?
         @output.append_text("  (no output)\n\n")
@@ -106,13 +114,15 @@ class ExecutorActivity < Mrboto::Activity
 
   # Import and run an external .rb file from file system
   def import_file
-    code = @script_input.text
-    return if code.nil? || code.to_s.strip.empty?
+    path = input_text
+    return if path.nil? || path.strip.empty?
 
-    @output.append_text("─── import: #{code} ───\n")
+    @output.append_text("─── import: #{path} ───\n")
     begin
-      result = call_java_method("loadFileScript", code)
-      if result.nil? || result.to_s.empty?
+      # Read file content as Ruby string, then eval it
+      content = File.read(path)
+      result = Mrboto._eval(content)
+      if result.nil?
         @output.append_text("  (no output)\n\n")
       else
         @output.append_text("  #{result}\n\n")
