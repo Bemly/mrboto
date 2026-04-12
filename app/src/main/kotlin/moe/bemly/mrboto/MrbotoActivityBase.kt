@@ -61,13 +61,8 @@ abstract class MrbotoActivityBase : Activity() {
         }
 
         // Debug: check what the script defined
-        val checkResult1 = mruby.eval("defined?(Mrboto) ? 'yes' : 'no'")
-        val checkResult2 = mruby.eval("defined?(Mrboto::Activity) ? 'yes' : 'no'")
-        Log.i(TAG, "Debug: Mrboto=$checkResult1, Mrboto::Activity=$checkResult2")
-
-        // Try to get the class directly
-        val checkResult3 = mruby.eval("Mrboto._ruby_activity_class.to_s rescue 'error:' + \$!.message")
-        Log.i(TAG, "Debug: _ruby_activity_class = $checkResult3")
+        val checkResult = mruby.eval("Mrboto.class.to_s rescue 'error:' + $!.message")
+        Log.i(TAG, "Debug: Mrboto = $checkResult")
 
         // Instantiate the Ruby Activity class
         val instantiateResult = mruby.eval(
@@ -93,6 +88,12 @@ abstract class MrbotoActivityBase : Activity() {
             Log.e(TAG, "on_create dispatch error: $dispatchResult")
         }
         rubyInstanceId = activityRefId
+
+        // Check for widget creation errors (after dispatch, since that's when widgets are created)
+        val widgetError = mruby.eval("\$mrboto_widget_error.to_s rescue ''")
+        if (widgetError.isNotEmpty()) {
+            Log.e(TAG, "Widget creation error: $widgetError")
+        }
 
         Log.i(TAG, "Activity created, script: ${getScriptPath()}")
     }

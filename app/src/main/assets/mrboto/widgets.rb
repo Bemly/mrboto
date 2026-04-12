@@ -43,7 +43,10 @@ module Mrboto
       # Wrap with the correct Ruby class based on the Java class name
       widget_name = CLASS_TO_WIDGET[class_name]
       wrapper = if widget_name
-                  camel = widget_name.to_s.gsub(/_(.)/) { $1.upcase }.capitalize
+                  # Convert snake_case to CamelCase without using Regexp
+                  # e.g., :linear_layout -> "Linear_layout" -> "LinearLayout"
+                  parts = widget_name.to_s.split('_')
+                  camel = parts.map { |p| p.capitalize }.join
                   widget_class = Mrboto.const_get(camel)
                   widget_class.from_registry(view_id)
                 else
@@ -58,7 +61,7 @@ module Mrboto
 
       wrapper
     rescue => e
-      puts "Widget create_view error: #{class_name} - #{e.class}: #{e.message}"
+      $mrboto_widget_error = "#{class_name}: #{e.class}: #{e.message}"
       nil
     end
 
