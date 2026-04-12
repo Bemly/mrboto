@@ -1389,7 +1389,6 @@ Java_moe_bemly_mrboto_MRuby_nativeLoadScript(JNIEnv *env, jobject thiz,
 
     int ai = mrb_gc_arena_save(mrb);
     mrb_value result = mrb_load_string(mrb, c_script);
-    (void)result;
     (*env)->ReleaseStringUTFChars(env, script, c_script);
 
     jstring jresult = NULL;
@@ -1400,8 +1399,16 @@ Java_moe_bemly_mrboto_MRuby_nativeLoadScript(JNIEnv *env, jobject thiz,
             jresult = (*env)->NewStringUTF(env, s);
         }
         mrb->exc = NULL;
+    } else if (mrb_string_p(result)) {
+        const char *s = mrb_string_value_cstr(mrb, &result);
+        jresult = (*env)->NewStringUTF(env, s);
     } else {
-        jresult = (*env)->NewStringUTF(env, "ok");
+        /* Convert non-string result to string representation */
+        mrb_value str = mrb_funcall(mrb, result, "to_s", 0);
+        if (mrb_string_p(str)) {
+            const char *s = mrb_string_value_cstr(mrb, &str);
+            jresult = (*env)->NewStringUTF(env, s);
+        }
     }
 
     mrb_gc_arena_restore(mrb, ai);
