@@ -4,13 +4,17 @@ Embed [mruby 3.4.0](https://mruby.org/) into Android applications as a reusable 
 
 [中文版](README.zh.md)
 
+## Screenshot
+
+![mrboto Demo](screenshot/1.jpg)
+
 ## Architecture
 
 Three layers from native to user-facing:
 
 | Layer | Language | Purpose |
 |---|---|---|
-| C JNI Bridge | C | Embeds mruby, bridges Ruby calls to Android Java APIs |
+| C JNI Bridge | C | Embeds mruby, bridges Ruby calls to Android Java APIs via reflection |
 | Kotlin Wrapper | Kotlin | Manages mruby VM lifecycle, Java object registry, event listeners |
 | Ruby DSL | Ruby | User-facing DSL for UI, lifecycle, helpers |
 
@@ -58,8 +62,9 @@ class MainActivity < Mrboto::Activity
   def on_create(bundle)
     super
     self.title = "Hello mrboto"
-    set_content_view linear_layout(orientation: :vertical, padding: 16) {
-      button(text: "Click me", text_size: 20) {
+    self.content_view = linear_layout(orientation: :vertical, padding: 16) {
+      text_view(text: "Hello", text_size: 20)
+      button(text: "Click me") {
         toast("Hello from mruby!")
       }
     }
@@ -104,12 +109,6 @@ cd mruby && rake deep_clean && cd ..
 ./build-android.sh
 ```
 
-### Build Demo APK
-
-```bash
-./gradlew :demo:assembleDebug
-```
-
 ### Publish to local Maven
 
 ```bash
@@ -125,13 +124,13 @@ cd mruby && rake deep_clean && cd ..
 ## Project Structure
 
 ```
-├── mrboto/                          # Android Library module
+├── app/                             # Android Library module (:mrboto)
 │   ├── build.gradle.kts
 │   └── src/main/
 │       ├── cpp/
 │       │   ├── CMakeLists.txt
 │       │   ├── native-lib.c         # mruby VM lifecycle (open/close/eval/gc)
-│       │   ├── android-jni-bridge.c # JNI registry, Android bridges
+│       │   ├── android-jni-bridge.c # JNI registry, reflection-based method calls
 │       │   └── mruby/               # Vendored mruby headers/libs
 │       ├── assets/mrboto/
 │       │   ├── core.rb              # Mrboto module, JavaObject, callbacks
@@ -169,16 +168,23 @@ Java onCreate → nativeDispatchLifecycle → mruby eval →
 ```
 Ruby: button { toast("Hi") }
   → block registered with callback ID
-  → C stores ID on View tag
-  → Java onClick → mruby.eval("Mrboto.dispatch_callback($id, $viewId)")
-  → proc executes
+  → Activity.setViewClickListener(view_id, callback_id)
+  → MrbotoClickListener attached to Android View
+  → User taps → onClick → mruby.eval("Mrboto.dispatch_callback($id, $viewId)")
+  → Block executes
 ```
 
-### View Creation
+### View Creation & Method Calls
 
 ```
 Ruby: linear_layout { } → Widgets.create_view() → C mrboto_create_view() →
   JNI FindClass + NewObject(Context) → registry ID → View.from_registry(id)
+
+Ruby: view.text = "Hello" → _call_java_method(registry_id, "setText", "Hello") →
+  Java reflection: Class.getMethod("setText", CharSequence.class) + Method.invoke()
+  → Uses Integer.TYPE, Float.TYPE, Boolean.TYPE for primitive param matching
+  → Uses CharSequence.class for String params (setText, setHint, etc.)
+  → Uses View.class for Data params (addView, setContentView, etc.)
 ```
 
 ## Acknowledgments

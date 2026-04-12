@@ -1020,17 +1020,27 @@ static mrb_value mrb_mrboto_call_java_method(mrb_state *mrb, mrb_value self) {
         return mrb_nil_value();
     }
 
-    /* Build parameter type array for getMethod */
-    jclass string_cls = (*env)->FindClass(env, "java/lang/String");
-    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, class_cls); (*env)->DeleteLocalRef(env, target_class); mrb_gc_arena_restore(mrb, ai); return mrb_nil_value(); }
+    /* Build parameter type array for getMethod.
+     * Class.getMethod requires EXACT type match — wrapper classes (Integer)
+     * won't match primitive parameters (int). Use Integer.TYPE (int.class),
+     * Float.TYPE (float.class), Boolean.TYPE (boolean.class) instead. */
     jclass integer_cls = (*env)->FindClass(env, "java/lang/Integer");
-    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, string_cls); (*env)->DeleteLocalRef(env, class_cls); (*env)->DeleteLocalRef(env, target_class); mrb_gc_arena_restore(mrb, ai); return mrb_nil_value(); }
+    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, class_cls); (*env)->DeleteLocalRef(env, target_class); mrb_gc_arena_restore(mrb, ai); return mrb_nil_value(); }
+    jfieldID int_type_fid = (*env)->GetStaticFieldID(env, integer_cls, "TYPE", "Ljava/lang/Class;");
+    jclass int_class = (*env)->GetStaticObjectField(env, integer_cls, int_type_fid);
     jclass float_cls = (*env)->FindClass(env, "java/lang/Float");
-    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, string_cls); (*env)->DeleteLocalRef(env, integer_cls); (*env)->DeleteLocalRef(env, class_cls); (*env)->DeleteLocalRef(env, target_class); mrb_gc_arena_restore(mrb, ai); return mrb_nil_value(); }
+    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, integer_cls); (*env)->DeleteLocalRef(env, class_cls); (*env)->DeleteLocalRef(env, target_class); mrb_gc_arena_restore(mrb, ai); return mrb_nil_value(); }
+    jfieldID float_type_fid = (*env)->GetStaticFieldID(env, float_cls, "TYPE", "Ljava/lang/Class;");
+    jclass float_class = (*env)->GetStaticObjectField(env, float_cls, float_type_fid);
     jclass boolean_cls = (*env)->FindClass(env, "java/lang/Boolean");
-    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, string_cls); (*env)->DeleteLocalRef(env, integer_cls); (*env)->DeleteLocalRef(env, float_cls); (*env)->DeleteLocalRef(env, class_cls); (*env)->DeleteLocalRef(env, target_class); mrb_gc_arena_restore(mrb, ai); return mrb_nil_value(); }
+    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, integer_cls); (*env)->DeleteLocalRef(env, float_cls); (*env)->DeleteLocalRef(env, class_cls); (*env)->DeleteLocalRef(env, target_class); mrb_gc_arena_restore(mrb, ai); return mrb_nil_value(); }
+    jfieldID bool_type_fid = (*env)->GetStaticFieldID(env, boolean_cls, "TYPE", "Ljava/lang/Class;");
+    jclass bool_class = (*env)->GetStaticObjectField(env, boolean_cls, bool_type_fid);
+    /* CharSequence is the param type for setText, setHint, etc. */
+    jclass charsequence_cls = (*env)->FindClass(env, "java/lang/CharSequence");
+    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, integer_cls); (*env)->DeleteLocalRef(env, float_cls); (*env)->DeleteLocalRef(env, boolean_cls); (*env)->DeleteLocalRef(env, class_cls); (*env)->DeleteLocalRef(env, target_class); mrb_gc_arena_restore(mrb, ai); return mrb_nil_value(); }
     jclass object_cls = (*env)->FindClass(env, "java/lang/Object");
-    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, string_cls); (*env)->DeleteLocalRef(env, integer_cls); (*env)->DeleteLocalRef(env, float_cls); (*env)->DeleteLocalRef(env, boolean_cls); (*env)->DeleteLocalRef(env, class_cls); (*env)->DeleteLocalRef(env, target_class); mrb_gc_arena_restore(mrb, ai); return mrb_nil_value(); }
+    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, charsequence_cls); (*env)->DeleteLocalRef(env, integer_cls); (*env)->DeleteLocalRef(env, float_cls); (*env)->DeleteLocalRef(env, boolean_cls); (*env)->DeleteLocalRef(env, class_cls); (*env)->DeleteLocalRef(env, target_class); mrb_gc_arena_restore(mrb, ai); return mrb_nil_value(); }
 
     jobjectArray param_types = NULL;
     jobjectArray java_args = NULL;
@@ -1047,25 +1057,33 @@ static mrb_value mrb_mrboto_call_java_method(mrb_state *mrb, mrb_value self) {
         jclass param_type = object_cls;
 
         if (mrb_integer_p(arg)) {
-            param_type = integer_cls;
+            param_type = int_class;
         }
 #ifndef MRB_NO_FLOAT
         else if (mrb_float_p(arg)) {
-            param_type = float_cls;
+            param_type = float_class;
         }
 #endif
         else if (mrb_true_p(arg) || mrb_false_p(arg)) {
-            param_type = boolean_cls;
+            param_type = bool_class;
         } else if (mrb_string_p(arg)) {
-            param_type = string_cls;
+            /* Use CharSequence.class because TextView.setText(CharSequence),
+             * Button.setText(CharSequence), etc. String implements CharSequence
+             * so the JVM auto-converts our jstring argument correctly. */
+            param_type = charsequence_cls;
         } else if (mrb_data_p(arg)) {
-            /* Wrapped JavaObject — use actual class for reflection */
+            /* Wrapped JavaObject — use View.class for param_type since
+             * Class.getMethod requires exact type match. ViewGroup.addView
+             * is declared with View, not Button/TextView subclasses. */
             mrboto_data_t *d = (mrboto_data_t *)DATA_PTR(arg);
             if (d != NULL) {
                 jobject jobj = mrboto_lookup_ref(env, d->registry_id);
                 if (jobj != NULL) {
-                    param_type = (*env)->GetObjectClass(env, jobj);
-                    (*env)->DeleteLocalRef(env, jobj);
+                    jclass view_cls = (*env)->FindClass(env, "android/view/View");
+                    if (view_cls != NULL) {
+                        param_type = view_cls;
+                    }
+                    /* jobj is a GlobalRef, don't delete it */
                 }
             }
         }
@@ -1090,8 +1108,23 @@ static mrb_value mrb_mrboto_call_java_method(mrb_state *mrb, mrb_value self) {
         jobject method = (*env)->CallObjectMethod(env, target_class, get_method,
                                                    jmethod_name, param_types);
         if ((*env)->ExceptionCheck(env)) {
+            jthrowable exc = (*env)->ExceptionOccurred(env);
             (*env)->ExceptionClear(env);
+            jclass exc_cls = (*env)->GetObjectClass(env, exc);
+            jmethodID to_string = (*env)->GetMethodID(env, exc_cls, "toString", "()Ljava/lang/String;");
+            if (to_string) {
+                jstring msg = (jstring)(*env)->CallObjectMethod(env, exc, to_string);
+                if (msg) {
+                    const char *s = (*env)->GetStringUTFChars(env, msg, NULL);
+                    LOGE("getMethod('%s') failed: %s", method_name, s);
+                    (*env)->ReleaseStringUTFChars(env, msg, s);
+                    (*env)->DeleteLocalRef(env, msg);
+                }
+            }
+            (*env)->DeleteLocalRef(env, exc_cls);
+            (*env)->DeleteLocalRef(env, exc);
         } else if (method != NULL) {
+            LOGI("getMethod('%s') succeeded, invoking...", method_name);
             /* Call Method.invoke(target, javaArgs) */
             jclass method_cls = (*env)->GetObjectClass(env, method);
             jmethodID invoke = (*env)->GetMethodID(env, method_cls, "invoke",
@@ -1181,7 +1214,7 @@ static mrb_value mrb_mrboto_call_java_method(mrb_state *mrb, mrb_value self) {
     (*env)->DeleteLocalRef(env, jmethod_name);
     if (param_types != NULL) (*env)->DeleteLocalRef(env, param_types);
     if (java_args != NULL) (*env)->DeleteLocalRef(env, java_args);
-    (*env)->DeleteLocalRef(env, string_cls);
+    (*env)->DeleteLocalRef(env, charsequence_cls);
     (*env)->DeleteLocalRef(env, integer_cls);
     (*env)->DeleteLocalRef(env, float_cls);
     (*env)->DeleteLocalRef(env, boolean_cls);

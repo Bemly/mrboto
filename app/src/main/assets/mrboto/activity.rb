@@ -61,5 +61,15 @@ module Mrboto
     def title
       call_java_method("getTitle")
     end
+
+    # Bridge to Kotlin side's MrbotoActivityBase.setViewClickListener
+    def setViewClickListener(view_registry_id, callback_id)
+      call_java_method("setViewClickListener", view_registry_id, callback_id)
+    end
+
+    # Bridge to Kotlin side's MrbotoActivityBase.setTextWatcher
+    def setTextWatcher(view_registry_id, callback_id)
+      call_java_method("setTextWatcher", view_registry_id, callback_id)
+    end
   end
 end

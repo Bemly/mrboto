@@ -4,17 +4,21 @@
 
 [English Version](README.md)
 
+## 截图
+
+![mrboto Demo](screenshot/1.jpg)
+
 ## 架构
 
 三层架构：
 
 | 层级 | 语言 | 职责 |
 |---|---|---|
-| C JNI 桥接 | C | 嵌入 mruby，将 Ruby 调用桥接到 Android Java API |
+| C JNI 桥接 | C | 嵌入 mruby，通过 Java 反射将 Ruby 调用桥接到 Android API |
 | Kotlin 封装 | Kotlin | 管理 mruby VM 生命周期、Java 对象注册表、事件监听器 |
 | Ruby DSL | Ruby | 面向用户的 DSL：UI、生命周期、辅助函数 |
 
-详见 [架构文档](https://github.com/Bemly/mrboto/wiki/Architecture)（英文）。
+详见 [架构文档](https://github.com/Bemly/mrboto/wiki/Architecture-zh)。
 
 ## Maven 坐标
 
@@ -58,8 +62,9 @@ class MainActivity < Mrboto::Activity
   def on_create(bundle)
     super
     self.title = "Hello mrboto"
-    set_content_view linear_layout(orientation: :vertical, padding: 16) {
-      button(text: "点击我", text_size: 20) {
+    self.content_view = linear_layout(orientation: :vertical, padding: 16) {
+      text_view(text: "你好", text_size: 20)
+      button(text: "点击我") {
         toast("来自 mruby 的问候！")
       }
     }
@@ -84,7 +89,7 @@ Mrboto._ruby_activity_class = MainActivity
 | `toast("消息")` | 显示 Toast |
 | `linear_layout { }` | 创建 LinearLayout |
 | `text_view(text: "...")` | 创建 TextView |
-| `button(text: "...") { }` | 创建 Button，支持点击回调 |
+| `button(text: "...") { }` | 创建 Button，block 作为点击回调 |
 | `edit_text { }` | 创建 EditText |
 | `image_view { }` | 创建 ImageView |
 | `scroll_view { }` | 创建 ScrollView |
@@ -125,13 +130,7 @@ cd mruby && rake deep_clean && cd ..
 此脚本会：
 - 编译 host 工具（生成 `mrbc`）
 - 交叉编译 arm64-v8a 和 x86_64 静态库
-- 复制头文件和 `.a` 到 `mrboto/src/main/cpp/mruby/`
-
-### 构建 Demo APK
-
-```bash
-./gradlew :demo:assembleDebug
-```
+- 复制头文件和 `.a` 到 `app/src/main/cpp/mruby/`
 
 ### 发布到本地 Maven
 
@@ -148,13 +147,13 @@ cd mruby && rake deep_clean && cd ..
 ## 项目结构
 
 ```
-├── mrboto/                          # Android Library 模块
+├── app/                             # Android Library 模块 (:mrboto)
 │   ├── build.gradle.kts
 │   └── src/main/
 │       ├── cpp/
 │       │   ├── CMakeLists.txt
 │       │   ├── native-lib.c         # mruby VM 生命周期
-│       │   ├── android-jni-bridge.c # JNI 注册表、Android 桥接
+│       │   ├── android-jni-bridge.c # JNI 注册表、Java 反射桥接
 │       │   └── mruby/               # mruby 头文件和静态库
 │       ├── assets/mrboto/
 │       │   ├── core.rb              # Mrboto 模块、JavaObject 基类
@@ -192,16 +191,25 @@ Java onCreate → nativeDispatchLifecycle → mruby eval →
 ```
 Ruby: button { toast("Hi") }
   → block 注册到回调表获得 ID
-  → C 存储 ID 到 View tag
-  → Java onClick → mruby.eval("Mrboto.dispatch_callback($id, $viewId)")
-  → 执行 proc
+  → Activity.setViewClickListener(view_id, callback_id)
+  → MrbotoClickListener 附加到 Android View
+  → 用户点击 → onClick → mruby.eval("Mrboto.dispatch_callback($id, $viewId)")
+  → 执行 block
 ```
 
-### View 创建
+### View 创建与方法调用
 
 ```
 Ruby: linear_layout { } → Widgets.create_view() → C mrboto_create_view() →
   JNI FindClass + NewObject(Context) → 注册表 ID → View.from_registry(id)
+
+Ruby: view.text = "Hello" → _call_java_method(registry_id, "setText", "Hello") →
+  Java 反射: Class.getMethod("setText", CharSequence.class) + Method.invoke()
+  → 整数参数使用 Integer.TYPE (int.class)
+  → 浮点参数使用 Float.TYPE (float.class)
+  → 布尔参数使用 Boolean.TYPE (boolean.class)
+  → 字符串参数使用 CharSequence.class (setText 声明的参数类型)
+  → JavaObject 参数使用 View.class
 ```
 
 ## 致谢

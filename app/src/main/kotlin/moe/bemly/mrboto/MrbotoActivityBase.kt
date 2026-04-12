@@ -90,7 +90,7 @@ abstract class MrbotoActivityBase : Activity() {
         rubyInstanceId = activityRefId
 
         // Check for widget creation errors (after dispatch, since that's when widgets are created)
-        val widgetError = mruby.eval("\$mrboto_widget_error.to_s rescue ''")
+        val widgetError = mruby.eval($$"$mrboto_widget_error.to_s rescue ''")
         if (widgetError.isNotEmpty()) {
             Log.e(TAG, "Widget creation error: $widgetError")
         }

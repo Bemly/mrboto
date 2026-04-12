@@ -31,6 +31,10 @@ module Mrboto
     # Reverse map: java class name → Ruby widget name
     CLASS_TO_WIDGET = JAVA_CLASS_MAP.each_with_object({}) { |(k, v), h| h[v] = k }
 
+    # Track the current parent ViewGroup and children during nested DSL creation
+    @_view_parent_stack = []
+    @_view_children = {}  # parent object_id => [child_views]
+
     # Create a View and apply attributes/block
     def self.create_view(class_name, attrs = {}, &block)
       activity = Mrboto.current_activity
@@ -56,8 +60,27 @@ module Mrboto
       # Apply attributes
       apply_attrs(wrapper, attrs)
 
-      # Execute block for nested children or event handlers
-      yield wrapper if block_given?
+      # If this is a ViewGroup and has a block, push as parent before yielding
+      is_group = wrapper.is_a?(ViewGroup)
+      if is_group && block_given?
+        @_view_parent_stack.push(wrapper)
+        @_view_children[wrapper.object_id] = []
+        yield wrapper if block_given?
+        children = @_view_children.delete(wrapper.object_id) || []
+        puts "flushing #{children.size} children to #{wrapper.class}(id=#{wrapper._registry_id})"
+        children.each { |child| wrapper.add_child(child) }
+        @_view_parent_stack.pop
+      elsif !is_group && block_given?
+        # Non-ViewGroup widgets (Button, etc.) treat block as on_click handler
+        cid = Mrboto.register_callback(&block)
+        Mrboto.current_activity.setViewClickListener(wrapper._registry_id, cid)
+      end
+
+      # Register this view as a child of the current parent (if any)
+      if (parent = @_view_parent_stack.last)
+        (@_view_children[parent.object_id] ||= []) << wrapper
+        puts "create_view: #{class_name}(id=#{view_id}) queued as child of #{parent.class}(id=#{parent._registry_id})"
+      end
 
       wrapper
     rescue => e
@@ -172,12 +195,12 @@ module Mrboto
         val)
     end
 
+    # No-op for non-ViewGroup views
+    def add_child(child); end
+
     def on_click(&block)
       cid = Mrboto.register_callback(&block)
-      activity = Mrboto.current_activity
-      if activity.respond_to?(:setViewClickListener)
-        activity.setViewClickListener(@_registry_id, cid)
-      end
+      Mrboto.current_activity.setViewClickListener(@_registry_id, cid)
     end
   end
 
@@ -231,7 +254,15 @@ module Mrboto
   end
 
   # ── ViewGroup ────────────────────────────────────────────────────
-  class ViewGroup < View; end
+  class ViewGroup < View
+    def add_child(child)
+      puts "add_child: adding #{child.class}(id=#{child._registry_id}) to #{self.class}(id=#{@_registry_id})"
+      result = Mrboto._call_java_method(@_registry_id, 'addView',
+        Mrboto._java_object_for(child._registry_id))
+      puts "add_child: addView returned #{result.inspect}"
+      result
+    end
+  end
 
   # ── LinearLayout ─────────────────────────────────────────────────
   class LinearLayout < ViewGroup
