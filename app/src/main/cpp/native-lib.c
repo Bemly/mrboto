@@ -217,12 +217,16 @@ Java_moe_bemly_mrboto_MRuby_nativeEvalString(JNIEnv *env, jobject thiz,
      * new code while the VM is in an error state. */
     mrb->exc = NULL;
 
+    LOGI("nativeEvalString: about to mrb_load_string, code len=%zu", strlen(c_code));
+
     /*
      * mrb_load_string compiles and executes the Ruby code.
      * If compilation or execution fails, mrb->exc is set and
      * the return value is mrb_nil_value().
      */
     mrb_value result = mrb_load_string(mrb, c_code);
+
+    LOGI("nativeEvalString: mrb_load_string returned, exc=%p", (void *)mrb->exc);
 
     (*env)->ReleaseStringUTFChars(env, code, c_code);
 
