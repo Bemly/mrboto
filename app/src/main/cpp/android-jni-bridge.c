@@ -1297,28 +1297,32 @@ static mrb_value mrb_mrboto_view_text(mrb_state *mrb, mrb_value self) {
     LOGI("_view_text: text_obj=%p", text_obj);
     if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, view_cls); mrb_gc_arena_restore(mrb, ai); return mrb_nil_value(); }
 
-    /* Use TextUtils.toString(textObj) — safe for CharSequence/Editable → String,
-     * and handles null by returning empty string. */
-    jclass tu_cls = (*env)->FindClass(env, "android/text/TextUtils");
-    jmethodID tu_to_str = tu_cls ? (*env)->GetStaticMethodID(env, tu_cls, "toString",
-        "(Ljava/lang/CharSequence;)Ljava/lang/String;") : NULL;
-    if (tu_to_str == NULL) { (*env)->ExceptionClear(env); }
-
+    /* Call toString() directly on the Editable/CharSequence object.
+     * Editable (SpannableStringBuilder) overrides toString to return content.
+     * If text_obj is NULL (no text set), return empty string. */
     mrb_value result = mrb_nil_value();
-    if (tu_cls && tu_to_str) {
-        jstring jstr = (jstring)(*env)->CallStaticObjectMethod(env, tu_cls, tu_to_str, text_obj);
-        LOGI("_view_text: TextUtils.toString => jstr=%p", jstr);
-        if (jstr != NULL && !(*env)->ExceptionCheck(env)) {
-            const char *str = (*env)->GetStringUTFChars(env, jstr, NULL);
-            if (str != NULL) {
-                result = mrb_str_new_cstr(mrb, str);
-                (*env)->ReleaseStringUTFChars(env, jstr, str);
-            }
-            (*env)->DeleteLocalRef(env, jstr);
-        }
-        (*env)->DeleteLocalRef(env, tu_cls);
+    if (text_obj == NULL) {
+        result = mrb_str_new_cstr(mrb, "");
     } else {
-        LOGE("_view_text: TextUtils or toString not found");
+        jclass obj_cls = (*env)->GetObjectClass(env, text_obj);
+        if (obj_cls) {
+            jmethodID to_string = (*env)->GetMethodID(env, obj_cls, "toString",
+                "()Ljava/lang/String;");
+            if (to_string && !(*env)->ExceptionCheck(env)) {
+                jstring jstr = (jstring)(*env)->CallObjectMethod(env, text_obj, to_string);
+                if (jstr != NULL && !(*env)->ExceptionCheck(env)) {
+                    const char *str = (*env)->GetStringUTFChars(env, jstr, NULL);
+                    if (str != NULL) {
+                        result = mrb_str_new_cstr(mrb, str);
+                        (*env)->ReleaseStringUTFChars(env, jstr, str);
+                    }
+                    (*env)->DeleteLocalRef(env, jstr);
+                }
+            } else {
+                (*env)->ExceptionClear(env);
+            }
+            (*env)->DeleteLocalRef(env, obj_cls);
+        }
     }
 
     (*env)->DeleteLocalRef(env, view_cls);
