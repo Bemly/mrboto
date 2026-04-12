@@ -89,11 +89,22 @@ cd mruby && rake deep_clean && cd ..
   no registered JNI methods, and no loaded core scripts. All eval calls share the same VM instance
   registered via `nativeRegisterAndroidClasses` + 5 core rb scripts. The `isolated-vm` branch
   contains an abandoned experiment with per-eval temporary VMs (see branch for reference).
-- **JNI GlobalRef vs LocalRef**: `mrboto_lookup_ref()` returns JNI GlobalRefs. Never pass these to
-  `DeleteLocalRef()` — use `DeleteGlobalRef()` only in `mrboto_unregister_ref()`. LocalRefs from
   `FindClass`, `NewStringUTF`, `NewObject`, `GetObjectClass`, `CallObjectMethod` should be deleted
   with `DeleteLocalRef()`. Mixing them causes `JNI DETECTED ERROR: expected reference of kind Local
   but found Global` crashes.
+- **JNI exception handling pattern**: After any JNI call that may throw
+  (`CallStaticObjectMethod`, `NewObject`, `CallObjectMethod`, `CallVoidMethod`, etc.),
+  **check and clear the exception BEFORE checking the return value**:
+  ```c
+  jobject result = CallStaticObjectMethod(env, cls, mid, ...);
+  if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); }
+  else if (result != NULL) { ... }
+  ```
+  Do NOT use `if (result != NULL && !ExceptionCheck(env))` — if the call throws,
+  `result` is NULL and the exception check is skipped, leaving a pending exception
+  that causes `JNI DETECTED ERROR` crash on the next JNI call.
+  Known Android APIs that throw: `Snackbar.make()` (no parent view),
+  `AlertDialog.Builder.create()` (non-Looper thread), `PopupMenu` constructor (no parent view).
 - **`mrb_get_args` format strings**: Use `"o"` (mrb_value) for parameters that can be nil, not `"z"`
   (const char* which can be NULL and crash `NewStringUTF`). Use `mrb_obj_as_string()` to safely
   convert to string.
