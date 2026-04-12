@@ -168,16 +168,30 @@ abstract class MrbotoActivityBase : Activity() {
     }
 
     /**
+     * Return the source content of a script from assets.
+     * Called from Ruby via call_java_method("loadAssetScriptSource", path).
+     */
+    fun loadAssetScriptSource(path: CharSequence): String {
+        return try {
+            assets.open(path.toString()).bufferedReader().use { it.readText() }
+        } catch (e: Exception) {
+            Log.w(TAG, "loadAssetScriptSource('$path') failed: ${e.message}")
+            "Error: ${e.message}"
+        }
+    }
+
+    /**
      * Load and execute a Ruby script from assets.
      * Called from Ruby via call_java_method("loadAssetScript", path).
      * Uses CharSequence because C side maps Ruby strings to CharSequence
      * for reflection.
      */
     fun loadAssetScript(path: CharSequence): String {
-        val script = assets.open(path.toString()).bufferedReader().use { it.readText() }
         return try {
-            mruby.eval(script)
+            val script = assets.open(path.toString()).bufferedReader().use { it.readText() }
+            mruby.loadScript(script)
         } catch (e: Exception) {
+            Log.w(TAG, "loadAssetScript('$path') failed: ${e.message}")
             "Error: ${e.message}"
         }
     }
@@ -190,6 +204,7 @@ abstract class MrbotoActivityBase : Activity() {
         return try {
             mruby.eval(code.toString())
         } catch (e: Exception) {
+            Log.w(TAG, "evalRuby failed: ${e.message}")
             "Error: ${e.message}"
         }
     }

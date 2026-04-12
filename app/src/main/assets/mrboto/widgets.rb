@@ -239,9 +239,13 @@ module Mrboto
       Mrboto._call_java_method(@_registry_id, 'setHint', val.to_s)
     end
 
-    # Append text without replacing existing content
+    # Append text without replacing existing content.
+    # Uses _view_text (native) + text= (setText via reflection) to avoid
+    # the unreliable append() reflection call that can crash in test contexts.
     def append_text(val)
-      Mrboto._call_java_method(@_registry_id, 'append', val.to_s)
+      current = Mrboto._view_text(@_registry_id)
+      current = "" if current.nil?
+      self.text = "#{current}#{val}"
     end
   end
 

@@ -28,6 +28,7 @@
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
+#define LOGW(...) __android_log_print(ANDROID_LOG_WARN, LOG_TAG, __VA_ARGS__)
 
 /* ── Helper: safe mruby exception message extraction ────────────────── */
 
@@ -986,6 +987,51 @@ static jobject mrboto_mruby_to_java_arg(JNIEnv *env, mrb_state *mrb, mrb_value a
     return NULL;
 }
 
+/* ── Helper: Log Method.invoke exception details ───────────────────── */
+
+static void log_invoke_exception(JNIEnv *env, const char *method_name, jthrowable exc) {
+    if (exc == NULL || env == NULL) return;
+
+    jclass exc_cls = (*env)->GetObjectClass(env, exc);
+    if (exc_cls == NULL) { (*env)->DeleteLocalRef(env, exc); return; }
+
+    /* Exception.toString() */
+    jmethodID to_string = (*env)->GetMethodID(env, exc_cls, "toString", "()Ljava/lang/String;");
+    if (to_string) {
+        jstring msg = (jstring)(*env)->CallObjectMethod(env, exc, to_string);
+        if (msg && !(*env)->ExceptionCheck(env)) {
+            const char *s = (*env)->GetStringUTFChars(env, msg, NULL);
+            LOGW("Method.invoke('%s') threw: %s", method_name, s);
+            (*env)->ReleaseStringUTFChars(env, msg, s);
+            (*env)->DeleteLocalRef(env, msg);
+        }
+    }
+
+    /* getCause() — unwrap InvocationTargetException */
+    jmethodID get_cause = (*env)->GetMethodID(env, exc_cls, "getCause", "()Ljava/lang/Throwable;");
+    if (get_cause) {
+        jobject cause = (*env)->CallObjectMethod(env, exc, get_cause);
+        if (cause != NULL && !(*env)->ExceptionCheck(env)) {
+            jclass cause_cls = (*env)->GetObjectClass(env, cause);
+            jmethodID cause_to_string = (*env)->GetMethodID(env, cause_cls, "toString", "()Ljava/lang/String;");
+            if (cause_to_string) {
+                jstring cause_msg = (jstring)(*env)->CallObjectMethod(env, cause, cause_to_string);
+                if (cause_msg && !(*env)->ExceptionCheck(env)) {
+                    const char *s = (*env)->GetStringUTFChars(env, cause_msg, NULL);
+                    LOGW("  Caused by: %s", s);
+                    (*env)->ReleaseStringUTFChars(env, cause_msg, s);
+                    (*env)->DeleteLocalRef(env, cause_msg);
+                }
+            }
+            (*env)->DeleteLocalRef(env, cause_cls);
+            (*env)->DeleteLocalRef(env, cause);
+        }
+    }
+
+    (*env)->DeleteLocalRef(env, exc_cls);
+    (*env)->DeleteLocalRef(env, exc);
+}
+
 /* Mrboto._call_java_method(registry_id, method_name, *args)
  * Calls a Java method on the object identified by registry_id.
  * Uses Java reflection (Class.getMethod + Method.invoke) to avoid
@@ -1168,9 +1214,18 @@ static mrb_value mrb_mrboto_call_java_method(mrb_state *mrb, mrb_value self) {
             if (invoke != NULL && !(*env)->ExceptionCheck(env)) {
                 jobject jresult = (*env)->CallObjectMethod(env, method, invoke,
                                                             target, java_args);
+                /* Method.invoke may throw InvocationTargetException when the
+                 * underlying Java method fails (e.g. TextView.append in a test
+                 * context where the view is not fully initialized). Clear the
+                 * exception and return nil rather than attempting to process
+                 * a potentially corrupted jresult reference. */
                 if ((*env)->ExceptionCheck(env)) {
+                    jthrowable exc = (*env)->ExceptionOccurred(env);
                     (*env)->ExceptionClear(env);
-                } else if (jresult != NULL) {
+                    log_invoke_exception(env, method_name, exc);
+                    goto cleanup;
+                }
+                if (jresult != NULL) {
                     /* Unwrap common Java return types using IsInstanceOf. */
                     jclass str_cls = (*env)->FindClass(env, "java/lang/String");
                     jclass int_cls = (*env)->FindClass(env, "java/lang/Integer");
@@ -1244,6 +1299,7 @@ static mrb_value mrb_mrboto_call_java_method(mrb_state *mrb, mrb_value self) {
         }
     }
 
+    cleanup:
     /* Cleanup */
     (*env)->DeleteLocalRef(env, class_cls);
     (*env)->DeleteLocalRef(env, target_class);
@@ -1266,6 +1322,15 @@ static mrb_value mrb_mrboto_view_text(mrb_state *mrb, mrb_value self) {
     mrb_int registry_id;
     mrb_get_args(mrb, "i", &registry_id);
     (void)self;
+
+    /* If mruby has a pending exception, bail out immediately rather than
+       executing JNI calls in a potentially corrupted VM state. Clear the
+       exception so subsequent operations can proceed normally. */
+    if (mrb->exc) {
+        const char *s = mrboto_safe_exc_message_cstr(mrb);
+        LOGW("_view_text: pending exception cleared: %s", s ? s : "(unknown)");
+        return mrb_nil_value();
+    }
 
     JNIEnv *env = mrboto_get_env();
     if (env == NULL) { LOGE("_view_text: env is NULL"); return mrb_nil_value(); }
