@@ -10,6 +10,7 @@ module Mrboto
     attr_accessor :current_activity
     attr_accessor :_ruby_activity_class
     attr_accessor :_test_ctx_id
+    attr_accessor :_test_view_id
 
     # ── Callback Registry ──────────────────────────────────────────
     @@callbacks = {}

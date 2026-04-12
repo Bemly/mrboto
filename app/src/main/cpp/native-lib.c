@@ -44,6 +44,10 @@ static mrb_value safe_exc_message(mrb_state *mrb, mrb_value self) {
 }
 
 static jstring safe_extract_error(JNIEnv *env, mrb_state *mrb) {
+    if (mrb->exc == NULL) {
+        return (*env)->NewStringUTF(env, "Unknown Ruby error (exc=NULL)");
+    }
+
     exc_msg_ctx_t ctx;
     ctx.exc = mrb_obj_value(mrb->exc);
     ctx.result = mrb_nil_value();
@@ -61,6 +65,18 @@ static jstring safe_extract_error(JNIEnv *env, mrb_state *mrb) {
     if (msg_str != NULL) {
         return (*env)->NewStringUTF(env, msg_str);
     }
+
+    /* Fallback: try mrb_inspect to get a debug string of the exception */
+    mrb_value inspected = mrb_inspect(mrb, ctx.exc);
+    if (!mrb->exc && mrb_string_p(inspected)) {
+        const char *insp_str = mrb_string_value_cstr(mrb, &inspected);
+        char buf[256];
+        snprintf(buf, sizeof(buf), "Ruby error: %s", insp_str);
+        return (*env)->NewStringUTF(env, buf);
+    }
+    mrb->exc = NULL;
+
+    LOGD("Exception extraction failed, exc type=%d, error=%d", mrb_type(ctx.exc), error);
     return (*env)->NewStringUTF(env, "Unknown Ruby error");
 }
 

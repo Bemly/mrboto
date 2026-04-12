@@ -89,6 +89,21 @@ cd mruby && rake deep_clean && cd ..
   no registered JNI methods, and no loaded core scripts. All eval calls share the same VM instance
   registered via `nativeRegisterAndroidClasses` + 5 core rb scripts. The `isolated-vm` branch
   contains an abandoned experiment with per-eval temporary VMs (see branch for reference).
+- **JNI GlobalRef vs LocalRef**: `mrboto_lookup_ref()` returns JNI GlobalRefs. Never pass these to
+  `DeleteLocalRef()` — use `DeleteGlobalRef()` only in `mrboto_unregister_ref()`. LocalRefs from
+  `FindClass`, `NewStringUTF`, `NewObject`, `GetObjectClass`, `CallObjectMethod` should be deleted
+  with `DeleteLocalRef()`. Mixing them causes `JNI DETECTED ERROR: expected reference of kind Local
+  but found Global` crashes.
+- **`mrb_get_args` format strings**: Use `"o"` (mrb_value) for parameters that can be nil, not `"z"`
+  (const char* which can be NULL and crash `NewStringUTF`). Use `mrb_obj_as_string()` to safely
+  convert to string.
+- **mruby `private` keyword**: Using `private` inside a class can affect method visibility for
+  subsequently defined methods in mruby's parser. Avoid `private` in module/class definitions
+  that precede `def self.xxx` methods.
+- **Error extraction**: `safe_extract_error()` in `native-lib.c` extracts exception as
+  `"ClassName: message"` format (e.g., `"SyntaxError: syntax error"`, `"NoMethodError: undefined
+  method 'foo'"`). If message extraction fails, falls back to `mrb_inspect` for debug info.
+  `nativeLoadScript` in `android-jni-bridge.c` uses `mrb_protect` to safely catch compilation errors.
 
 ## Architecture Details
 
@@ -103,6 +118,15 @@ Ruby `button { toast("Hi") }` → block registered with callback ID → C stores
 
 ### View Creation
 Ruby `linear_layout { }` → `Mrboto::Widgets.create_view(class_name, attrs)` → C `mrboto_create_view()` → JNI `FindClass + NewObject(Context)` → returns registry ID → Ruby wraps as `View.from_registry(id)`
+
+### Helpers C Bridge
+`helpers.rb` dialog/snackbar/popup/animation methods call C bridge functions directly (not Java reflection):
+- `_show_dialog(context_id, title, message, buttons_json)` — AlertDialog.Builder via JNI
+- `_show_snackbar(context_id, view_id, message, duration)` — Snackbar.make + show
+- `_show_popup_menu(context_id, view_id, items_json)` — PopupMenu with JSON items
+- `_animate_fade/_animate_translate/_animate_scale` — View animations via JNI
+
+All take registry IDs, look up GlobalRefs via `mrboto_lookup_ref()`, use Android APIs directly.
 
 ## Publishing
 

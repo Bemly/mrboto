@@ -52,5 +52,11 @@ class MrbotoTestRule : TestRule {
         // Register the test context and override _app_context to return it as a JavaObject.
         val ctxId = mruby.registerJavaObject(context)
         mruby.eval("class << Mrboto; def _app_context; Mrboto::JavaObject.from_registry($ctxId); end; end")
+        mruby.eval("Mrboto._test_ctx_id = $ctxId")
+
+        // Create a simple View for snackbar/popup/animation tests
+        val testView = android.view.View(context)
+        val viewId = mruby.registerJavaObject(testView)
+        mruby.eval("Mrboto._test_view_id = $viewId")
     }
 }
