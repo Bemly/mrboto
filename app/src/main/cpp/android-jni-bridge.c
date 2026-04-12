@@ -1589,7 +1589,10 @@ static mrb_value mrb_mrboto_show_snackbar(mrb_state *mrb, mrb_value self) {
             "(Landroid/view/View;Ljava/lang/CharSequence;I)Lcom/google/android/material/snackbar/Snackbar;");
         if (make != NULL) {
             jobject snackbar = (*env)->CallStaticObjectMethod(env, snackbar_cls, make, view, jmsg, dur);
-            if (snackbar != NULL && !(*env)->ExceptionCheck(env)) {
+            if ((*env)->ExceptionCheck(env)) {
+                /* View has no suitable parent (e.g. bare View in tests) */
+                (*env)->ExceptionClear(env);
+            } else if (snackbar != NULL) {
                 jclass sb_cls = (*env)->GetObjectClass(env, snackbar);
                 jmethodID show = (*env)->GetMethodID(env, sb_cls, "show", "()V");
                 if (show) (*env)->CallVoidMethod(env, snackbar, show);
@@ -1632,7 +1635,9 @@ static mrb_value mrb_mrboto_show_popup_menu(mrb_state *mrb, mrb_value self) {
         if (popup_init != NULL) {
             jobject context_obj = mrboto_lookup_ref(env, (int)context_id);
             jobject popup = (*env)->NewObject(env, popup_cls, popup_init, context_obj, view);
-            if (popup != NULL && !(*env)->ExceptionCheck(env)) {
+            if ((*env)->ExceptionCheck(env)) {
+                (*env)->ExceptionClear(env);
+            } else if (popup != NULL) {
                 jmethodID get_menu = (*env)->GetMethodID(env, popup_cls, "getMenu", "()Landroid/view/Menu;");
                 if (get_menu != NULL) {
                     jobject menu = (*env)->CallObjectMethod(env, popup, get_menu);
