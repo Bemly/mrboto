@@ -1714,15 +1714,15 @@ static mrb_value mrb_mrboto_animate_fade(mrb_state *mrb, mrb_value self) {
             jobject anim = (*env)->NewObject(env, alpha_cls, alpha_init, (jfloat)from_alpha, (jfloat)to_alpha);
             if (anim != NULL) {
                 jclass anim_cls = (*env)->GetObjectClass(env, anim);
-                jmethodID set_duration = (*env)->GetMethodID(env, anim_cls, "setDuration", "(J)Landroid/view/animation/Animation;");
+                jmethodID set_duration = (*env)->GetMethodID(env, anim_cls, "setDuration", "(J)V");
                 jmethodID set_fill = (*env)->GetMethodID(env, anim_cls, "setFillAfter", "(Z)V");
-                if (set_duration) (*env)->CallObjectMethod(env, anim, set_duration, (jlong)duration);
+                if (set_duration) (*env)->CallVoidMethod(env, anim, set_duration, (jlong)duration);
                 if (set_fill) (*env)->CallVoidMethod(env, anim, set_fill, JNI_TRUE);
                 if (anim_cls) (*env)->DeleteLocalRef(env, anim_cls);
 
                 jclass view_cls = (*env)->GetObjectClass(env, view);
-                jmethodID start_anim = (*env)->GetMethodID(env, view_cls, "startAnimation", "(Landroid/view/animation/Animation;)Landroid/view/animation/Animation;");
-                if (start_anim) (*env)->CallObjectMethod(env, view, start_anim, anim);
+                jmethodID start_anim = (*env)->GetMethodID(env, view_cls, "startAnimation", "(Landroid/view/animation/Animation;)V");
+                if (start_anim) (*env)->CallVoidMethod(env, view, start_anim, anim);
                 if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
                 if (view_cls) (*env)->DeleteLocalRef(env, view_cls);
                 (*env)->DeleteLocalRef(env, anim);
@@ -1760,15 +1760,15 @@ static mrb_value mrb_mrboto_animate_translate(mrb_state *mrb, mrb_value self) {
                 (jfloat)from_x, (jfloat)from_y, (jfloat)to_x, (jfloat)to_y);
             if (anim != NULL) {
                 jclass anim_cls = (*env)->GetObjectClass(env, anim);
-                jmethodID set_duration = (*env)->GetMethodID(env, anim_cls, "setDuration", "(J)Landroid/view/animation/Animation;");
+                jmethodID set_duration = (*env)->GetMethodID(env, anim_cls, "setDuration", "(J)V");
                 jmethodID set_fill = (*env)->GetMethodID(env, anim_cls, "setFillAfter", "(Z)V");
-                if (set_duration) (*env)->CallObjectMethod(env, anim, set_duration, (jlong)duration);
+                if (set_duration) (*env)->CallVoidMethod(env, anim, set_duration, (jlong)duration);
                 if (set_fill) (*env)->CallVoidMethod(env, anim, set_fill, JNI_TRUE);
                 if (anim_cls) (*env)->DeleteLocalRef(env, anim_cls);
 
                 jclass view_cls = (*env)->GetObjectClass(env, view);
-                jmethodID start_anim = (*env)->GetMethodID(env, view_cls, "startAnimation", "(Landroid/view/animation/Animation;)Landroid/view/animation/Animation;");
-                if (start_anim) (*env)->CallObjectMethod(env, view, start_anim, anim);
+                jmethodID start_anim = (*env)->GetMethodID(env, view_cls, "startAnimation", "(Landroid/view/animation/Animation;)V");
+                if (start_anim) (*env)->CallVoidMethod(env, view, start_anim, anim);
                 if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
                 if (view_cls) (*env)->DeleteLocalRef(env, view_cls);
                 (*env)->DeleteLocalRef(env, anim);
@@ -1808,15 +1808,15 @@ static mrb_value mrb_mrboto_animate_scale(mrb_state *mrb, mrb_value self) {
                 (jint)1, (jfloat)0.5f, (jint)1, (jfloat)0.5f);
             if (anim != NULL) {
                 jclass anim_cls = (*env)->GetObjectClass(env, anim);
-                jmethodID set_duration = (*env)->GetMethodID(env, anim_cls, "setDuration", "(J)Landroid/view/animation/Animation;");
+                jmethodID set_duration = (*env)->GetMethodID(env, anim_cls, "setDuration", "(J)V");
                 jmethodID set_fill = (*env)->GetMethodID(env, anim_cls, "setFillAfter", "(Z)V");
-                if (set_duration) (*env)->CallObjectMethod(env, anim, set_duration, (jlong)duration);
+                if (set_duration) (*env)->CallVoidMethod(env, anim, set_duration, (jlong)duration);
                 if (set_fill) (*env)->CallVoidMethod(env, anim, set_fill, JNI_TRUE);
                 if (anim_cls) (*env)->DeleteLocalRef(env, anim_cls);
 
                 jclass view_cls = (*env)->GetObjectClass(env, view);
-                jmethodID start_anim = (*env)->GetMethodID(env, view_cls, "startAnimation", "(Landroid/view/animation/Animation;)Landroid/view/animation/Animation;");
-                if (start_anim) (*env)->CallObjectMethod(env, view, start_anim, anim);
+                jmethodID start_anim = (*env)->GetMethodID(env, view_cls, "startAnimation", "(Landroid/view/animation/Animation;)V");
+                if (start_anim) (*env)->CallVoidMethod(env, view, start_anim, anim);
                 if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
                 if (view_cls) (*env)->DeleteLocalRef(env, view_cls);
                 (*env)->DeleteLocalRef(env, anim);
