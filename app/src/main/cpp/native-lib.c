@@ -208,31 +208,40 @@ Java_moe_bemly_mrboto_MRuby_nativeEvalString(JNIEnv *env, jobject thiz,
         return (*env)->NewStringUTF(env, "Error: failed to get string UTF chars");
     }
 
-    /*
-     * Create a fresh temporary VM for this eval. This isolates the eval
-     * from any corrupted state in the shared VM (e.g. stale mrb->exc,
-     * arena corruption from previous errors). After eval, we copy the
-     * string result back and discard the temporary VM entirely.
-     */
-    mrb_state *tmp = mrb_open();
-    if (tmp == NULL) {
-        (*env)->ReleaseStringUTFChars(env, code, c_code);
-        return (*env)->NewStringUTF(env, "Error: out of memory");
-    }
+    /* Save the GC arena index so we can restore it after evaluation */
+    int ai = mrb_gc_arena_save(mrb);
 
-    mrb_value result = mrb_load_string(tmp, c_code);
+    /* Clear any pre-existing exception before loading new code.
+     * mrb_load_string will crash if mrb->exc is already set from a
+     * previous failed eval, because it tries to compile and execute
+     * new code while the VM is in an error state. */
+    mrb->exc = NULL;
+
+    /*
+     * mrb_load_string compiles and executes the Ruby code.
+     * If compilation or execution fails, mrb->exc is set and
+     * the return value is mrb_nil_value().
+     */
+    mrb_value result = mrb_load_string(mrb, c_code);
 
     (*env)->ReleaseStringUTFChars(env, code, c_code);
 
-    /* Convert result to jstring from the temporary VM */
-    jstring jresult;
-    if (tmp->exc) {
-        jresult = extract_error_message(env, tmp);
-    } else {
-        jresult = mrb_value_to_jstring(env, tmp, result);
+    /* Check for exceptions BEFORE restoring GC arena.
+     * mrb->exc is a pointer into GC-managed memory — if we restore
+     * the arena first, the exception object may be freed and
+     * mrb_funcall on it will crash. */
+    if (mrb->exc) {
+        LOGD("Ruby evaluation error");
+        jstring jerr = extract_error_message(env, mrb);
+        mrb_gc_arena_restore(mrb, ai);
+        return jerr;
     }
 
-    mrb_close(tmp);
+    jstring jresult = mrb_value_to_jstring(env, mrb, result);
+
+    /* Restore the GC arena after creating the result string */
+    mrb_gc_arena_restore(mrb, ai);
+
     return jresult;
 }
 
@@ -269,31 +278,32 @@ Java_moe_bemly_mrboto_MRuby_nativeEvalBytecode(JNIEnv *env, jobject thiz,
         return (*env)->NewStringUTF(env, "Error: failed to get bytecode array");
     }
 
-    /* Use a fresh temporary VM to isolate from shared VM state */
-    mrb_state *tmp = mrb_open();
-    if (tmp == NULL) {
-        (*env)->ReleaseByteArrayElements(env, bytecode, bytes, JNI_ABORT);
-        return (*env)->NewStringUTF(env, "Error: out of memory");
-    }
+    /* Save the GC arena */
+    int ai = mrb_gc_arena_save(mrb);
+
+    /* Clear any pre-existing exception before loading bytecode */
+    mrb->exc = NULL;
 
     /*
      * mrb_load_irep_buf reads the .mrb bytecode buffer and executes it.
      * This is simpler than manually parsing the irep and creating a proc.
      */
-    mrb_value result = mrb_load_irep_buf(tmp, (const void *)bytes, (size_t)len);
+    mrb_value result = mrb_load_irep_buf(mrb, (const void *)bytes, (size_t)len);
 
     (*env)->ReleaseByteArrayElements(env, bytecode, bytes, JNI_ABORT);
 
-    /* Convert result to jstring from the temporary VM */
-    jstring jresult;
-    if (tmp->exc) {
+    /* Restore the GC arena */
+    mrb_gc_arena_restore(mrb, ai);
+
+    /* Check for exceptions */
+    if (mrb->exc) {
         LOGD("Bytecode execution error");
-        jresult = extract_error_message(env, tmp);
-    } else {
-        jresult = mrb_value_to_jstring(env, tmp, result);
+        return extract_error_message(env, mrb);
     }
 
-    mrb_close(tmp);
+    jstring jresult = mrb_value_to_jstring(env, mrb, result);
+    mrb_gc_arena_restore(mrb, ai);
+
     return jresult;
 }
 
