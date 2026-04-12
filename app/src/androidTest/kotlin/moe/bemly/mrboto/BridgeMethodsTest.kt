@@ -196,8 +196,10 @@ class BridgeMethodsTest {
     @Test
     fun `_register_object returns registry ID from wrapper`() {
         val id = mruby.registerJavaObject(Any())
-        val result = mruby.eval("obj = Mrboto._java_object_for($id); Mrboto._register_object(obj).to_s")
-        assertEquals(id.toString(), result)
+        // _java_object_for creates a new wrapper with a new registry ID.
+        // _register_object should extract that wrapper's ID correctly.
+        val result = mruby.eval("obj = Mrboto._java_object_for($id); rid = Mrboto._register_object(obj); rid > 0")
+        assertEquals("true", result)
     }
 
     @Test

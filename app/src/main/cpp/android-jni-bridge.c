@@ -1102,76 +1102,66 @@ static mrb_value mrb_mrboto_call_java_method(mrb_state *mrb, mrb_value self) {
                 if ((*env)->ExceptionCheck(env)) {
                     (*env)->ExceptionClear(env);
                 } else if (jresult != NULL) {
-                    /* Unwrap common Java return types instead of always wrapping
-                       as JavaObject. This makes _call_java_method behave naturally
-                       for methods returning String, Integer, Boolean, etc. */
-                    jclass jcls = (*env)->GetObjectClass(env, jresult);
-                    if (jcls != NULL && !(*env)->ExceptionCheck(env)) {
-                        jmethodID mid = (*env)->GetMethodID(env, jcls, "getClass", "()Ljava/lang/Class;");
-                        if (mid != NULL) {
-                            /* Get the class name for type checking */
-                            jmethodID name_mid = (*env)->GetMethodID(env, jcls, "getName", "()Ljava/lang/String;");
-                            if (name_mid != NULL) {
-                                jstring jname = (jstring)(*env)->CallObjectMethod(env, jcls, name_mid);
-                                if (jname != NULL && !(*env)->ExceptionCheck(env)) {
-                                    const char *name = (*env)->GetStringUTFChars(env, jname, NULL);
-                                    if (name != NULL) {
-                                        if (strcmp(name, "java.lang.String") == 0) {
-                                            const char *s = (*env)->GetStringUTFChars(env, jresult, NULL);
-                                            if (s != NULL) {
-                                                result = mrb_str_new_cstr(mrb, s);
-                                                (*env)->ReleaseStringUTFChars(env, jresult, s);
-                                            }
-                                        } else if (strcmp(name, "java.lang.Integer") == 0) {
-                                            jmethodID int_val = (*env)->GetMethodID(env, jcls, "intValue", "()I");
-                                            if (int_val != NULL) {
-                                                jint v = (*env)->CallIntMethod(env, jresult, int_val);
-                                                if (!(*env)->ExceptionCheck(env)) {
-                                                    result = mrb_fixnum_value((mrb_int)v);
-                                                }
-                                            }
-                                        } else if (strcmp(name, "java.lang.Long") == 0) {
-                                            jmethodID long_val = (*env)->GetMethodID(env, jcls, "longValue", "()J");
-                                            if (long_val != NULL) {
-                                                jlong v = (*env)->CallLongMethod(env, jresult, long_val);
-                                                if (!(*env)->ExceptionCheck(env)) {
-                                                    result = mrb_fixnum_value((mrb_int)v);
-                                                }
-                                            }
-                                        } else if (strcmp(name, "java.lang.Float") == 0) {
-                                            jmethodID float_val = (*env)->GetMethodID(env, jcls, "floatValue", "()F");
-                                            if (float_val != NULL) {
-                                                jfloat v = (*env)->CallFloatMethod(env, jresult, float_val);
-                                                if (!(*env)->ExceptionCheck(env)) {
-                                                    result = mrb_float_value(mrb, (double)v);
-                                                }
-                                            }
-                                        } else if (strcmp(name, "java.lang.Double") == 0) {
-                                            jmethodID double_val = (*env)->GetMethodID(env, jcls, "doubleValue", "()D");
-                                            if (double_val != NULL) {
-                                                jdouble v = (*env)->CallDoubleMethod(env, jresult, double_val);
-                                                if (!(*env)->ExceptionCheck(env)) {
-                                                    result = mrb_float_value(mrb, (double)v);
-                                                }
-                                            }
-                                        } else if (strcmp(name, "java.lang.Boolean") == 0) {
-                                            jmethodID bool_val = (*env)->GetMethodID(env, jcls, "booleanValue", "()Z");
-                                            if (bool_val != NULL) {
-                                                jboolean v = (*env)->CallBooleanMethod(env, jresult, bool_val);
-                                                if (!(*env)->ExceptionCheck(env)) {
-                                                    result = v ? mrb_true_value() : mrb_false_value();
-                                                }
-                                            }
-                                        }
-                                        (*env)->ReleaseStringUTFChars(env, jname, name);
-                                    }
-                                    (*env)->DeleteLocalRef(env, jname);
-                                }
-                            }
+                    /* Unwrap common Java return types using IsInstanceOf. */
+                    jclass str_cls = (*env)->FindClass(env, "java/lang/String");
+                    jclass int_cls = (*env)->FindClass(env, "java/lang/Integer");
+                    jclass long_cls = (*env)->FindClass(env, "java/lang/Long");
+                    jclass float_cls2 = (*env)->FindClass(env, "java/lang/Float");
+                    jclass double_cls = (*env)->FindClass(env, "java/lang/Double");
+                    jclass bool_cls = (*env)->FindClass(env, "java/lang/Boolean");
+
+                    if (str_cls != NULL && (*env)->IsInstanceOf(env, jresult, str_cls)) {
+                        const char *s = (*env)->GetStringUTFChars(env, jresult, NULL);
+                        if (s != NULL) {
+                            result = mrb_str_new_cstr(mrb, s);
+                            (*env)->ReleaseStringUTFChars(env, jresult, s);
                         }
-                        (*env)->DeleteLocalRef(env, jcls);
-                        (*env)->ExceptionClear(env); /* ignore any exceptions from type checking */
+                    } else if (int_cls != NULL && (*env)->IsInstanceOf(env, jresult, int_cls)) {
+                        jclass rc = (*env)->GetObjectClass(env, jresult);
+                        if (rc != NULL) {
+                            jmethodID mid = (*env)->GetMethodID(env, rc, "intValue", "()I");
+                            if (mid) result = mrb_fixnum_value((mrb_int)(*env)->CallIntMethod(env, jresult, mid));
+                            (*env)->DeleteLocalRef(env, rc);
+                        }
+                    } else if (long_cls != NULL && (*env)->IsInstanceOf(env, jresult, long_cls)) {
+                        jclass rc = (*env)->GetObjectClass(env, jresult);
+                        if (rc != NULL) {
+                            jmethodID mid = (*env)->GetMethodID(env, rc, "longValue", "()J");
+                            if (mid) result = mrb_fixnum_value((mrb_int)(*env)->CallLongMethod(env, jresult, mid));
+                            (*env)->DeleteLocalRef(env, rc);
+                        }
+                    } else if (float_cls2 != NULL && (*env)->IsInstanceOf(env, jresult, float_cls2)) {
+                        jclass rc = (*env)->GetObjectClass(env, jresult);
+                        if (rc != NULL) {
+                            jmethodID mid = (*env)->GetMethodID(env, rc, "floatValue", "()F");
+                            if (mid) result = mrb_float_value(mrb, (double)(*env)->CallFloatMethod(env, jresult, mid));
+                            (*env)->DeleteLocalRef(env, rc);
+                        }
+                    } else if (double_cls != NULL && (*env)->IsInstanceOf(env, jresult, double_cls)) {
+                        jclass rc = (*env)->GetObjectClass(env, jresult);
+                        if (rc != NULL) {
+                            jmethodID mid = (*env)->GetMethodID(env, rc, "doubleValue", "()D");
+                            if (mid) result = mrb_float_value(mrb, (double)(*env)->CallDoubleMethod(env, jresult, mid));
+                            (*env)->DeleteLocalRef(env, rc);
+                        }
+                    } else if (bool_cls != NULL && (*env)->IsInstanceOf(env, jresult, bool_cls)) {
+                        jclass rc = (*env)->GetObjectClass(env, jresult);
+                        if (rc != NULL) {
+                            jmethodID mid = (*env)->GetMethodID(env, rc, "booleanValue", "()Z");
+                            if (mid) {
+                                jboolean v = (*env)->CallBooleanMethod(env, jresult, mid);
+                                result = v ? mrb_true_value() : mrb_false_value();
+                            }
+                            (*env)->DeleteLocalRef(env, rc);
+                        }
                     }
+
+                    if (str_cls) (*env)->DeleteLocalRef(env, str_cls);
+                    if (int_cls) (*env)->DeleteLocalRef(env, int_cls);
+                    if (long_cls) (*env)->DeleteLocalRef(env, long_cls);
+                    if (float_cls2) (*env)->DeleteLocalRef(env, float_cls2);
+                    if (double_cls) (*env)->DeleteLocalRef(env, double_cls);
+                    if (bool_cls) (*env)->DeleteLocalRef(env, bool_cls);
 
                     /* If result is still nil, fall back to wrapping as JavaObject */
                     if (mrb_nil_p(result)) {
