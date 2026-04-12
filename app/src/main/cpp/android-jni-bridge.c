@@ -1712,7 +1712,9 @@ static mrb_value mrb_mrboto_animate_fade(mrb_state *mrb, mrb_value self) {
         jmethodID alpha_init = (*env)->GetMethodID(env, alpha_cls, "<init>", "(FF)V");
         if (alpha_init != NULL) {
             jobject anim = (*env)->NewObject(env, alpha_cls, alpha_init, (jfloat)from_alpha, (jfloat)to_alpha);
-            if (anim != NULL) {
+            if ((*env)->ExceptionCheck(env)) {
+                (*env)->ExceptionClear(env);
+            } else if (anim != NULL) {
                 jclass anim_cls = (*env)->GetObjectClass(env, anim);
                 jmethodID set_duration = (*env)->GetMethodID(env, anim_cls, "setDuration", "(J)V");
                 jmethodID set_fill = (*env)->GetMethodID(env, anim_cls, "setFillAfter", "(Z)V");
@@ -1758,7 +1760,9 @@ static mrb_value mrb_mrboto_animate_translate(mrb_state *mrb, mrb_value self) {
         if (trans_init != NULL) {
             jobject anim = (*env)->NewObject(env, trans_cls, trans_init,
                 (jfloat)from_x, (jfloat)from_y, (jfloat)to_x, (jfloat)to_y);
-            if (anim != NULL) {
+            if ((*env)->ExceptionCheck(env)) {
+                (*env)->ExceptionClear(env);
+            } else if (anim != NULL) {
                 jclass anim_cls = (*env)->GetObjectClass(env, anim);
                 jmethodID set_duration = (*env)->GetMethodID(env, anim_cls, "setDuration", "(J)V");
                 jmethodID set_fill = (*env)->GetMethodID(env, anim_cls, "setFillAfter", "(Z)V");
@@ -1800,13 +1804,15 @@ static mrb_value mrb_mrboto_animate_scale(mrb_state *mrb, mrb_value self) {
 
     jclass scale_cls = (*env)->FindClass(env, "android/view/animation/ScaleAnimation");
     if (scale_cls != NULL) {
-        /* ScaleAnimation(fromX, toX, fromY, toY, pivotType, pivotX, pivotType, pivotY) */
-        jmethodID scale_init = (*env)->GetMethodID(env, scale_cls, "<init>", "(FFFFIIFF)V");
+        /* ScaleAnimation(fromX, toX, fromY, toY, pivotXType, pivotXValue, pivotYType, pivotYValue) */
+        jmethodID scale_init = (*env)->GetMethodID(env, scale_cls, "<init>", "(FFFFIFIF)V");
         if (scale_init != NULL) {
             jobject anim = (*env)->NewObject(env, scale_cls, scale_init,
                 (jfloat)from_x, (jfloat)to_x, (jfloat)from_y, (jfloat)to_y,
-                (jint)1, (jfloat)0.5f, (jint)1, (jfloat)0.5f);
-            if (anim != NULL) {
+                (jint)1 /* RELATIVE_TO_SELF */, (jfloat)0.5f, (jint)1, (jfloat)0.5f);
+            if ((*env)->ExceptionCheck(env)) {
+                (*env)->ExceptionClear(env);
+            } else if (anim != NULL) {
                 jclass anim_cls = (*env)->GetObjectClass(env, anim);
                 jmethodID set_duration = (*env)->GetMethodID(env, anim_cls, "setDuration", "(J)V");
                 jmethodID set_fill = (*env)->GetMethodID(env, anim_cls, "setFillAfter", "(Z)V");
