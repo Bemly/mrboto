@@ -5,8 +5,9 @@ Embed [mruby 3.4.0](https://mruby.org/) into Android applications as a reusable 
 [中文版](README.zh.md)
 
 ## Screenshot
-
-![mrboto Demo](screenshot/1.jpg)
+<span>
+    <img src="screenshot/1.jpg" width="300"><img src="screenshot/2.png" width="300">
+</span>
 
 ## Architecture
 
