@@ -19,6 +19,7 @@
 #include <mruby/string.h>
 #include <mruby/array.h>
 #include <mruby/variable.h>
+#include <mruby/data.h>
 
 #include <string.h>
 
@@ -27,6 +28,41 @@
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
 #define LOGW(...) __android_log_print(ANDROID_LOG_WARN, LOG_TAG, __VA_ARGS__)
+
+/* ── Helper: safe exception message extraction ─────────────────────── */
+
+/* Context stored inside an mrb_value via CPTR */
+typedef struct {
+    mrb_value exc;
+    mrb_value result;
+} exc_msg_ctx_t;
+
+static mrb_value safe_exc_message(mrb_state *mrb, mrb_value self) {
+    (void)self;
+    exc_msg_ctx_t *ctx = (exc_msg_ctx_t *)mrb_cptr(self);
+    return mrb_funcall(mrb, ctx->exc, "message", 0);
+}
+
+static jstring safe_extract_error(JNIEnv *env, mrb_state *mrb) {
+    exc_msg_ctx_t ctx;
+    ctx.exc = mrb_obj_value(mrb->exc);
+    ctx.result = mrb_nil_value();
+
+    mrb_bool error = FALSE;
+    mrb_value data = mrb_cptr_value(mrb, &ctx);
+    mrb_protect(mrb, safe_exc_message, data, &error);
+
+    const char *msg_str = NULL;
+    if (mrb_string_p(ctx.result)) {
+        msg_str = mrb_string_value_cstr(mrb, &ctx.result);
+    }
+    mrb->exc = NULL;
+
+    if (msg_str != NULL) {
+        return (*env)->NewStringUTF(env, msg_str);
+    }
+    return (*env)->NewStringUTF(env, "Unknown Ruby error");
+}
 
 /* ── Helper: convert an mruby value to a Java String ────────────────── */
 
@@ -43,15 +79,8 @@ mrb_value_to_jstring(JNIEnv *env, mrb_state *mrb, mrb_value val)
     jstring result;
 
     if (mrb->exc) {
-        /* An exception is pending; extract its message */
-        mrb_value msg = mrb_funcall(mrb, mrb_obj_value(mrb->exc), "message", 0);
-        if (mrb_string_p(msg)) {
-            str = mrb_string_value_cstr(mrb, &msg);
-        } else {
-            str = "Ruby exception (no message)";
-        }
-        /* Clear the exception so the VM can continue */
-        mrb->exc = NULL;
+        /* Extract exception message safely */
+        return safe_extract_error(env, mrb);
     } else if (mrb_nil_p(val)) {
         str = "nil";
     } else if (mrb_true_p(val)) {
@@ -59,7 +88,6 @@ mrb_value_to_jstring(JNIEnv *env, mrb_state *mrb, mrb_value val)
     } else if (mrb_false_p(val)) {
         str = "false";
     } else if (mrb_integer_p(val)) {
-        /* Allocate a small buffer on stack for integer->string */
         char buf[32];
         snprintf(buf, sizeof(buf), "%lld", (long long)mrb_integer(val));
         return (*env)->NewStringUTF(env, buf);
@@ -76,11 +104,12 @@ mrb_value_to_jstring(JNIEnv *env, mrb_state *mrb, mrb_value val)
     } else if (mrb_symbol_p(val)) {
         str = mrb_sym_name(mrb, mrb_symbol(val));
     } else {
-        /* Complex object: use Ruby's inspect to get a string representation */
+        /* Complex object: use Ruby's inspect */
         mrb_value inspected = mrb_inspect(mrb, val);
         if (!mrb->exc && mrb_string_p(inspected)) {
             str = mrb_string_value_cstr(mrb, &inspected);
         } else {
+            mrb->exc = NULL;
             str = "<object>";
         }
     }
@@ -90,12 +119,6 @@ mrb_value_to_jstring(JNIEnv *env, mrb_state *mrb, mrb_value val)
     }
 
     result = (*env)->NewStringUTF(env, str);
-
-    /*
-     * Clean up the GC arena to prevent leaks from repeated eval calls.
-     * We restore to the point before we created the string.
-     * This is safe because the jstring copy is now in Java heap memory.
-     */
     return result;
 }
 
@@ -107,43 +130,7 @@ static jstring
 extract_error_message(JNIEnv *env, mrb_state *mrb)
 {
     if (mrb->exc) {
-        /* Get message first — before mrb->exc gets cleared by funcall */
-        mrb_value msg = mrb_funcall(mrb, mrb_obj_value(mrb->exc), "message", 0);
-        const char *msg_str = NULL;
-        if (mrb_string_p(msg)) {
-            msg_str = mrb_string_value_cstr(mrb, &msg);
-        }
-
-        /* Get backtrace if available */
-        mrb_value backtrace = mrb_funcall(mrb, mrb_obj_value(mrb->exc),
-                                          "backtrace", 0);
-        mrb->exc = NULL;
-
-        if (msg_str != NULL && mrb_array_p(backtrace)) {
-            mrb_value len_val = mrb_funcall(mrb, backtrace, "length", 0);
-            if (!mrb->exc && mrb_integer_p(len_val) && mrb_integer(len_val) > 0) {
-                mrb_value full_msg = mrb_str_new_cstr(mrb, msg_str);
-                mrb_str_cat_cstr(mrb, full_msg, "\n");
-
-                mrb_int len = mrb_integer(len_val);
-                for (mrb_int i = 0; i < len; i++) {
-                    mrb_value entry = mrb_ary_entry(backtrace, i);
-                    if (mrb_string_p(entry)) {
-                        mrb_str_cat_cstr(mrb, full_msg, "  at ");
-                        mrb_str_cat_str(mrb, full_msg, entry);
-                        mrb_str_cat_cstr(mrb, full_msg, "\n");
-                    }
-                }
-
-                const char *full_str = mrb_string_value_cstr(mrb, &full_msg);
-                return (*env)->NewStringUTF(env, full_str);
-            }
-        }
-
-        if (msg_str != NULL) {
-            return (*env)->NewStringUTF(env, msg_str);
-        }
-        return (*env)->NewStringUTF(env, "Unknown Ruby error");
+        return safe_extract_error(env, mrb);
     }
     return (*env)->NewStringUTF(env, "Unknown Ruby error");
 }
@@ -233,18 +220,20 @@ Java_moe_bemly_mrboto_MRuby_nativeEvalString(JNIEnv *env, jobject thiz,
 
     (*env)->ReleaseStringUTFChars(env, code, c_code);
 
-    /* Restore the GC arena to prevent memory leaks */
-    mrb_gc_arena_restore(mrb, ai);
-
-    /* Check for exceptions (compile error or runtime error) */
+    /* Check for exceptions BEFORE restoring GC arena.
+     * mrb->exc is a pointer into GC-managed memory — if we restore
+     * the arena first, the exception object may be freed and
+     * mrb_funcall on it will crash. */
     if (mrb->exc) {
         LOGD("Ruby evaluation error");
-        return extract_error_message(env, mrb);
+        jstring jerr = extract_error_message(env, mrb);
+        mrb_gc_arena_restore(mrb, ai);
+        return jerr;
     }
 
     jstring jresult = mrb_value_to_jstring(env, mrb, result);
 
-    /* Restore arena again after creating the result string */
+    /* Restore the GC arena after creating the result string */
     mrb_gc_arena_restore(mrb, ai);
 
     return jresult;
