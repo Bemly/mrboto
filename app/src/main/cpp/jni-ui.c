@@ -427,3 +427,4 @@ mrb_value mrb_mrboto_animate_scale(mrb_state *mrb, mrb_value self) {
 
     mrb_gc_arena_restore(mrb, ai);
     return mrb_nil_value();
+}
