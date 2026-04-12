@@ -12,7 +12,6 @@
 #include <jni.h>
 #include <android/log.h>
 #include <stdlib.h>
-#include <stdio.h>
 #include <mruby.h>
 #include <mruby/data.h>
 #include <mruby/hash.h>
@@ -1502,11 +1501,7 @@ Java_moe_bemly_mrboto_MRuby_nativeLoadScript(JNIEnv *env, jobject thiz,
         mrb_value msg = mrb_funcall(mrb, mrb_obj_value(mrb->exc), "message", 0);
         if (mrb_string_p(msg)) {
             const char *s = mrb_string_value_cstr(mrb, &msg);
-            char buf[512];
-            snprintf(buf, sizeof(buf), "Error: %s", s);
-            jresult = (*env)->NewStringUTF(env, buf);
-        } else {
-            jresult = (*env)->NewStringUTF(env, "Error: unknown error");
+            jresult = (*env)->NewStringUTF(env, s);
         }
         mrb->exc = NULL;
     } else if (mrb_string_p(result)) {
