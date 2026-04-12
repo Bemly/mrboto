@@ -103,6 +103,25 @@ class ErrorHandlingTest {
     }
 
     @Test
+    fun `division by zero returns error message not crash`() {
+        val result = mruby.eval("1 / 0")
+        assertNotEquals("ok", result)
+        assertTrue("Should contain error info", result.isNotEmpty() && result != "nil")
+    }
+
+    @Test
+    fun `runtime error then view_text does not crash`() {
+        // Trigger a runtime error first, leaving mrb->exc potentially set
+        mruby.eval("1 / 0")
+        // Then call _view_text — should NOT crash even after error
+        val id = mruby.registerJavaObject(Any())
+        // _view_text with non-view object should handle gracefully
+        val result = mruby.eval("Mrboto._view_text($id)")
+        // Should return something (possibly nil) rather than crashing
+        assertNotNull("Should not crash", result)
+    }
+
+    @Test
     fun `closed MRuby throws on eval`() {
         val tempMruby = MRuby()
         tempMruby.registerAndroidClasses()
