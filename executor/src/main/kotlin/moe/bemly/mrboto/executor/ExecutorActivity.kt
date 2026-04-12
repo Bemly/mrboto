@@ -9,4 +9,13 @@ import moe.bemly.mrboto.MrbotoActivityBase
 class ExecutorActivity : MrbotoActivityBase() {
 
     override fun getScriptPath(): String = "ruby_executor.rb"
+
+    /**
+     * Load and execute a Ruby script from assets.
+     * Called from Ruby via call_java_method("loadAssetScript", path).
+     */
+    fun loadAssetScript(path: String): String {
+        val script = assets.open(path).bufferedReader().use { it.readText() }
+        return mruby.loadScript(script)
+    }
 }
