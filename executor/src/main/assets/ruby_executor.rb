@@ -71,9 +71,10 @@ class ExecutorActivity < Mrboto::Activity
     @output.text = "点击按钮执行嵌入的 Ruby 脚本，或在输入框中输入代码。\n\n"
   end
 
-  # Get input text as a proper Ruby string (not Java CharSequence)
+  # Get input text as a proper Ruby string
   def input_text
-    @script_input.java_object.getText.toString
+    t = @script_input.text
+    t.nil? ? "" : t
   end
 
   # Load and run a demo script from assets, display result
@@ -94,12 +95,10 @@ class ExecutorActivity < Mrboto::Activity
   # Run custom Ruby code from input field
   def run_custom
     code = input_text
-    return if code.nil? || code.strip.empty?
+    return if code.nil? || code.to_s.strip.empty?
 
     @output.append_text("─── custom ───\n")
     begin
-      # Use evalRuby framework method which calls mruby.eval directly
-      # and returns the string result
       result = call_java_method("evalRuby", code)
       if result.nil? || result.to_s.empty?
         @output.append_text("  (no output)\n\n")
@@ -115,11 +114,10 @@ class ExecutorActivity < Mrboto::Activity
   # Import and run an external .rb file from file system
   def import_file
     path = input_text
-    return if path.nil? || path.strip.empty?
+    return if path.nil? || path.to_s.strip.empty?
 
     @output.append_text("─── import: #{path} ───\n")
     begin
-      # Read file content as Ruby string, then eval it
       content = File.read(path)
       result = Mrboto._eval(content)
       if result.nil?

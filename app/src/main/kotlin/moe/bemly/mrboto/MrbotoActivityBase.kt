@@ -175,7 +175,11 @@ abstract class MrbotoActivityBase : Activity() {
      */
     fun loadAssetScript(path: CharSequence): String {
         val script = assets.open(path.toString()).bufferedReader().use { it.readText() }
-        return mruby.eval(script)
+        return try {
+            mruby.eval(script)
+        } catch (e: Exception) {
+            "Error: ${e.message}"
+        }
     }
 
     /**
@@ -183,6 +187,10 @@ abstract class MrbotoActivityBase : Activity() {
      * Called from Ruby via call_java_method("evalRuby", code).
      */
     fun evalRuby(code: CharSequence): String {
-        return mruby.eval(code.toString())
+        return try {
+            mruby.eval(code.toString())
+        } catch (e: Exception) {
+            "Error: ${e.message}"
+        }
     }
 }
