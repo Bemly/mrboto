@@ -1320,65 +1320,40 @@ static mrb_value mrb_mrboto_call_java_method(mrb_state *mrb, mrb_value self) {
  * Uses TextUtils.toString() to safely convert CharSequence to String. */
 static mrb_value mrb_mrboto_view_text(mrb_state *mrb, mrb_value self) {
     mrb_int registry_id;
-    mrb_get_args(mrb, "i", &registry_id);
-    (void)self;
 
-    /* If mruby has a pending exception, bail out immediately rather than
-       executing JNI calls in a potentially corrupted VM state. Clear the
-       exception so subsequent operations can proceed normally. */
+    /* Guard against pending mruby exception BEFORE parsing args.
+       If mrb->exc is set, mrb_get_args could crash. Return nil
+       immediately and let the caller handle the error gracefully. */
     if (mrb->exc) {
-        const char *s = mrboto_safe_exc_message_cstr(mrb);
-        LOGW("_view_text: pending exception cleared: %s", s ? s : "(unknown)");
+        /* Clear without reading message — mrb_funcall could crash */
+        mrb->exc = NULL;
+        LOGW("_view_text: pending exception cleared (pre-guard)");
         return mrb_nil_value();
     }
+
+    mrb_get_args(mrb, "i", &registry_id);
+    (void)self;
 
     JNIEnv *env = mrboto_get_env();
     if (env == NULL) { LOGE("_view_text: env is NULL"); return mrb_nil_value(); }
 
     jobject view = mrboto_lookup_ref(env, (int)registry_id);
-    if (view == NULL) { LOGE("_view_text: view lookup failed for id=%d", (int)registry_id); return mrb_nil_value(); }
+    if (view == NULL) {
+        LOGE("_view_text: view lookup failed for id=%d", (int)registry_id);
+        return mrb_nil_value();
+    }
 
     int ai = mrb_gc_arena_save(mrb);
 
     jclass view_cls = (*env)->GetObjectClass(env, view);
-    if (view_cls == NULL || (*env)->ExceptionCheck(env)) {
-        if (view_cls) (*env)->DeleteLocalRef(env, view_cls);
+    if (view_cls == NULL) {
         (*env)->ExceptionClear(env);
-        mrb_gc_arena_restore(mrb, ai);
         LOGE("_view_text: GetObjectClass failed");
+        mrb_gc_arena_restore(mrb, ai);
         return mrb_nil_value();
     }
 
-    /* Get the class name for debugging */
-    jmethodID get_name = (*env)->GetMethodID(env, view_cls, "getClass", "()Ljava/lang/Class;");
-    if (get_name) {
-        jclass cls_of_cls = (*env)->GetObjectClass(env, view_cls);
-        if (cls_of_cls) {
-            jmethodID get_simple_name = (*env)->GetMethodID(env, cls_of_cls, "getSimpleName", "()Ljava/lang/String;");
-            if (get_simple_name) {
-                jobject class_obj = (*env)->CallObjectMethod(env, view, get_name);
-                if (class_obj) {
-                    jclass cobj_cls = (*env)->GetObjectClass(env, class_obj);
-                    jmethodID cobj_get_name = (*env)->GetMethodID(env, cobj_cls, "getSimpleName", "()Ljava/lang/String;");
-                    if (cobj_get_name) {
-                        jstring name = (jstring)(*env)->CallObjectMethod(env, class_obj, cobj_get_name);
-                        if (name) {
-                            const char *s = (*env)->GetStringUTFChars(env, name, NULL);
-                            LOGI("_view_text: view class=%s id=%d", s, (int)registry_id);
-                            (*env)->ReleaseStringUTFChars(env, name, s);
-                            (*env)->DeleteLocalRef(env, name);
-                        }
-                    }
-                    (*env)->DeleteLocalRef(env, cobj_cls);
-                    (*env)->DeleteLocalRef(env, class_obj);
-                }
-            }
-            (*env)->DeleteLocalRef(env, cls_of_cls);
-        }
-    }
-
-    /* Try getText with Editable return type first, then CharSequence fallback.
-     * TextView.getText() returns Editable, but some subclasses declare CharSequence. */
+    /* Try getText with Editable return type first, then CharSequence fallback. */
     jmethodID get_text = (*env)->GetMethodID(env, view_cls, "getText",
         "()Landroid/text/Editable;");
     if (get_text == NULL) {
@@ -1395,21 +1370,21 @@ static mrb_value mrb_mrboto_view_text(mrb_state *mrb, mrb_value self) {
     }
 
     jobject text_obj = (*env)->CallObjectMethod(env, view, get_text);
-    LOGI("_view_text: text_obj=%p", text_obj);
-    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, view_cls); mrb_gc_arena_restore(mrb, ai); return mrb_nil_value(); }
+    if ((*env)->ExceptionCheck(env)) {
+        (*env)->ExceptionClear(env);
+        text_obj = NULL;
+    }
+    (*env)->DeleteLocalRef(env, view_cls);
 
-    /* Call toString() directly on the Editable/CharSequence object.
-     * Editable (SpannableStringBuilder) overrides toString to return content.
-     * If text_obj is NULL (no text set), return empty string. */
     mrb_value result = mrb_nil_value();
     if (text_obj == NULL) {
         result = mrb_str_new_cstr(mrb, "");
     } else {
         jclass obj_cls = (*env)->GetObjectClass(env, text_obj);
-        if (obj_cls) {
+        if (obj_cls != NULL) {
             jmethodID to_string = (*env)->GetMethodID(env, obj_cls, "toString",
                 "()Ljava/lang/String;");
-            if (to_string && !(*env)->ExceptionCheck(env)) {
+            if (to_string != NULL && !(*env)->ExceptionCheck(env)) {
                 jstring jstr = (jstring)(*env)->CallObjectMethod(env, text_obj, to_string);
                 if (jstr != NULL && !(*env)->ExceptionCheck(env)) {
                     const char *str = (*env)->GetStringUTFChars(env, jstr, NULL);
@@ -1419,15 +1394,12 @@ static mrb_value mrb_mrboto_view_text(mrb_state *mrb, mrb_value self) {
                     }
                     (*env)->DeleteLocalRef(env, jstr);
                 }
-            } else {
-                (*env)->ExceptionClear(env);
             }
+            (*env)->ExceptionClear(env);
             (*env)->DeleteLocalRef(env, obj_cls);
         }
+        (*env)->DeleteLocalRef(env, text_obj);
     }
-
-    (*env)->DeleteLocalRef(env, view_cls);
-    if (text_obj) (*env)->DeleteLocalRef(env, text_obj);
 
     mrb_gc_arena_restore(mrb, ai);
     return result;
