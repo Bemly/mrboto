@@ -1564,14 +1564,28 @@ Java_moe_bemly_mrboto_MRuby_nativeLoadScript(JNIEnv *env, jobject thiz,
     if (c_script == NULL) return NULL;
 
     int ai = mrb_gc_arena_save(mrb);
+
+    /* Clear any pre-existing exception before loading new script.
+     * This prevents mrb_load_string from seeing a stale mrb->exc
+     * left over from a previous failed eval. */
+    mrb->exc = NULL;
+
     mrb_value result = mrb_load_string(mrb, c_script);
     (*env)->ReleaseStringUTFChars(env, script, c_script);
 
     jstring jresult = NULL;
     if (mrb->exc) {
-        mrb_value msg = mrb_funcall(mrb, mrb_obj_value(mrb->exc), "message", 0);
-        if (mrb_string_p(msg)) {
-            const char *s = mrb_string_value_cstr(mrb, &msg);
+        /* Use mrb_protect to safely extract exception message.
+         * Direct mrb_funcall while mrb->exc is set can be dangerous. */
+        mrboto_exc_ctx_t ctx;
+        ctx.exc = mrb_obj_value(mrb->exc);
+        ctx.result = mrb_nil_value();
+        mrb_bool error = FALSE;
+        mrb_value data = mrb_cptr_value(mrb, &ctx);
+        mrb_protect(mrb, mrboto_safe_exc_message, data, &error);
+
+        if (mrb_string_p(ctx.result)) {
+            const char *s = mrb_string_value_cstr(mrb, &ctx.result);
             jresult = (*env)->NewStringUTF(env, s);
         }
         mrb->exc = NULL;

@@ -240,12 +240,12 @@ module Mrboto
     end
 
     # Append text without replacing existing content.
-    # Uses _view_text (native) + text= (setText via reflection) to avoid
-    # the unreliable append() reflection call that can crash in test contexts.
+    # Tracks text in Ruby (@_text) to avoid the fragile JNI roundtrip
+    # of _view_text, which can crash if the mruby VM is in an error state.
     def append_text(val)
-      current = Mrboto._view_text(@_registry_id)
-      current = "" if current.nil?
-      self.text = "#{current}#{val}"
+      @_text = "" if @_text.nil?
+      @_text = "#{@_text}#{val}"
+      self.text = @_text
     end
   end
 
