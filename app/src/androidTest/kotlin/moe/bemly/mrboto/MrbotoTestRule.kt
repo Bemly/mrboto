@@ -43,7 +43,8 @@ class MrbotoTestRule : TestRule {
         )
         for (file in coreFiles) {
             val result = mruby.loadAssetScript(context.assets, file)
-            if (result.startsWith("Error:")) {
+            if (result.contains("Error") || result.contains("SyntaxError") ||
+                result.contains("NoMethodError") || result.contains("NameError")) {
                 throw RuntimeException("Failed to load $file: $result")
             }
         }

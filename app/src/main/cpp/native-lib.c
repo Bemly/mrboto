@@ -20,6 +20,7 @@
 #include <mruby/array.h>
 #include <mruby/variable.h>
 #include <mruby/data.h>
+#include <mruby/object.h>
 
 #include <string.h>
 
@@ -48,8 +49,14 @@ static jstring safe_extract_error(JNIEnv *env, mrb_state *mrb) {
         return (*env)->NewStringUTF(env, "Unknown Ruby error (exc=NULL)");
     }
 
+    mrb_value exc_obj = mrb_obj_value(mrb->exc);
+
+    /* Extract exception class name (e.g. "SyntaxError", "NoMethodError") */
+    const char *class_name = mrb_obj_classname(mrb, exc_obj);
+
+    /* Safely extract the message via mrb_protect */
     exc_msg_ctx_t ctx;
-    ctx.exc = mrb_obj_value(mrb->exc);
+    ctx.exc = exc_obj;
     ctx.result = mrb_nil_value();
 
     mrb_bool error = FALSE;
@@ -62,22 +69,43 @@ static jstring safe_extract_error(JNIEnv *env, mrb_state *mrb) {
     }
     mrb->exc = NULL;
 
-    if (msg_str != NULL) {
-        return (*env)->NewStringUTF(env, msg_str);
+    /* Format as "ClassName: message" */
+    if (msg_str != NULL && msg_str[0] != '\0') {
+        char buf[512];
+        if (class_name != NULL) {
+            snprintf(buf, sizeof(buf), "%s: %s", class_name, msg_str);
+        } else {
+            snprintf(buf, sizeof(buf), "%s", msg_str);
+        }
+        LOGE("Ruby error: %s", buf);
+        return (*env)->NewStringUTF(env, buf);
     }
 
-    /* Fallback: try mrb_inspect to get a debug string of the exception */
-    mrb_value inspected = mrb_inspect(mrb, ctx.exc);
+    /* Fallback: inspect the exception object with class name prefix */
+    mrb_value inspected = mrb_inspect(mrb, exc_obj);
     if (!mrb->exc && mrb_string_p(inspected)) {
         const char *insp_str = mrb_string_value_cstr(mrb, &inspected);
-        char buf[256];
-        snprintf(buf, sizeof(buf), "Ruby error: %s", insp_str);
+        char buf[512];
+        if (class_name != NULL) {
+            snprintf(buf, sizeof(buf), "%s: %s", class_name, insp_str);
+        } else {
+            snprintf(buf, sizeof(buf), "Ruby error: %s", insp_str);
+        }
+        LOGE("Ruby error: %s", buf);
+        mrb->exc = NULL;
         return (*env)->NewStringUTF(env, buf);
     }
     mrb->exc = NULL;
 
-    LOGD("Exception extraction failed, exc type=%d, error=%d", mrb_type(ctx.exc), error);
-    return (*env)->NewStringUTF(env, "Unknown Ruby error");
+    /* Final fallback */
+    char buf[128];
+    if (class_name != NULL) {
+        snprintf(buf, sizeof(buf), "%s (type=%d, extraction failed)", class_name, mrb_type(exc_obj));
+    } else {
+        snprintf(buf, sizeof(buf), "Unknown Ruby error (type=%d, extraction failed)", mrb_type(exc_obj));
+    }
+    LOGE("Ruby error: %s", buf);
+    return (*env)->NewStringUTF(env, buf);
 }
 
 /* ── Helper: convert an mruby value to a Java String ────────────────── */

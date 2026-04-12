@@ -20,6 +20,8 @@
 #include <mruby/variable.h>
 #include <mruby/compile.h>
 #include <mruby/error.h>
+#include <mruby/object.h>
+#include <mruby/error.h>
 
 #include "android-jni-bridge.h"
 #include <string.h>
@@ -1947,6 +1949,20 @@ Java_moe_bemly_mrboto_MRuby_nativeDispatchLifecycle(JNIEnv *env, jobject thiz,
     return result;
 }
 
+/* Context for mrb_load_string wrapper in mrb_protect */
+typedef struct {
+    mrb_state *mrb;
+    const char *code;
+    mrb_value result;
+} mrboto_load_ctx_t;
+
+static mrb_value mrboto_safe_load_script(mrb_state *mrb, mrb_value self) {
+    (void)self;
+    mrboto_load_ctx_t *ctx = (mrboto_load_ctx_t *)mrb_cptr(self);
+    ctx->result = mrb_load_string(ctx->mrb, ctx->code);
+    return ctx->result;
+}
+
 /**
  * Load and execute a Ruby source script.
  */
@@ -1963,47 +1979,62 @@ Java_moe_bemly_mrboto_MRuby_nativeLoadScript(JNIEnv *env, jobject thiz,
 
     int ai = mrb_gc_arena_save(mrb);
 
-    /* Clear any pre-existing exception before loading new script.
-     * This prevents mrb_load_string from seeing a stale mrb->exc
-     * left over from a previous failed eval. */
+    /* Clear any pre-existing exception before loading new script. */
     mrb->exc = NULL;
 
-    /* Execute via mrb_protect so exceptions during compilation/execution
-     * are caught without crashing. */
-    mrb_value result = mrb_nil_value();
-    {
-        mrboto_exc_ctx_t ctx;
-        ctx.exc = mrb_nil_value();  /* not used for eval, just reuse the struct */
-        ctx.result = mrb_nil_value();
+    /* Execute via mrb_protect so exceptions during compilation are caught. */
+    mrboto_load_ctx_t ctx;
+    ctx.mrb = mrb;
+    ctx.code = c_script;
+    ctx.result = mrb_nil_value();
 
-        /* We need a wrapper since mrb_load_string isn't an mrb_funcall-compatible callback.
-         * Use a simple direct call but check for crashes via mrb->exc afterward. */
-        result = mrb_load_string(mrb, c_script);
-    }
+    mrb_bool error = FALSE;
+    mrb_value data = mrb_cptr_value(mrb, &ctx);
+    mrb_protect(mrb, mrboto_safe_load_script, data, &error);
+
     (*env)->ReleaseStringUTFChars(env, script, c_script);
 
     jstring jresult = NULL;
-    if (mrb->exc) {
-        /* Use mrb_protect to safely extract exception message.
-         * Direct mrb_funcall while mrb->exc is set can be dangerous. */
-        mrboto_exc_ctx_t ctx;
-        ctx.exc = mrb_obj_value(mrb->exc);
-        ctx.result = mrb_nil_value();
-        mrb_bool error = FALSE;
-        mrb_value data = mrb_cptr_value(mrb, &ctx);
-        mrb_protect(mrb, mrboto_safe_exc_message, data, &error);
+    if (mrb->exc || error) {
+        /* Extract exception with "ClassName: message" format */
+        mrb_value exc_obj = mrb->exc ? mrb_obj_value(mrb->exc) : mrb_nil_value();
+        const char *class_name = mrb->exc ? mrb_obj_classname(mrb, exc_obj) : NULL;
 
-        if (mrb_string_p(ctx.result)) {
-            const char *s = mrb_string_value_cstr(mrb, &ctx.result);
-            jresult = (*env)->NewStringUTF(env, s);
+        /* Try message extraction */
+        mrboto_exc_ctx_t ectx;
+        ectx.exc = mrb->exc ? mrb_obj_value(mrb->exc) : mrb_nil_value();
+        ectx.result = mrb_nil_value();
+        mrb_bool msg_error = FALSE;
+        mrb_value edata = mrb_cptr_value(mrb, &ectx);
+        mrb_protect(mrb, mrboto_safe_exc_message, edata, &msg_error);
+
+        const char *msg_str = NULL;
+        if (mrb_string_p(ectx.result)) {
+            msg_str = mrb_string_value_cstr(mrb, &ectx.result);
         }
         mrb->exc = NULL;
-    } else if (mrb_string_p(result)) {
-        const char *s = mrb_string_value_cstr(mrb, &result);
+
+        char buf[512];
+        if (msg_str != NULL && msg_str[0] != '\0') {
+            if (class_name) {
+                snprintf(buf, sizeof(buf), "%s: %s", class_name, msg_str);
+            } else {
+                snprintf(buf, sizeof(buf), "%s", msg_str);
+            }
+        } else {
+            if (class_name) {
+                snprintf(buf, sizeof(buf), "%s: (no message available)", class_name);
+            } else {
+                snprintf(buf, sizeof(buf), "Unknown Ruby error during script load");
+            }
+        }
+        LOGE("Ruby error (loadScript): %s", buf);
+        jresult = (*env)->NewStringUTF(env, buf);
+    } else if (mrb_string_p(ctx.result)) {
+        const char *s = mrb_string_value_cstr(mrb, &ctx.result);
         jresult = (*env)->NewStringUTF(env, s);
     } else {
-        /* Convert non-string result to string representation */
-        mrb_value str = mrb_funcall(mrb, result, "to_s", 0);
+        mrb_value str = mrb_funcall(mrb, ctx.result, "to_s", 0);
         if (mrb->exc) { mrb->exc = NULL; }
         if (mrb_string_p(str)) {
             const char *s = mrb_string_value_cstr(mrb, &str);
@@ -2011,7 +2042,6 @@ Java_moe_bemly_mrboto_MRuby_nativeLoadScript(JNIEnv *env, jobject thiz,
         }
     }
 
-    /* Always return a valid jstring — never NULL */
     if (jresult == NULL) {
         jresult = (*env)->NewStringUTF(env, "(unknown)");
     }
