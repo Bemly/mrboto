@@ -81,6 +81,11 @@ cd mruby && rake deep_clean && cd ..
 - `compileSdk` is 36 (required by androidx.core 1.18.0+).
 - `mrb_state` is NOT thread-safe. The Kotlin wrapper ensures serial access per instance.
 - C code uses `mrb_gc_arena_save/restore` to prevent memory leaks from repeated eval calls.
+- **Shared VM architecture**: `nativeEvalString` and `nativeEvalBytecode` use the shared `mrb_state` VM.
+  They do NOT create temporary VMs (`mrb_open()`), because a new VM has no `Mrboto::Activity`,
+  no registered JNI methods, and no loaded core scripts. All eval calls share the same VM instance
+  registered via `nativeRegisterAndroidClasses` + 5 core rb scripts. The `isolated-vm` branch
+  contains an abandoned experiment with per-eval temporary VMs (see branch for reference).
 
 ## Architecture Details
 
