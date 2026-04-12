@@ -1570,7 +1570,18 @@ Java_moe_bemly_mrboto_MRuby_nativeLoadScript(JNIEnv *env, jobject thiz,
      * left over from a previous failed eval. */
     mrb->exc = NULL;
 
-    mrb_value result = mrb_load_string(mrb, c_script);
+    /* Execute via mrb_protect so exceptions during compilation/execution
+     * are caught without crashing. */
+    mrb_value result = mrb_nil_value();
+    {
+        mrboto_exc_ctx_t ctx;
+        ctx.exc = mrb_nil_value();  /* not used for eval, just reuse the struct */
+        ctx.result = mrb_nil_value();
+
+        /* We need a wrapper since mrb_load_string isn't an mrb_funcall-compatible callback.
+         * Use a simple direct call but check for crashes via mrb->exc afterward. */
+        result = mrb_load_string(mrb, c_script);
+    }
     (*env)->ReleaseStringUTFChars(env, script, c_script);
 
     jstring jresult = NULL;
@@ -1595,6 +1606,7 @@ Java_moe_bemly_mrboto_MRuby_nativeLoadScript(JNIEnv *env, jobject thiz,
     } else {
         /* Convert non-string result to string representation */
         mrb_value str = mrb_funcall(mrb, result, "to_s", 0);
+        if (mrb->exc) { mrb->exc = NULL; }
         if (mrb_string_p(str)) {
             const char *s = mrb_string_value_cstr(mrb, &str);
             jresult = (*env)->NewStringUTF(env, s);

@@ -180,6 +180,20 @@ Java_moe_bemly_mrboto_MRuby_nativeClose(JNIEnv *env, jobject thiz, jlong mrbPtr)
     mrb_close(mrb);
 }
 
+/* Context for mrb_protect — pass code string via CPTR */
+typedef struct {
+    mrb_state *mrb;
+    const char *code;
+    mrb_value result;
+} mrboto_eval_ctx_t;
+
+static mrb_value mrboto_safe_load_string(mrb_state *mrb, mrb_value self) {
+    (void)self;
+    mrboto_eval_ctx_t *ctx = (mrboto_eval_ctx_t *)mrb_cptr(self);
+    ctx->result = mrb_load_string(ctx->mrb, ctx->code);
+    return ctx->result;
+}
+
 /**
  * Evaluate a Ruby source code string.
  * @param mrbPtr Native pointer to mrb_state.
@@ -211,12 +225,24 @@ Java_moe_bemly_mrboto_MRuby_nativeEvalString(JNIEnv *env, jobject thiz,
     /* Save the GC arena index so we can restore it after evaluation */
     int ai = mrb_gc_arena_save(mrb);
 
-    /*
-     * mrb_load_string compiles and executes the Ruby code.
-     * If compilation or execution fails, mrb->exc is set and
-     * the return value is mrb_nil_value().
-     */
-    mrb_value result = mrb_load_string(mrb, c_code);
+    /* Clear any pre-existing exception before loading new code.
+     * mrb_load_string will crash if mrb->exc is already set from a
+     * previous failed eval, because it tries to compile and execute
+     * new code while the VM is in an error state. */
+    mrb->exc = NULL;
+
+    /* Execute via mrb_protect so exceptions during compilation/execution
+     * are caught without crashing. Even though we cleared mrb->exc above,
+     * internal mruby state corruption from a previous error could still
+     * cause mrb_load_string to fail. */
+    mrboto_eval_ctx_t ctx;
+    ctx.mrb = mrb;
+    ctx.code = c_code;
+    ctx.result = mrb_nil_value();
+
+    mrb_bool error = FALSE;
+    mrb_value data = mrb_cptr_value(mrb, &ctx);
+    mrb_protect(mrb, mrboto_safe_load_string, data, &error);
 
     (*env)->ReleaseStringUTFChars(env, code, c_code);
 
@@ -224,14 +250,14 @@ Java_moe_bemly_mrboto_MRuby_nativeEvalString(JNIEnv *env, jobject thiz,
      * mrb->exc is a pointer into GC-managed memory — if we restore
      * the arena first, the exception object may be freed and
      * mrb_funcall on it will crash. */
-    if (mrb->exc) {
-        LOGD("Ruby evaluation error");
+    if (mrb->exc || error) {
+        LOGD("Ruby evaluation error (exc=%p, error=%d)", (void *)mrb->exc, error);
         jstring jerr = extract_error_message(env, mrb);
         mrb_gc_arena_restore(mrb, ai);
         return jerr;
     }
 
-    jstring jresult = mrb_value_to_jstring(env, mrb, result);
+    jstring jresult = mrb_value_to_jstring(env, mrb, ctx.result);
 
     /* Restore the GC arena after creating the result string */
     mrb_gc_arena_restore(mrb, ai);
