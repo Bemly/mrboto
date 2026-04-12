@@ -1224,6 +1224,63 @@ static mrb_value mrb_mrboto_call_java_method(mrb_state *mrb, mrb_value self) {
     return result;
 }
 
+/* Mrrboto._view_text(registry_id) — get text from a TextView/EditText.
+ * Uses TextUtils.toString() to safely convert CharSequence to String. */
+static mrb_value mrb_mrboto_view_text(mrb_state *mrb, mrb_value self) {
+    mrb_int registry_id;
+    mrb_get_args(mrb, "i", &registry_id);
+    (void)self;
+
+    JNIEnv *env = mrboto_get_env();
+    if (env == NULL) return mrb_nil_value();
+
+    jobject view = mrboto_lookup_ref(env, (int)registry_id);
+    if (view == NULL) return mrb_nil_value();
+
+    int ai = mrb_gc_arena_save(mrb);
+
+    jclass view_cls = (*env)->GetObjectClass(env, view);
+    jmethodID get_text = view_cls ? (*env)->GetMethodID(env, view_cls, "getText",
+        "()Landroid/text/Editable;") : NULL;
+    if (get_text == NULL) {
+        (*env)->ExceptionClear(env);
+        (*env)->DeleteLocalRef(env, view_cls);
+        mrb_gc_arena_restore(mrb, ai);
+        return mrb_nil_value();
+    }
+
+    jobject editable = (*env)->CallObjectMethod(env, view, get_text);
+    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, view_cls); mrb_gc_arena_restore(mrb, ai); return mrb_nil_value(); }
+
+    /* Use TextUtils.toString(editable) — safe for CharSequence → String */
+    jclass tu_cls = (*env)->FindClass(env, "android/text/TextUtils");
+    jmethodID tu_to_str = tu_cls ? (*env)->GetStaticMethodID(env, tu_cls, "toString",
+        "(Ljava/lang/CharSequence;)Ljava/lang/String;") : NULL;
+    if (tu_to_str == NULL) {
+        (*env)->ExceptionClear(env);
+        (*env)->DeleteLocalRef(env, view_cls);
+        mrb_gc_arena_restore(mrb, ai);
+        return mrb_nil_value();
+    }
+
+    jstring jstr = (jstring)(*env)->CallStaticObjectMethod(env, tu_cls, tu_to_str, editable);
+    const char *str = NULL;
+    if (jstr != NULL) {
+        str = (*env)->GetStringUTFChars(env, jstr, NULL);
+    }
+
+    mrb_value result = str ? mrb_str_new_cstr(mrb, str) : mrb_nil_value();
+    if (str) (*env)->ReleaseStringUTFChars(env, jstr, str);
+
+    (*env)->DeleteLocalRef(env, view_cls);
+    if (jstr) (*env)->DeleteLocalRef(env, jstr);
+    if (editable) (*env)->DeleteLocalRef(env, editable);
+    if (tu_cls) (*env)->DeleteLocalRef(env, tu_cls);
+
+    mrb_gc_arena_restore(mrb, ai);
+    return result;
+}
+
 /* Mrboto._eval(code) — evaluate a Ruby string and return result.
  * Like mruby's mrb_load_string but returns the value as mrb_value. */
 static mrb_value mrb_mrboto_eval(mrb_state *mrb, mrb_value self) {
@@ -1272,6 +1329,7 @@ static void mrb_mrboto_define_methods(mrb_state *mrb, struct RClass *mrboto) {
     mrb_define_module_function(mrb, mrboto, "_java_object_for", mrb_mrboto_java_object_for, MRB_ARGS_REQ(1));
     mrb_define_module_function(mrb, mrboto, "_call_java_method", mrb_mrboto_call_java_method, MRB_ARGS_ANY());
     mrb_define_module_function(mrb, mrboto, "_eval", mrb_mrboto_eval, MRB_ARGS_REQ(1));
+    mrb_define_module_function(mrb, mrboto, "_view_text", mrb_mrboto_view_text, MRB_ARGS_REQ(1));
 }
 
 #ifdef __cplusplus

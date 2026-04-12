@@ -215,15 +215,7 @@ module Mrboto
     end
 
     def text
-      # getText() returns CharSequence (wrapped as Data by C reflection).
-      # Call toString() on that Java object to get a String result.
-      # C reflection converts the return value: String → Ruby String via
-      # mrb_str_new_cstr (since IsInstanceOf(String.class) is true).
-      cs = Mrboto._call_java_method(@_registry_id, 'getText')
-      return nil if cs.nil?
-      cs.java_object.call_java_method('toString')
-    rescue
-      nil
+      Mrboto._call_java_method(@_registry_id, 'getText')
     end
 
     def text_size=(val)

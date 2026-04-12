@@ -71,9 +71,10 @@ class ExecutorActivity < Mrboto::Activity
     @output.text = "点击按钮执行嵌入的 Ruby 脚本，或在输入框中输入代码。\n\n"
   end
 
-  # Get input text as a proper Ruby string
+  # Get input text as a proper Ruby string using the C native method
+  # that safely converts CharSequence to String via TextUtils.toString
   def input_text
-    t = @script_input.text
+    t = Mrboto._view_text(@script_input._registry_id)
     t.nil? ? "" : t
   end
 
