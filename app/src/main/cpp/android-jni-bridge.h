@@ -35,6 +35,9 @@ jobject mrboto_lookup_ref(JNIEnv *env, int id);
 /* Unregister and DeleteGlobalRef */
 void mrboto_unregister_ref(JNIEnv *env, int id);
 
+/* Clear ALL used registry entries (used between tests) */
+void mrboto_clear_registry(JNIEnv *env);
+
 /* ── JNI Environment ──────────────────────────────────────────────── */
 
 /* Get cached JavaVM pointer (set in JNI_OnLoad) */

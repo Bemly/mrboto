@@ -126,6 +126,19 @@ void mrboto_unregister_ref(JNIEnv *env, int id) {
     g_registry.used[id] = 0;
 }
 
+/* Clear ALL used registry entries. Called between test runs to prevent
+ * GlobalRef table bloat from causing memory pressure and test hangs. */
+void mrboto_clear_registry(JNIEnv *env) {
+    for (int i = 1; i < MRBOTO_REGISTRY_MAX; i++) {
+        if (g_registry.used[i]) {
+            (*env)->DeleteGlobalRef(env, g_registry.refs[i]);
+            g_registry.refs[i] = NULL;
+            g_registry.used[i] = 0;
+        }
+    }
+    g_registry.next_id = 1;
+}
+
 /* ── mruby JavaObject Data Type ───────────────────────────────────── */
 
 static const mrb_data_type mrboto_java_object_type = {
@@ -2112,6 +2125,17 @@ Java_moe_bemly_mrboto_MRuby_nativeLookupObject(JNIEnv *env, jobject thiz,
     (void)thiz;
     (void)mrbPtr;
     return mrboto_lookup_ref(env, (int)registryId);
+}
+
+/**
+ * Clear all JNI GlobalRef registry entries. Used between tests to prevent
+ * reference table bloat.
+ */
+JNIEXPORT void JNICALL
+Java_moe_bemly_mrboto_MRuby_nativeClearRegistry(JNIEnv *env, jobject thiz) {
+    (void)thiz;
+    mrboto_clear_registry(env);
+    LOGI("Registry cleared, next_id reset to 1");
 }
 
 #ifdef __cplusplus

@@ -124,6 +124,14 @@ class MRuby : AutoCloseable {
     }
 
     /**
+     * Clear all JNI GlobalRef registry entries.
+     * Used between tests to prevent reference table bloat.
+     */
+    fun clearRegistry() {
+        nativeClearRegistry()
+    }
+
+    /**
      * Set OnClickListener on a View with a mruby callback ID.
      */
     fun setOnClick(viewId: Int, callbackId: Int) {
@@ -170,6 +178,7 @@ class MRuby : AutoCloseable {
     private external fun nativeLoadScript(mrbPtr: Long, script: String): String
     private external fun nativeRegisterObject(mrbPtr: Long, obj: Any): Int
     private external fun nativeLookupObject(mrbPtr: Long, registryId: Int): Any?
+    private external fun nativeClearRegistry()
     private external fun nativeSetOnClick(mrbPtr: Long, viewId: Int, callbackId: Int)
     private external fun nativeSetContentView(mrbPtr: Long, activityId: Int, viewId: Int)
 }

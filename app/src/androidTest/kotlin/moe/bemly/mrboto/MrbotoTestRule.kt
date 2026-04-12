@@ -28,6 +28,7 @@ class MrbotoTestRule : TestRule {
                     base.evaluate()
                 } finally {
                     mruby.close()
+                    mruby.clearRegistry()
                 }
             }
         }
