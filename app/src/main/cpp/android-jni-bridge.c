@@ -1558,10 +1558,10 @@ Java_moe_bemly_mrboto_MRuby_nativeLoadScript(JNIEnv *env, jobject thiz,
     (void)thiz;
 
     mrb_state *mrb = (mrb_state *)(intptr_t)mrbPtr;
-    if (mrb == NULL) return NULL;
+    if (mrb == NULL) return (*env)->NewStringUTF(env, "Error: mruby VM not initialized");
 
     const char *c_script = (*env)->GetStringUTFChars(env, script, NULL);
-    if (c_script == NULL) return NULL;
+    if (c_script == NULL) return (*env)->NewStringUTF(env, "Error: failed to get script string");
 
     int ai = mrb_gc_arena_save(mrb);
 
@@ -1611,6 +1611,11 @@ Java_moe_bemly_mrboto_MRuby_nativeLoadScript(JNIEnv *env, jobject thiz,
             const char *s = mrb_string_value_cstr(mrb, &str);
             jresult = (*env)->NewStringUTF(env, s);
         }
+    }
+
+    /* Always return a valid jstring — never NULL */
+    if (jresult == NULL) {
+        jresult = (*env)->NewStringUTF(env, "(unknown)");
     }
 
     mrb_gc_arena_restore(mrb, ai);
