@@ -24,8 +24,11 @@ abstract class MrbotoActivityBase : Activity() {
         private const val TAG = "MrbotoActivity"
     }
 
-    protected lateinit var mruby: MRuby
+    internal lateinit var mruby: MRuby
     protected var rubyInstanceId: Int = 0
+
+    /** Expose mruby to subclasses in other modules */
+    protected fun getMRuby(): MRuby = mruby
 
     /** Override to return the Ruby script asset path */
     protected abstract fun getScriptPath(): String

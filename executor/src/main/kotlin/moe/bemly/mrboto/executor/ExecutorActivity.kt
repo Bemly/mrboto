@@ -16,6 +16,6 @@ class ExecutorActivity : MrbotoActivityBase() {
      */
     fun loadAssetScript(path: String): String {
         val script = assets.open(path).bufferedReader().use { it.readText() }
-        return mruby.loadScript(script)
+        return getMRuby().loadScript(script)
     }
 }
