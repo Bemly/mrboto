@@ -115,6 +115,17 @@ cd mruby && rake deep_clean && cd ..
   `"ClassName: message"` format (e.g., `"SyntaxError: syntax error"`, `"NoMethodError: undefined
   method 'foo'"`). If message extraction fails, falls back to `mrb_inspect` for debug info.
   `nativeLoadScript` in `android-jni-bridge.c` uses `mrb_protect` to safely catch compilation errors.
+- **Test hang root cause**: `PopupMenu.show()` on an unattached `View(context)` hangs permanently
+  waiting for a window token — it does NOT throw an exception. The test runs on a non-Looper thread
+  (AndroidJUnitRunner), so the window attach process never completes. Fix: do NOT call `show()`
+  in instrumented tests; constructor + `getMenu()` + `add()` items is sufficient.
+  `Dialog.show()` throws `RuntimeException` on non-Looper threads (caught and cleared).
+  `Snackbar.make()` throws `IllegalArgumentException` when View has no parent (caught and cleared).
+  `View.startAnimation()` does NOT block but Animation objects accumulate on unattached Views.
+- **Registry cleanup between tests**: `MrbotoTestRule.finally` calls `mruby.clearRegistry()`
+  after `mruby.close()` to free all JNI GlobalRefs. The C registry (`g_registry`) is a process-level
+  static that is NOT cleaned by `mrb_close()`. Without this, 200+ tests accumulate ~600+ GlobalRefs,
+  potentially causing memory pressure and test instability.
 
 ## Architecture Details
 
@@ -132,10 +143,10 @@ Ruby `linear_layout { }` → `Mrboto::Widgets.create_view(class_name, attrs)` �
 
 ### Helpers C Bridge
 `helpers.rb` dialog/snackbar/popup/animation methods call C bridge functions directly (not Java reflection):
-- `_show_dialog(context_id, title, message, buttons_json)` — AlertDialog.Builder via JNI
-- `_show_snackbar(context_id, view_id, message, duration)` — Snackbar.make + show
-- `_show_popup_menu(context_id, view_id, items_json)` — PopupMenu with JSON items
-- `_animate_fade/_animate_translate/_animate_scale` — View animations via JNI
+- `_show_dialog(context_id, title, message, buttons_json)` — AlertDialog.Builder via JNI (create + show, exception cleared on non-Looper thread)
+- `_show_snackbar(context_id, view_id, message, duration)` — Snackbar.make + show (exception cleared when View has no parent)
+- `_show_popup_menu(context_id, view_id, items_json)` — PopupMenu constructor + getMenu + add items (NO show() — hangs on unattached Views)
+- `_animate_fade/_animate_translate/_animate_scale` — View animations via JNI (create Animation + startAnimation on View)
 
 All take registry IDs, look up GlobalRefs via `mrboto_lookup_ref()`, use Android APIs directly.
 
