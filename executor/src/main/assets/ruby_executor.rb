@@ -1,10 +1,5 @@
-# ruby_executor.rb — mruby demo with terminal output and demo buttons
-#
-# UI matches the layout from activity_main.xml:
-#   - Version label at top
-#   - Scrollable terminal output (black bg, green monospace text)
-#   - Demo buttons: arithmetic, strings, arrays, fibonacci, hashes,
-#     syntax error, runtime error, multi-eval, gc, clear
+# ruby_executor.rb — mruby demo with terminal output, demo buttons,
+# custom script input, and external .rb file import
 
 class ExecutorActivity < Mrboto::Activity
   def on_create(bundle)
@@ -16,7 +11,7 @@ class ExecutorActivity < Mrboto::Activity
 
     self.content_view = linear_layout(orientation: :vertical, padding: 16) {
       # Version label
-      @version_label = text_view(
+      text_view(
         text: "mruby version: #{@version}",
         text_size: 14,
         padding: 0
@@ -53,9 +48,26 @@ class ExecutorActivity < Mrboto::Activity
         button(text: "GC", padding: 4) { run_gc }
         button(text: "清除", padding: 4) { @output.text = "" }
       }
+
+      # Separator
+      text_view(text: "────────────────", text_size: 10, padding: 4)
+
+      # Custom script input
+      @script_input = edit_text(
+        hint: "Ruby code...",
+        text_size: 13,
+        padding: 4,
+        single_line: true
+      )
+
+      # Button row 4: 执行  导入文件
+      linear_layout(orientation: :horizontal, padding: 0) {
+        button(text: "执行", padding: 4) { run_custom }
+        button(text: "导入文件", padding: 4) { import_file }
+      }
     }
 
-    @output.text = "点击按钮执行嵌入的 Ruby 脚本。\n\n"
+    @output.text = "点击按钮执行嵌入的 Ruby 脚本，或在输入框中输入代码。\n\n"
   end
 
   # Load and run a demo script from assets, display result
@@ -71,6 +83,44 @@ class ExecutorActivity < Mrboto::Activity
     rescue => e
       @output.append_text("  Error: #{e.class}: #{e.message}\n\n")
     end
+  end
+
+  # Run custom Ruby code from input field
+  def run_custom
+    code = @script_input.text
+    return if code.nil? || code.to_s.strip.empty?
+
+    @output.append_text("─── custom ───\n")
+    begin
+      result = call_java_method("evalRuby", code)
+      if result.nil? || result.to_s.empty?
+        @output.append_text("  (no output)\n\n")
+      else
+        @output.append_text("  #{result}\n\n")
+      end
+    rescue => e
+      @output.append_text("  Error: #{e.class}: #{e.message}\n\n")
+    end
+    @script_input.text = ""
+  end
+
+  # Import and run an external .rb file from file system
+  def import_file
+    code = @script_input.text
+    return if code.nil? || code.to_s.strip.empty?
+
+    @output.append_text("─── import: #{code} ───\n")
+    begin
+      result = call_java_method("loadFileScript", code)
+      if result.nil? || result.to_s.empty?
+        @output.append_text("  (no output)\n\n")
+      else
+        @output.append_text("  #{result}\n\n")
+      end
+    rescue => e
+      @output.append_text("  Error: #{e.class}: #{e.message}\n\n")
+    end
+    @script_input.text = ""
   end
 
   # Run garbage collection and display stats

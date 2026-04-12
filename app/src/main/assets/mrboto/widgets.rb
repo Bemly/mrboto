@@ -214,6 +214,10 @@ module Mrboto
       Mrboto._call_java_method(@_registry_id, 'setText', val.to_s)
     end
 
+    def text
+      Mrboto._call_java_method(@_registry_id, 'getText')
+    end
+
     def text_size=(val)
       # setTextSize takes unit (1=SP) and size
       Mrboto._call_java_method(@_registry_id, 'setTextSize', 1, val.to_f)
