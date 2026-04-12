@@ -19,6 +19,7 @@
 #include <mruby/string.h>
 #include <mruby/variable.h>
 #include <mruby/compile.h>
+#include <mruby/error.h>
 
 #include "android-jni-bridge.h"
 #include <string.h>
@@ -27,6 +28,41 @@
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
+
+/* ── Helper: safe mruby exception message extraction ────────────────── */
+
+/* Context for mrb_protect — passed via CPTR */
+typedef struct {
+    mrb_value exc;
+    mrb_value result;
+} mrboto_exc_ctx_t;
+
+static mrb_value mrboto_safe_exc_message(mrb_state *mrb, mrb_value self) {
+    (void)self;
+    mrboto_exc_ctx_t *ctx = (mrboto_exc_ctx_t *)mrb_cptr(self);
+    return mrb_funcall(mrb, ctx->exc, "message", 0);
+}
+
+/* Safely extract exception message. Returns mrb_str_new_cstr or NULL.
+ * Clears mrb->exc afterward. Caller must check return value. */
+static const char *mrboto_safe_exc_message_cstr(mrb_state *mrb) {
+    if (!mrb->exc) return NULL;
+
+    mrboto_exc_ctx_t ctx;
+    ctx.exc = mrb_obj_value(mrb->exc);
+    ctx.result = mrb_nil_value();
+
+    mrb_bool error = FALSE;
+    mrb_value data = mrb_cptr_value(mrb, &ctx);
+    mrb_protect(mrb, mrboto_safe_exc_message, data, &error);
+
+    const char *s = NULL;
+    if (mrb_string_p(ctx.result)) {
+        s = mrb_string_value_cstr(mrb, &ctx.result);
+    }
+    mrb->exc = NULL;
+    return s;
+}
 
 /* ── Global State ─────────────────────────────────────────────────── */
 
@@ -1344,14 +1380,8 @@ static mrb_value mrb_mrboto_eval(mrb_state *mrb, mrb_value self) {
 
     mrb_value out;
     if (mrb->exc) {
-        mrb_value msg = mrb_funcall(mrb, mrb_obj_value(mrb->exc), "message", 0);
-        if (mrb_string_p(msg)) {
-            const char *s = mrb_string_value_cstr(mrb, &msg);
-            out = mrb_str_new_cstr(mrb, s);
-        } else {
-            out = mrb_str_new_cstr(mrb, "Error");
-        }
-        mrb->exc = NULL;
+        const char *s = mrboto_safe_exc_message_cstr(mrb);
+        out = mrb_str_new_cstr(mrb, s ? s : "Error");
     } else {
         out = result;
     }
