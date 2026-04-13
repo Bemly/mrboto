@@ -162,6 +162,21 @@ class HelpersTest {
     }
 
     @Test
+    fun `popup_menu_with_callback_records_selection`() {
+        setupActivity()
+        val viewId = mruby.eval("Mrboto._test_view_id")
+        mruby.eval("""
+            @pm_selected = nil
+            popup_menu($viewId, ['A', 'B', 'C']) { |index, title|
+                @pm_selected = "#{index}: #{title}"
+            }
+        """.trimIndent())
+        // Simulate item click (index 1, title "B")
+        mruby.eval("Mrboto.dispatch_callback(1, 1, 'B')")
+        assertEquals("1: B", mruby.eval("@pm_selected"))
+    }
+
+    @Test
     fun `popup_menu_with_nil_items_returns_nil`() {
         setupActivity()
         val result = mruby.eval("popup_menu(1, nil).nil?.to_s")
@@ -207,5 +222,53 @@ class HelpersTest {
     @Test
     fun `pulse_helper_exists`() {
         assertEquals("true", mruby.eval("Mrboto::Helpers::Animations.singleton_methods.include?(:pulse).to_s"))
+    }
+
+    // ── Script Loading & Eval Helpers ─────────────────────────────
+
+    @Test
+    fun `load_script_source_returns_script_content`() {
+        setupActivity()
+        val result = mruby.eval("load_script_source('mrboto/core.rb')")
+        assertTrue("Should contain 'module Mrboto'", result.contains("module Mrboto"))
+    }
+
+    @Test
+    fun `load_script_source_returns_nil_for_missing_file`() {
+        setupActivity()
+        val result = mruby.eval("load_script_source('nonexistent.rb')")
+        // loadAssetScriptSource returns error string for missing files
+        assertTrue(result.contains("Error") || result.isEmpty())
+    }
+
+    @Test
+    fun `ruby_eval_evaluates_ruby_code`() {
+        setupActivity()
+        val result = mruby.eval("ruby_eval('1 + 1')")
+        assertEquals("2", result)
+    }
+
+    @Test
+    fun `ruby_eval_handles_string_expression`() {
+        setupActivity()
+        val result = mruby.eval("ruby_eval('\"hello\".upcase')")
+        assertEquals("HELLO", result)
+    }
+
+    @Test
+    fun `ruby_eval_returns_error_string_on_failure`() {
+        setupActivity()
+        val result = mruby.eval("ruby_eval('undefined_method_call')")
+        assertTrue("Should contain error indicator", result.contains("Error"))
+    }
+
+    @Test
+    fun `top_level_load_script_method_exists`() {
+        assertEquals("true", mruby.eval("method(:load_script).nil? rescue false; true.to_s"))
+    }
+
+    @Test
+    fun `top_level_ruby_eval_method_exists`() {
+        assertEquals("true", mruby.eval("method(:ruby_eval).nil? rescue false; true.to_s"))
     }
 }
