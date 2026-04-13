@@ -282,7 +282,7 @@ abstract class MrbotoActivityBase : Activity() {
      */
     fun startRubyActivity(scriptPath: CharSequence) {
         try {
-            val rubyActivityClass = Class.forName("moe.bemly.mrboto.RubyActivity")
+            val rubyActivityClass = Class.forName(componentName.className)
             val intent = android.content.Intent(this, rubyActivityClass)
             intent.putExtra(EXTRA_SCRIPT_PATH, scriptPath.toString())
             startActivity(intent)
