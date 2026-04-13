@@ -18,27 +18,37 @@ module Mrboto
 
       def get_string(key, default = nil)
         ctx = _context
+        puts "[SP] Ruby get_string: name=#{@name.inspect} key=#{key.inspect} default=#{default.inspect} ctx=#{ctx.inspect}"
         return default if ctx.nil?
-        Mrboto._sp_get_string(ctx, @name, key.to_s, default)
+        result = Mrboto._sp_get_string(ctx, @name, key.to_s, default)
+        puts "[SP] Ruby get_string result: #{result.inspect}"
+        result
       end
 
       def put_string(key, value)
         ctx = _context
+        puts "[SP] Ruby put_string: name=#{@name.inspect} key=#{key.inspect} value=#{value.inspect} ctx=#{ctx.inspect}"
         return "ok" if ctx.nil?
         Mrboto._sp_put_string(ctx, @name, key.to_s, value.to_s)
+        puts "[SP] Ruby put_string DONE: _sp_put_string returned"
         "ok"
       end
 
       def get_int(key, default = 0)
         ctx = _context
+        puts "[SP] Ruby get_int: name=#{@name.inspect} key=#{key.inspect} default=#{default.inspect} ctx=#{ctx.inspect}"
         return default if ctx.nil?
-        Mrboto._sp_get_int(ctx, @name, key.to_s, default)
+        result = Mrboto._sp_get_int(ctx, @name, key.to_s, default)
+        puts "[SP] Ruby get_int result: #{result.inspect}"
+        result
       end
 
       def put_int(key, value)
         ctx = _context
+        puts "[SP] Ruby put_int: name=#{@name.inspect} key=#{key.inspect} value=#{value.inspect} ctx=#{ctx.inspect}"
         return "ok" if ctx.nil?
         Mrboto._sp_put_int(ctx, @name, key.to_s, value.to_i)
+        puts "[SP] Ruby put_int DONE: _sp_put_int returned"
         "ok"
       end
 
