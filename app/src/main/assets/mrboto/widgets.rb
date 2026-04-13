@@ -248,26 +248,27 @@ module Mrboto
     end
 
     # ── Animation helpers ──────────────────────────────────────────
-    # These use the Kotlin-side animate* methods via call_java_method.
+    # These call the C bridge functions directly (not call_java_method),
+    # avoiding Java reflection type mismatch issues with Float/Double.
 
     def fade_in(duration = 300)
       act = Mrboto.current_activity
       return if act.nil?
-      act.call_java_method('animateFade', @_registry_id, 0.0, 1.0, duration.to_i)
+      Mrboto._animate_fade(act._registry_id, @_registry_id, 0.0, 1.0, duration.to_i)
       "ok"
     end
 
     def fade_out(duration = 300)
       act = Mrboto.current_activity
       return if act.nil?
-      act.call_java_method('animateFade', @_registry_id, 1.0, 0.0, duration.to_i)
+      Mrboto._animate_fade(act._registry_id, @_registry_id, 1.0, 0.0, duration.to_i)
       "ok"
     end
 
     def animate_translate(from_x = 0.0, from_y = 0.0, to_x = 0.0, to_y = 0.0, duration = 300)
       act = Mrboto.current_activity
       return if act.nil?
-      act.call_java_method('animateTranslate', @_registry_id,
+      Mrboto._animate_translate(act._registry_id, @_registry_id,
         from_x.to_f, from_y.to_f, to_x.to_f, to_y.to_f, duration.to_i)
       "ok"
     end
@@ -275,17 +276,26 @@ module Mrboto
     def animate_scale(from_x = 1.0, from_y = 1.0, to_x = 1.0, to_y = 1.0, duration = 300)
       act = Mrboto.current_activity
       return if act.nil?
-      act.call_java_method('animateScale', @_registry_id,
+      Mrboto._animate_scale(act._registry_id, @_registry_id,
         from_x.to_f, from_y.to_f, to_x.to_f, to_y.to_f, duration.to_i)
       "ok"
     end
 
     def slide_in_bottom(duration = 300)
-      animate_translate(0.0, 0.0, 0.0, 0.0, duration)
+      act = Mrboto.current_activity
+      return if act.nil?
+      h = call_java_method('getHeight').to_i
+      Mrboto._animate_translate(act._registry_id, @_registry_id,
+        0.0, h.to_f, 0.0, 0.0, duration.to_i)
+      "ok"
     end
 
     def pulse(factor = 1.2, duration = 200)
-      animate_scale(1.0, 1.0, factor.to_f, factor.to_f, duration)
+      act = Mrboto.current_activity
+      return if act.nil?
+      Mrboto._animate_scale(act._registry_id, @_registry_id,
+        1.0, 1.0, factor.to_f, factor.to_f, duration.to_i)
+      "ok"
     end
 
     def clear_animation

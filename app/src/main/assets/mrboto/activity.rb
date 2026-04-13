@@ -62,6 +62,11 @@ module Mrboto
       call_java_method("getTitle")
     end
 
+    # Get the application package name
+    def package_name
+      Mrboto._package_name
+    end
+
     # Bridge to Kotlin side's MrbotoActivityBase.setViewClickListener
     def setViewClickListener(view_registry_id, callback_id)
       call_java_method("setViewClickListener", view_registry_id, callback_id)

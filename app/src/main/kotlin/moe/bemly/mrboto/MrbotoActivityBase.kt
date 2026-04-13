@@ -6,10 +6,6 @@ import android.os.Bundle
 import android.util.Log
 import android.view.Gravity
 import android.view.View
-import android.view.animation.Animation
-import android.view.animation.AlphaAnimation
-import android.view.animation.TranslateAnimation
-import android.view.animation.ScaleAnimation
 import android.widget.ScrollView
 import android.widget.TextView
 import com.google.android.material.snackbar.Snackbar
@@ -371,52 +367,4 @@ abstract class MrbotoActivityBase : Activity() {
         popup.show()
     }
 
-    // ── Animation helpers ──────────────────────────────────────────
-
-    /**
-     * Run a fade animation on a view.
-     * Called from Ruby: call_java_method("animateFade", viewRegistryId, fromAlpha, toAlpha, durationMs)
-     */
-    fun animateFade(viewRegistryId: Int, fromAlpha: Double, toAlpha: Double, durationMs: Long) {
-        val view = mruby.lookupJavaObject<View>(viewRegistryId)
-            ?: return
-        val anim = AlphaAnimation(fromAlpha.toFloat(), toAlpha.toFloat())
-        anim.duration = durationMs
-        anim.fillAfter = true
-        view.startAnimation(anim)
-    }
-
-    /**
-     * Run a translate animation on a view.
-     * Called from Ruby: call_java_method("animateTranslate", viewRegistryId, fromX, fromY, toX, toY, durationMs)
-     */
-    fun animateTranslate(viewRegistryId: Int, fromX: Double, fromY: Double, toX: Double, toY: Double, durationMs: Long) {
-        val view = mruby.lookupJavaObject<View>(viewRegistryId)
-            ?: return
-        val anim = TranslateAnimation(
-            fromX.toFloat(), toX.toFloat(),
-            fromY.toFloat(), toY.toFloat()
-        )
-        anim.duration = durationMs
-        anim.fillAfter = true
-        view.startAnimation(anim)
-    }
-
-    /**
-     * Run a scale animation on a view.
-     * Called from Ruby: call_java_method("animateScale", viewRegistryId, fromX, fromY, toX, toY, durationMs)
-     */
-    fun animateScale(viewRegistryId: Int, fromX: Double, fromY: Double, toX: Double, toY: Double, durationMs: Long) {
-        val view = mruby.lookupJavaObject<View>(viewRegistryId)
-            ?: return
-        val anim = ScaleAnimation(
-            fromX.toFloat(), toX.toFloat(),
-            fromY.toFloat(), toY.toFloat(),
-            Animation.RELATIVE_TO_SELF, 0.5f,
-            Animation.RELATIVE_TO_SELF, 0.5f
-        )
-        anim.duration = durationMs
-        anim.fillAfter = true
-        view.startAnimation(anim)
-    }
 }
