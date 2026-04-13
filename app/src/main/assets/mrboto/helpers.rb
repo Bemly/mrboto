@@ -45,11 +45,11 @@ module Mrboto
       def _context
         ctx = Mrboto._app_context
         if ctx
-          Mrboto._register_object(ctx)
-        else
-          act = Mrboto.current_activity
-          act&._registry_id
+          id = Mrboto._register_object(ctx)
+          return id if id && id > 0
         end
+        act = Mrboto.current_activity
+        act&._registry_id
       end
     end
 
