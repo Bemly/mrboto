@@ -171,41 +171,75 @@ static jobject mrboto_mruby_to_java_arg(JNIEnv *env, mrb_state *mrb, mrb_value a
 
 /* ── Helper: Log Method.invoke exception details ───────────────────── */
 
+static const char *mrboto_mrb_type_name(mrb_int t) {
+    switch (t) {
+        case MRB_TT_FALSE: return "nil/false";
+        case MRB_TT_TRUE:  return "true";
+        case MRB_TT_FLOAT: return "float";
+        case MRB_TT_INTEGER: return "integer";
+        case MRB_TT_SYMBOL: return "symbol";
+        case MRB_TT_STRING: return "string";
+        case MRB_TT_ARRAY:  return "array";
+        case MRB_TT_HASH:   return "hash";
+        case MRB_TT_STRUCT: return "struct";
+        case MRB_TT_DATA:   return "data(JavaObject)";
+        default:            return "other";
+    }
+}
+
+/* ── Helper: Log Method.invoke exception details ───────────────────── */
+
 static void log_invoke_exception(JNIEnv *env, const char *method_name, jthrowable exc) {
     if (exc == NULL || env == NULL) return;
 
+    /* Use Android's Log.getStackTraceString for full stack trace.
+     * Signature: android.util.Log.getStackTraceString(Throwable) -> String */
+    jclass log_cls = (*env)->FindClass(env, "android/util/Log");
+    if (log_cls != NULL) {
+        jmethodID stack_method = (*env)->GetStaticMethodID(env, log_cls,
+            "getStackTraceString", "(Ljava/lang/Throwable;)Ljava/lang/String;");
+        if (stack_method != NULL && !(*env)->ExceptionCheck(env)) {
+            jstring trace = (jstring)(*env)->CallStaticObjectMethod(env, log_cls,
+                stack_method, exc);
+            if (trace && !(*env)->ExceptionCheck(env)) {
+                const char *s = (*env)->GetStringUTFChars(env, trace, NULL);
+                if (s) {
+                    LOGW("Method.invoke('%s') threw:\n%s", method_name, s);
+                    (*env)->ReleaseStringUTFChars(env, trace, s);
+                }
+                (*env)->DeleteLocalRef(env, trace);
+            }
+        }
+        (*env)->DeleteLocalRef(env, log_cls);
+    }
+
+    /* getCause() — unwrap InvocationTargetException to show root cause */
     jclass exc_cls = (*env)->GetObjectClass(env, exc);
     if (exc_cls == NULL) { (*env)->DeleteLocalRef(env, exc); return; }
 
-    /* Exception.toString() */
-    jmethodID to_string = (*env)->GetMethodID(env, exc_cls, "toString", "()Ljava/lang/String;");
-    if (to_string) {
-        jstring msg = (jstring)(*env)->CallObjectMethod(env, exc, to_string);
-        if (msg && !(*env)->ExceptionCheck(env)) {
-            const char *s = (*env)->GetStringUTFChars(env, msg, NULL);
-            LOGW("Method.invoke('%s') threw: %s", method_name, s);
-            (*env)->ReleaseStringUTFChars(env, msg, s);
-            (*env)->DeleteLocalRef(env, msg);
-        }
-    }
-
-    /* getCause() — unwrap InvocationTargetException */
     jmethodID get_cause = (*env)->GetMethodID(env, exc_cls, "getCause", "()Ljava/lang/Throwable;");
     if (get_cause) {
         jobject cause = (*env)->CallObjectMethod(env, exc, get_cause);
         if (cause != NULL && !(*env)->ExceptionCheck(env)) {
-            jclass cause_cls = (*env)->GetObjectClass(env, cause);
-            jmethodID cause_to_string = (*env)->GetMethodID(env, cause_cls, "toString", "()Ljava/lang/String;");
-            if (cause_to_string) {
-                jstring cause_msg = (jstring)(*env)->CallObjectMethod(env, cause, cause_to_string);
-                if (cause_msg && !(*env)->ExceptionCheck(env)) {
-                    const char *s = (*env)->GetStringUTFChars(env, cause_msg, NULL);
-                    LOGW("  Caused by: %s", s);
-                    (*env)->ReleaseStringUTFChars(env, cause_msg, s);
-                    (*env)->DeleteLocalRef(env, cause_msg);
+            /* Re-print stack trace for the root cause */
+            jclass log_cls2 = (*env)->FindClass(env, "android/util/Log");
+            if (log_cls2 != NULL) {
+                jmethodID stack_method2 = (*env)->GetStaticMethodID(env, log_cls2,
+                    "getStackTraceString", "(Ljava/lang/Throwable;)Ljava/lang/String;");
+                if (stack_method2 != NULL && !(*env)->ExceptionCheck(env)) {
+                    jstring trace2 = (jstring)(*env)->CallStaticObjectMethod(env, log_cls2,
+                        stack_method2, cause);
+                    if (trace2 && !(*env)->ExceptionCheck(env)) {
+                        const char *s = (*env)->GetStringUTFChars(env, trace2, NULL);
+                        if (s) {
+                            LOGW("  Caused by:\n%s", s);
+                            (*env)->ReleaseStringUTFChars(env, trace2, s);
+                        }
+                        (*env)->DeleteLocalRef(env, trace2);
+                    }
                 }
+                (*env)->DeleteLocalRef(env, log_cls2);
             }
-            (*env)->DeleteLocalRef(env, cause_cls);
             (*env)->DeleteLocalRef(env, cause);
         }
     }
@@ -354,9 +388,36 @@ mrb_value mrb_mrboto_call_java_method(mrb_state *mrb, mrb_value self) {
                     /* jobj is a GlobalRef, don't delete it */
                 }
             }
+        } else {
+            /* Unknown type (e.g., Array, Hash, Symbol) — warn and use Object.class.
+             * This will cause NoSuchMethodException for methods with typed params. */
+            LOGW("arg[%d]: unknown ruby type (%s) -> using Object.class",
+                 (int)i, mrboto_mrb_type_name(mrb_type(arg)));
         }
 
         jarg = mrboto_mruby_to_java_arg(env, mrb, arg);
+
+        /* Debug: log argument type mapping for easier troubleshooting.
+         * Shows Ruby type and the Java class used for getMethod lookup. */
+        {
+            const char *ruby_type = mrboto_mrb_type_name(mrb_type(arg));
+            jclass param_cls = (*env)->GetObjectClass(env, param_type);
+            if (param_cls != NULL) {
+                jmethodID getName = (*env)->GetMethodID(env, param_cls, "getName",
+                    "()Ljava/lang/String;");
+                if (getName != NULL && !(*env)->ExceptionCheck(env)) {
+                    jstring jname = (jstring)(*env)->CallObjectMethod(env, param_type, getName);
+                    if (jname && !(*env)->ExceptionCheck(env)) {
+                        const char *java_type = (*env)->GetStringUTFChars(env, jname, NULL);
+                        LOGD("  arg[%d]: ruby=%s -> java=%s", (int)i, ruby_type, java_type);
+                        (*env)->ReleaseStringUTFChars(env, jname, java_type);
+                        (*env)->DeleteLocalRef(env, jname);
+                    }
+                }
+                (*env)->DeleteLocalRef(env, param_cls);
+            }
+        }
+
         (*env)->SetObjectArrayElement(env, param_types, (jsize)i, param_type);
         (*env)->SetObjectArrayElement(env, java_args, (jsize)i, jarg);
         if (jarg != NULL && !mrb_data_p(arg)) {
@@ -378,19 +439,24 @@ mrb_value mrb_mrboto_call_java_method(mrb_state *mrb, mrb_value self) {
         if ((*env)->ExceptionCheck(env)) {
             jthrowable exc = (*env)->ExceptionOccurred(env);
             (*env)->ExceptionClear(env);
-            jclass exc_cls = (*env)->GetObjectClass(env, exc);
-            jmethodID to_string = (*env)->GetMethodID(env, exc_cls, "toString", "()Ljava/lang/String;");
-            if (to_string) {
-                jstring msg = (jstring)(*env)->CallObjectMethod(env, exc, to_string);
-                if (msg) {
-                    const char *s = (*env)->GetStringUTFChars(env, msg, NULL);
-                    LOGE("getMethod('%s') failed: %s", method_name, s);
-                    (*env)->ReleaseStringUTFChars(env, msg, s);
-                    (*env)->DeleteLocalRef(env, msg);
+
+            /* Log target class name + full getMethod exception for easy debugging */
+            jclass tc_cls = (*env)->GetObjectClass(env, target_class);
+            if (tc_cls != NULL) {
+                jmethodID tcGetName = (*env)->GetMethodID(env, tc_cls, "getName",
+                    "()Ljava/lang/String;");
+                if (tcGetName != NULL && !(*env)->ExceptionCheck(env)) {
+                    jstring tcName = (jstring)(*env)->CallObjectMethod(env, target_class, tcGetName);
+                    if (tcName) {
+                        const char *className = (*env)->GetStringUTFChars(env, tcName, NULL);
+                        LOGE("call_java_method('%s'): target class is %s", method_name, className);
+                        (*env)->ReleaseStringUTFChars(env, tcName, className);
+                        (*env)->DeleteLocalRef(env, tcName);
+                    }
                 }
+                (*env)->DeleteLocalRef(env, tc_cls);
             }
-            (*env)->DeleteLocalRef(env, exc_cls);
-            (*env)->DeleteLocalRef(env, exc);
+            log_invoke_exception(env, method_name, exc);
         } else if (method != NULL) {
             LOGI("getMethod('%s') succeeded, invoking...", method_name);
             /* Call Method.invoke(target, javaArgs) */
