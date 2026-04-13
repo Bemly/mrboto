@@ -22,7 +22,7 @@ class HelpersDemoActivity < Mrboto::Activity
         section_title("Dialog")
 
         button(text: "Show Dialog", padding: 12) {
-          dialog("Alert", "This is a dialog message from mrboto.", ["OK", "Cancel"])
+          show_dialog("Alert", "This is a dialog message from mrboto.", ["OK", "Cancel"])
         }
 
         # ── Section: Snackbar ─────────────────────────────────
@@ -37,10 +37,10 @@ class HelpersDemoActivity < Mrboto::Activity
         )
 
         button(text: "Show Snackbar", padding: 12) {
-          snackbar(@snack_target._registry_id, "Snackbar message!", :short)
+          show_snackbar(@snack_target, "Snackbar message!", :short)
         }
         button(text: "Show Long Snackbar", padding: 12) {
-          snackbar(@snack_target._registry_id, "This is a long snackbar message", :long)
+          show_snackbar(@snack_target, "This is a long snackbar message", :long)
         }
 
         # ── Section: PopupMenu ────────────────────────────────
@@ -48,8 +48,8 @@ class HelpersDemoActivity < Mrboto::Activity
 
         @popup_target = button(text: "Show Popup Menu", padding: 12)
 
-        # ── Section: Animations ───────────────────────────────
-        section_title("Animations")
+        # ── Section: View Animations ──────────────────────────
+        section_title("View Animations")
 
         @anim_target = text_view(
           text: "Animation Target",
@@ -60,22 +60,38 @@ class HelpersDemoActivity < Mrboto::Activity
         )
 
         button(text: "Fade In", padding: 8) {
-          fade_in(@anim_target._registry_id)
+          @anim_target.fade_in
         }
         button(text: "Fade Out", padding: 8) {
-          fade_out(@anim_target._registry_id)
+          @anim_target.fade_out
         }
         button(text: "Slide In Bottom", padding: 8) {
-          slide_in_bottom(@anim_target._registry_id, 500)
+          @anim_target.slide_in_bottom(500)
         }
         button(text: "Pulse", padding: 8) {
-          pulse(@anim_target._registry_id, 1.3, 300)
+          @anim_target.pulse(1.3, 300)
         }
         button(text: "Translate", padding: 8) {
-          translate(@anim_target._registry_id, 0.0, 0.0, 100.0, 0.0, 500)
+          @anim_target.animate_translate(0.0, 0.0, 100.0, 0.0, 500)
         }
         button(text: "Scale", padding: 8) {
-          scale(@anim_target._registry_id, 1.0, 1.0, 1.5, 1.5, 400)
+          @anim_target.animate_scale(1.0, 1.0, 1.5, 1.5, 400)
+        }
+        button(text: "Clear Animation", padding: 8) {
+          @anim_target.clear_animation
+        }
+
+        # ── Section: View info ────────────────────────────────
+        section_title("View Info")
+
+        button(text: "Show Size", padding: 8) {
+          toast("Target size: #{@anim_target.width} x #{@anim_target.height}")
+        }
+        button(text: "Request Focus", padding: 8) {
+          @anim_target.request_focus
+        }
+        button(text: "Perform Click", padding: 8) {
+          @anim_target.perform_click
         }
 
         # ── Section: Run on UI Thread ─────────────────────────

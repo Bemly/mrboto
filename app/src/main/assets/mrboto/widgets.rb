@@ -240,6 +240,81 @@ module Mrboto
       cid = Mrboto.register_callback(&block)
       Mrboto.current_activity.setViewClickListener(@_registry_id, cid)
     end
+
+    # ── Animation helpers ──────────────────────────────────────────
+    # These use the Kotlin-side animate* methods via call_java_method.
+
+    def fade_in(duration = 300)
+      act = Mrboto.current_activity
+      return if act.nil?
+      act.call_java_method('animateFade', @_registry_id, 0.0, 1.0, duration.to_i)
+      "ok"
+    end
+
+    def fade_out(duration = 300)
+      act = Mrboto.current_activity
+      return if act.nil?
+      act.call_java_method('animateFade', @_registry_id, 1.0, 0.0, duration.to_i)
+      "ok"
+    end
+
+    def animate_translate(from_x = 0.0, from_y = 0.0, to_x = 0.0, to_y = 0.0, duration = 300)
+      act = Mrboto.current_activity
+      return if act.nil?
+      act.call_java_method('animateTranslate', @_registry_id,
+        from_x.to_f, from_y.to_f, to_x.to_f, to_y.to_f, duration.to_i)
+      "ok"
+    end
+
+    def animate_scale(from_x = 1.0, from_y = 1.0, to_x = 1.0, to_y = 1.0, duration = 300)
+      act = Mrboto.current_activity
+      return if act.nil?
+      act.call_java_method('animateScale', @_registry_id,
+        from_x.to_f, from_y.to_f, to_x.to_f, to_y.to_f, duration.to_i)
+      "ok"
+    end
+
+    def slide_in_bottom(duration = 300)
+      animate_translate(0.0, 0.0, 0.0, 0.0, duration)
+    end
+
+    def pulse(factor = 1.2, duration = 200)
+      animate_scale(1.0, 1.0, factor.to_f, factor.to_f, duration)
+    end
+
+    def clear_animation
+      call_java_method('clearAnimation')
+    end
+
+    # ── Common View methods ────────────────────────────────────────
+    def width
+      call_java_method('getWidth').to_i
+    end
+
+    def height
+      call_java_method('getHeight').to_i
+    end
+
+    def visible?
+      v = call_java_method('getVisibility')
+      v == 0
+    end
+
+    def show
+      self.visibility = 0
+    end
+
+    def hide
+      self.visibility = :gone
+    end
+
+    def request_focus
+      call_java_method('requestFocus')
+    end
+
+    def perform_click
+      call_java_method('performClick')
+    end
   end
 
   # ── TextView ──────────────────────────────────────────────────────

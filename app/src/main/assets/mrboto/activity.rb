@@ -71,5 +71,24 @@ module Mrboto
     def setTextWatcher(view_registry_id, callback_id)
       call_java_method("setTextWatcher", view_registry_id, callback_id)
     end
+
+    # ── Dialog / Snackbar / PopupMenu ──────────────────────────────
+
+    def show_dialog(title, message, buttons = nil)
+      call_java_method("showDialog", title.to_s, message.to_s, buttons)
+    end
+
+    def show_snackbar(view, message, duration = :short)
+      dur = duration == :long ? 1 : 0
+      vid = view.is_a?(View) ? view._registry_id : view
+      call_java_method("showSnackbar", vid, message.to_s, dur)
+    end
+
+    def show_popup_menu(view, items)
+      return unless items.is_a?(Array)
+      vid = view.is_a?(View) ? view._registry_id : view
+      items_json = "[" + items.map { |i| "\"#{i.to_s.gsub('"', '\\"')}\"" }.join(",") + "]"
+      call_java_method("showPopupMenu", vid, items_json)
+    end
   end
 end
