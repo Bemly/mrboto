@@ -55,7 +55,8 @@ module Mrboto
       def _context
         ctx = Mrboto._app_context
         if ctx
-          return ctx._registry_id
+          id = Mrboto._register_object(ctx)
+          return id
         end
         act = Mrboto.current_activity
         if act
