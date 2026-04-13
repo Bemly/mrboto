@@ -759,13 +759,13 @@ class WidgetsTest {
     @Test
     fun `TextView_text_getter_returns_string_after_settext`() {
         setupActivity()
-        val ctxId = mruby.eval("Mrboto._test_ctx_id")
+        val textViewId = mruby.eval("Mrboto._create_view(Mrboto._test_ctx_id, 'android.widget.TextView', {})")
         mruby.eval("""
-            v = Mrboto::TextView.from_registry($ctxId)
+            v = Mrboto::TextView.from_registry($textViewId)
             v.text = "hello world"
         """.trimIndent())
         val result = mruby.eval("""
-            v = Mrboto::TextView.from_registry($ctxId)
+            v = Mrboto::TextView.from_registry($textViewId)
             v.text
         """.trimIndent())
         assertEquals("hello world", result)
@@ -774,7 +774,6 @@ class WidgetsTest {
     @Test
     fun `EditText_text_getter_returns_string_after_settext`() {
         setupActivity()
-        val ctxId = mruby.eval("Mrboto._test_ctx_id")
         val editTextId = mruby.eval("Mrboto._create_view(Mrboto._test_ctx_id, 'android.widget.EditText', {})")
         mruby.eval("""
             v = Mrboto::EditText.from_registry($editTextId)
@@ -790,9 +789,9 @@ class WidgetsTest {
     @Test
     fun `TextView_text_getter_returns_string_class`() {
         setupActivity()
-        val ctxId = mruby.eval("Mrboto._test_ctx_id")
+        val textViewId = mruby.eval("Mrboto._create_view(Mrboto._test_ctx_id, 'android.widget.TextView', {})")
         val result = mruby.eval("""
-            v = Mrboto::TextView.from_registry($ctxId)
+            v = Mrboto::TextView.from_registry($textViewId)
             v.text = "test"
             v.text.class.to_s
         """.trimIndent())
@@ -802,9 +801,9 @@ class WidgetsTest {
     @Test
     fun `TextView_text_getter_on_empty_text`() {
         setupActivity()
-        val ctxId = mruby.eval("Mrboto._test_ctx_id")
+        val textViewId = mruby.eval("Mrboto._create_view(Mrboto._test_ctx_id, 'android.widget.TextView', {})")
         val result = mruby.eval("""
-            v = Mrboto::TextView.from_registry($ctxId)
+            v = Mrboto::TextView.from_registry($textViewId)
             v.text.to_s
         """.trimIndent())
         // Empty TextView returns empty string, not nil
