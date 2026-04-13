@@ -100,8 +100,8 @@ class ViewInstanceMethodsTest {
             view.fade_in(50)
             view.clear_animation
         """.trimIndent())
-        // clear_animation returns nil from call_java_method
-        assertNull(result)
+        // clear_animation returns "nil" string (void Java method → nil → "nil")
+        assertEquals("nil", result)
     }
 
     // ── View Info Methods ───────────────────────────────────────────

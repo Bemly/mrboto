@@ -63,7 +63,7 @@ class PopupMenuCallbackTest {
             Mrboto.register_callback { |id, t| @title = t }
             Mrboto.dispatch_callback(1, 0)
         """.trimIndent())
-        // nil is passed for title, callback receives nil
-        assertEquals("nil", mruby.eval("@title.nil?.to_s"))
+        // nil is passed for title, callback receives nil — @title.nil? is true
+        assertEquals("true", mruby.eval("@title.nil?.to_s"))
     }
 }
