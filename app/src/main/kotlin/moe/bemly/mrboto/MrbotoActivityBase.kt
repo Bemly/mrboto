@@ -358,10 +358,7 @@ abstract class MrbotoActivityBase : Activity() {
             return
         }
         popup.setOnMenuItemClickListener { item ->
-            val callbackId = popup.javaClass.getDeclaredMethod("hashCode").let {
-                item.itemId
-            }
-            mruby.eval("Mrboto.dispatch_popup_select($callbackId, '${item.title}')")
+            mruby.eval("Mrboto.dispatch_popup_select(${item.itemId}, '${item.title}')")
             true
         }
         popup.show()
