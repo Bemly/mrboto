@@ -80,7 +80,12 @@ module Mrboto
     # ── Dialog / Snackbar / PopupMenu ──────────────────────────────
 
     def show_dialog(title, message, buttons = nil)
-      call_java_method("showDialog", title.to_s, message.to_s, buttons)
+      btn_str = if buttons.is_a?(Array)
+                  "[" + buttons.map { |b| "\"#{b.to_s.gsub('"', '\\"')}\"" }.join(",") + "]"
+                else
+                  nil
+                end
+      call_java_method("showDialog", title.to_s, message.to_s, btn_str)
     end
 
     def show_snackbar(view, message, duration = :short)

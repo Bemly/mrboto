@@ -335,6 +335,10 @@ mrb_value mrb_mrboto_call_java_method(mrb_state *mrb, mrb_value self) {
              * Button.setText(CharSequence), etc. String implements CharSequence
              * so the JVM auto-converts our jstring argument correctly. */
             param_type = charsequence_cls;
+        } else if (mrb_nil_p(arg)) {
+            /* nil maps to NULL Java argument but CharSequence.class for type lookup.
+             * This matches nullable CharSequence parameters like showDialog's buttonsJson. */
+            param_type = charsequence_cls;
         } else if (mrb_data_p(arg)) {
             /* Wrapped JavaObject — use View.class for param_type since
              * Class.getMethod requires exact type match. ViewGroup.addView
