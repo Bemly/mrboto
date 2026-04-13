@@ -23,13 +23,13 @@ class BridgeMethodsTest {
     // ── _toast ────────────────────────────────────────────────────────
 
     @Test
-    fun `_toast returns nil without crashing`() {
+    fun `_toast_returns_nil_without_crashing`() {
         val result = mruby.eval("Mrboto._toast($ctxId, 'test toast', 0)")
         assertEquals("nil", result)
     }
 
     @Test
-    fun `_toast with long duration returns nil`() {
+    fun `_toast_with_long_duration_returns_nil`() {
         val result = mruby.eval("Mrboto._toast($ctxId, 'long toast', 1)")
         assertEquals("nil", result)
     }
@@ -37,7 +37,7 @@ class BridgeMethodsTest {
     // ── _start_activity ──────────────────────────────────────────────
 
     @Test
-    fun `_start_activity does not crash with invalid class`() {
+    fun `_start_activity_does_not_crash_with_invalid_class`() {
         val result = mruby.eval("Mrboto._start_activity($ctxId, 'NonExistentActivity')")
         // In instrumented test, no real Activity exists, so this is a no-op
         assertEquals("nil", result)
@@ -46,7 +46,7 @@ class BridgeMethodsTest {
     // ── _get_extra ───────────────────────────────────────────────────
 
     @Test
-    fun `_get_extra returns nil without real intent`() {
+    fun `_get_extra_returns_nil_without_real_intent`() {
         val actId = mruby.registerJavaObject(Any())
         val result = mruby.eval("Mrboto._get_extra($actId, 'missing_key')")
         assertEquals("nil", result)
@@ -55,13 +55,13 @@ class BridgeMethodsTest {
     // ── _sp_get_int / _sp_put_int ────────────────────────────────────
 
     @Test
-    fun `_sp_put_int does not crash`() {
+    fun `_sp_put_int_does_not_crash`() {
         val result = mruby.eval("Mrboto._sp_put_int($ctxId, 'test_int_prefs', 'count', 42)")
         assertEquals("nil", result)
     }
 
     @Test
-    fun `sp_get_int returns nil as stub`() {
+    fun `sp_get_int_returns_nil_as_stub`() {
         val result = mruby.eval("Mrboto._sp_get_int($ctxId, 'test_int_prefs', 'count', 99)")
         // C stub returns nil, not the default value
         assertEquals("nil", result)
@@ -70,13 +70,13 @@ class BridgeMethodsTest {
     // ── _app_context ─────────────────────────────────────────────────
 
     @Test
-    fun `_app_context returns a JavaObject`() {
+    fun `_app_context_returns_a_JavaObject`() {
         val result = mruby.eval("Mrboto._app_context.class.to_s")
         assertTrue("Should be a JavaObject subclass", result.contains("JavaObject"))
     }
 
     @Test
-    fun `_app_context has positive registry ID`() {
+    fun `_app_context_has_positive_registry_ID`() {
         val result = mruby.eval("Mrboto._app_context._registry_id > 0")
         assertEquals("true", result)
     }
@@ -84,7 +84,7 @@ class BridgeMethodsTest {
     // ── _dp_to_px ────────────────────────────────────────────────────
 
     @Test
-    fun `_dp_to_px returns integer greater than input`() {
+    fun `_dp_to_px_returns_integer_greater_than_input`() {
         val result = mruby.eval("Mrboto._dp_to_px(100)")
         val px = result.toIntOrNull()
         assertNotNull("Should return an integer", px)
@@ -92,7 +92,7 @@ class BridgeMethodsTest {
     }
 
     @Test
-    fun `_dp_to_px preserves ratio for small values`() {
+    fun `_dp_to_px_preserves_ratio_for_small_values`() {
         val result10 = mruby.eval("Mrboto._dp_to_px(10)").toIntOrNull() ?: 0
         val result20 = mruby.eval("Mrboto._dp_to_px(20)").toIntOrNull() ?: 0
         assertTrue("dp(20) should be roughly 2x dp(10)", result20 >= result10 * 1)
@@ -101,7 +101,7 @@ class BridgeMethodsTest {
     // ── _create_view ─────────────────────────────────────────────────
 
     @Test
-    fun `_create_view returns positive ID for TextView`() {
+    fun `_create_view_returns_positive_ID_for_TextView`() {
         val result = mruby.eval("Mrboto._create_view($ctxId, 'android.widget.TextView', {})")
         val id = result.toIntOrNull()
         assertNotNull("Should return an integer, got: $result", id)
@@ -109,7 +109,7 @@ class BridgeMethodsTest {
     }
 
     @Test
-    fun `_create_view returns positive ID for LinearLayout`() {
+    fun `_create_view_returns_positive_ID_for_LinearLayout`() {
         val result = mruby.eval("Mrboto._create_view($ctxId, 'android.widget.LinearLayout', {})")
         val id = result.toIntOrNull()
         assertNotNull("Should return an integer, got: $result", id)
@@ -119,7 +119,7 @@ class BridgeMethodsTest {
     // ── _set_on_click ────────────────────────────────────────────────
 
     @Test
-    fun `_set_on_click does not crash with valid view`() {
+    fun `_set_on_click_does_not_crash_with_valid_view`() {
         val viewId = mruby.eval("Mrboto._create_view($ctxId, 'android.widget.Button', {})")
         val result = mruby.eval("Mrboto._set_on_click($viewId, 99)")
         assertEquals("nil", result)
@@ -128,7 +128,7 @@ class BridgeMethodsTest {
     // ── _set_content_view ────────────────────────────────────────────
 
     @Test
-    fun `_set_content_view does not crash with valid IDs`() {
+    fun `_set_content_view_does_not_crash_with_valid_IDs`() {
         val actId = mruby.registerJavaObject(mrbotoRule.context)
         val viewId = mruby.eval("Mrboto._create_view($ctxId, 'android.widget.TextView', {})")
         val result = mruby.eval("Mrboto._set_content_view($actId, $viewId)")
@@ -138,7 +138,7 @@ class BridgeMethodsTest {
     // ── _run_on_ui_thread ────────────────────────────────────────────
 
     @Test
-    fun `_run_on_ui_thread executes callback`() {
+    fun `_run_on_ui_thread_executes_callback`() {
         val actId = mruby.registerJavaObject(Any())
         mruby.eval("Mrboto.current_activity_id = $actId")
         mruby.eval("class TestRUITActivity < Mrboto::JavaObject; end")
@@ -155,14 +155,14 @@ class BridgeMethodsTest {
     // ── _java_object_for ─────────────────────────────────────────────
 
     @Test
-    fun `_java_object_for returns wrapper for valid ID`() {
+    fun `_java_object_for_returns_wrapper_for_valid_ID`() {
         val id = mruby.registerJavaObject("test object")
         val result = mruby.eval("Mrboto._java_object_for($id)")
         assertNotEquals("nil", result)
     }
 
     @Test
-    fun `_java_object_for returns nil for invalid ID`() {
+    fun `_java_object_for_returns_nil_for_invalid_ID`() {
         val result = mruby.eval("Mrboto._java_object_for(99999)")
         assertEquals("nil", result)
     }
@@ -170,21 +170,21 @@ class BridgeMethodsTest {
     // ── _call_java_method ────────────────────────────────────────────
 
     @Test
-    fun `_call_java_method invokes toString on String object`() {
+    fun `_call_java_method_invokes_toString_on_String_object`() {
         val id = mruby.registerJavaObject("hello")
         val result = mruby.eval("Mrboto._call_java_method($id, 'toString')")
         assertEquals("hello", result)
     }
 
     @Test
-    fun `_call_java_method returns nil for non-existent method`() {
+    fun `_call_java_method_returns_nil_for_non-existent_method`() {
         val id = mruby.registerJavaObject("test")
         val result = mruby.eval("Mrboto._call_java_method($id, 'nonExistentMethod')")
         assertEquals("nil", result)
     }
 
     @Test
-    fun `_call_java_method with integer argument`() {
+    fun `_call_java_method_with_integer_argument`() {
         val sbId = mruby.registerJavaObject(java.lang.StringBuilder())
         mruby.eval("Mrboto._call_java_method($sbId, 'append', 'test')")
         val len = mruby.eval("Mrboto._call_java_method($sbId, 'length')")
@@ -194,32 +194,32 @@ class BridgeMethodsTest {
     // ── _eval ────────────────────────────────────────────────────────
 
     @Test
-    fun `_eval returns actual expression result`() {
+    fun `_eval_returns_actual_expression_result`() {
         val result = mruby.eval("Mrboto._eval('1 + 2')")
         assertEquals("3", result)
     }
 
     @Test
-    fun `_eval returns string concatenation`() {
+    fun `_eval_returns_string_concatenation`() {
         val result = mruby.eval("Mrboto._eval('\"hello\" + \" world\"')")
         assertEquals("hello world", result)
     }
 
     @Test
-    fun `_eval returns error message for syntax error`() {
+    fun `_eval_returns_error_message_for_syntax_error`() {
         val result = mruby.eval("Mrboto._eval('def broken(')")
         assertNotEquals("ok", result)
         assertTrue("Should contain error info", result.isNotEmpty())
     }
 
     @Test
-    fun `_eval returns nil for nil expression`() {
+    fun `_eval_returns_nil_for_nil_expression`() {
         val result = mruby.eval("Mrboto._eval('nil')")
         assertEquals("nil", result)
     }
 
     @Test
-    fun `_eval defines and uses method across calls`() {
+    fun `_eval_defines_and_uses_method_across_calls`() {
         mruby.eval("Mrboto._eval('def double(x); x * 2; end')")
         val result = mruby.eval("Mrboto._eval('double(21)')")
         assertEquals("42", result)
@@ -228,7 +228,7 @@ class BridgeMethodsTest {
     // ── _view_text ───────────────────────────────────────────────────
 
     @Test
-    fun `_view_text returns text of TextView`() {
+    fun `_view_text_returns_text_of_TextView`() {
         val viewId = mruby.eval("Mrboto._create_view($ctxId, 'android.widget.TextView', {})")
         mruby.eval("Mrboto._call_java_method($viewId, 'setText', 'hello')")
         val result = mruby.eval("Mrboto._view_text($viewId)")
@@ -236,7 +236,7 @@ class BridgeMethodsTest {
     }
 
     @Test
-    fun `_view_text returns text set on EditText`() {
+    fun `_view_text_returns_text_set_on_EditText`() {
         val viewId = mruby.eval("Mrboto._create_view($ctxId, 'android.widget.EditText', {})")
         mruby.eval("Mrboto._call_java_method($viewId, 'setText', 'user input')")
         val result = mruby.eval("Mrboto._view_text($viewId)")
@@ -244,7 +244,7 @@ class BridgeMethodsTest {
     }
 
     @Test
-    fun `_view_text returns empty string for view with no text`() {
+    fun `_view_text_returns_empty_string_for_view_with_no_text`() {
         val viewId = mruby.eval("Mrboto._create_view($ctxId, 'android.widget.TextView', {})")
         val result = mruby.eval("Mrboto._view_text($viewId)")
         assertEquals("", result)
@@ -253,7 +253,7 @@ class BridgeMethodsTest {
     // ── _register_object ─────────────────────────────────────────────
 
     @Test
-    fun `_register_object returns registry ID from wrapper`() {
+    fun `_register_object_returns_registry_ID_from_wrapper`() {
         val id = mruby.registerJavaObject(Any())
         // _java_object_for creates a new wrapper with a new registry ID.
         // _register_object should extract that wrapper's ID correctly.
@@ -262,8 +262,45 @@ class BridgeMethodsTest {
     }
 
     @Test
-    fun `_register_object returns 0 for non-data object`() {
+    fun `_register_object_returns_0_for_non-data_object`() {
         val result = mruby.eval("Mrboto._register_object(42)")
         assertEquals("0", result)
+    }
+
+    // ── _get_sys_res_id (system icon lookup via reflection) ─────────
+
+    @Test
+    fun `_get_sys_res_id_finds_ic_menu_help`() {
+        val result = mruby.eval("Mrboto._get_sys_res_id(0, 'ic_menu_help', 'drawable')")
+        val id = result.toIntOrNull()
+        assertNotNull("Should return an integer, got: $result", id)
+        assertTrue("ic_menu_help ID should be positive, got: $id", id!! > 0)
+    }
+
+    @Test
+    fun `_get_sys_res_id_finds_ic_menu_search`() {
+        val result = mruby.eval("Mrboto._get_sys_res_id(0, 'ic_menu_search', 'drawable')")
+        val id = result.toIntOrNull()
+        assertNotNull("Should return an integer", id)
+        assertTrue("ic_menu_search ID should be positive", id!! > 0)
+    }
+
+    @Test
+    fun `_get_sys_res_id_returns_0_for_nonexistent_drawable`() {
+        val result = mruby.eval("Mrboto._get_sys_res_id(0, 'nonexistent_icon_xyz', 'drawable')")
+        assertEquals("0", result)
+    }
+
+    @Test
+    fun `android_sys_id_returns_cached_value`() {
+        val result1 = mruby.eval("Mrboto.android_sys_id('ic_menu_save')")
+        val result2 = mruby.eval("Mrboto.android_sys_id('ic_menu_save')")
+        assertEquals(result1, result2)
+    }
+
+    @Test
+    fun `android_sys_id_returns_nil_for_unknown_icon`() {
+        val result = mruby.eval("Mrboto.android_sys_id('does_not_exist_at_all')")
+        assertEquals("nil", result)
     }
 }

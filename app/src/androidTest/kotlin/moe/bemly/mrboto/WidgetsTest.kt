@@ -34,66 +34,66 @@ class WidgetsTest {
     }
 
     @Test
-    fun `JAVA_CLASS_MAP has expected widgets`() {
+    fun `JAVA_CLASS_MAP_has_expected_widgets`() {
         val result = mruby.eval("Mrboto::Widgets::JAVA_CLASS_MAP.size")
         val size = result.toIntOrNull()
         assertTrue("Should have widget entries", size != null && size >= 10)
     }
 
     @Test
-    fun `CLASS_TO_WIDGET reverse map exists`() {
+    fun `CLASS_TO_WIDGET_reverse_map_exists`() {
         val result = mruby.eval("Mrboto::Widgets::CLASS_TO_WIDGET.size")
         val size = result.toIntOrNull()
         assertTrue("Should have reverse map entries", size != null && size > 0)
     }
 
     @Test
-    fun `View class exists`() {
+    fun `View_class_exists`() {
         assertEquals("true", mruby.eval("Mrboto.const_defined?(:View).to_s"))
     }
 
     @Test
-    fun `TextView is subclass of View`() {
+    fun `TextView_is_subclass_of_View`() {
         assertEquals("true", mruby.eval("(Mrboto::TextView < Mrboto::View).to_s"))
     }
 
     @Test
-    fun `Button is subclass of TextView`() {
+    fun `Button_is_subclass_of_TextView`() {
         assertEquals("true", mruby.eval("(Mrboto::Button < Mrboto::TextView).to_s"))
     }
 
     @Test
-    fun `EditText is subclass of TextView`() {
+    fun `EditText_is_subclass_of_TextView`() {
         assertEquals("true", mruby.eval("(Mrboto::EditText < Mrboto::TextView).to_s"))
     }
 
     @Test
-    fun `ImageView exists and is View subclass`() {
+    fun `ImageView_exists_and_is_View_subclass`() {
         assertEquals("true", mruby.eval("(Mrboto::ImageView < Mrboto::View).to_s"))
     }
 
     @Test
-    fun `LinearLayout is ViewGroup subclass`() {
+    fun `LinearLayout_is_ViewGroup_subclass`() {
         assertEquals("true", mruby.eval("(Mrboto::LinearLayout < Mrboto::ViewGroup).to_s"))
     }
 
     @Test
-    fun `ScrollView is ViewGroup subclass`() {
+    fun `ScrollView_is_ViewGroup_subclass`() {
         assertEquals("true", mruby.eval("(Mrboto::ScrollView < Mrboto::ViewGroup).to_s"))
     }
 
     @Test
-    fun `RelativeLayout is ViewGroup subclass`() {
+    fun `RelativeLayout_is_ViewGroup_subclass`() {
         assertEquals("true", mruby.eval("(Mrboto::RelativeLayout < Mrboto::ViewGroup).to_s"))
     }
 
     @Test
-    fun `FrameLayout is ViewGroup subclass`() {
+    fun `FrameLayout_is_ViewGroup_subclass`() {
         assertEquals("true", mruby.eval("(Mrboto::FrameLayout < Mrboto::ViewGroup).to_s"))
     }
 
     @Test
-    fun `View responds to common attribute setters`() {
+    fun `View_responds_to_common_attribute_setters`() {
         setupActivity()
         val setters = listOf("id=", "enabled=", "visibility=", "background_color=", "padding=", "gravity=")
         for (setter in setters) {
@@ -103,7 +103,7 @@ class WidgetsTest {
     }
 
     @Test
-    fun `TextView responds to text setters`() {
+    fun `TextView_responds_to_text_setters`() {
         val setters = listOf("text=", "text_size=", "text_color=", "hint=")
         for (s in setters) {
             val result = mruby.eval("Mrboto::TextView.instance_methods.include?(:$s).to_s")
@@ -112,24 +112,24 @@ class WidgetsTest {
     }
 
     @Test
-    fun `View from_registry with nil returns nil`() {
+    fun `View_from_registry_with_nil_returns_nil`() {
         assertEquals("true", mruby.eval("Mrboto::View.from_registry(nil).nil?.to_s"))
     }
 
     @Test
-    fun `View from_registry with 0 returns nil`() {
+    fun `View_from_registry_with_0_returns_nil`() {
         assertEquals("true", mruby.eval("Mrboto::View.from_registry(0).nil?.to_s"))
     }
 
     @Test
-    fun `View from_registry with valid ID returns View`() {
+    fun `View_from_registry_with_valid_ID_returns_View`() {
         val id = mruby.registerJavaObject(Any())
         val result = mruby.eval("Mrboto::View.from_registry($id).class.to_s")
         assertEquals("Mrboto::View", result)
     }
 
     @Test
-    fun `visibility accepts gone invisible and default`() {
+    fun `visibility_accepts_gone_invisible_and_default`() {
         setupActivity()
         val ctxId = mruby.eval("Mrboto._test_ctx_id")
         mruby.eval("""
@@ -142,7 +142,7 @@ class WidgetsTest {
     }
 
     @Test
-    fun `background_color accepts hex string`() {
+    fun `background_color_accepts_hex_string`() {
         setupActivity()
         val ctxId = mruby.eval("Mrboto._test_ctx_id")
         val result = mruby.eval("""
@@ -154,7 +154,7 @@ class WidgetsTest {
     }
 
     @Test
-    fun `gravity accepts common symbols`() {
+    fun `gravity_accepts_common_symbols`() {
         setupActivity()
         val ctxId = mruby.eval("Mrboto._test_ctx_id")
         val gravities = listOf("center", "center_vertical", "center_horizontal", "top", "bottom", "left", "right")
@@ -169,7 +169,7 @@ class WidgetsTest {
     }
 
     @Test
-    fun `padding applies dp conversion`() {
+    fun `padding_applies_dp_conversion`() {
         setupActivity()
         val ctxId = mruby.eval("Mrboto._test_ctx_id")
         val result = mruby.eval("""
@@ -181,7 +181,7 @@ class WidgetsTest {
     }
 
     @Test
-    fun `enabled setter works`() {
+    fun `enabled_setter_works`() {
         setupActivity()
         val ctxId = mruby.eval("Mrboto._test_ctx_id")
         val result = mruby.eval("""
@@ -194,12 +194,12 @@ class WidgetsTest {
     }
 
     @Test
-    fun `LinearLayout responds to orientation`() {
+    fun `LinearLayout_responds_to_orientation`() {
         assertEquals("true", mruby.eval("Mrboto::LinearLayout.instance_methods.include?(:orientation=).to_s"))
     }
 
     @Test
-    fun `create_view returns positive registry ID`() {
+    fun `create_view_returns_positive_registry_ID`() {
         setupActivity()
         val ctxId = mruby.eval("Mrboto._test_ctx_id")
         val result = mruby.eval("Mrboto._create_view($ctxId, 'android.widget.TextView', {})")
@@ -209,7 +209,7 @@ class WidgetsTest {
     }
 
     @Test
-    fun `apply_attrs does not crash on unknown attr`() {
+    fun `apply_attrs_does_not_crash_on_unknown_attr`() {
         setupActivity()
         val ctxId = mruby.eval("Mrboto._test_ctx_id")
         val viewId = mruby.eval("Mrboto._create_view($ctxId, 'android.widget.TextView', {})")
@@ -225,157 +225,157 @@ class WidgetsTest {
 
     // Standard Controls
     @Test
-    fun `SeekBar is View subclass`() {
+    fun `SeekBar_is_View_subclass`() {
         assertEquals("true", mruby.eval("(Mrboto::SeekBar < Mrboto::View).to_s"))
     }
 
     @Test
-    fun `RatingBar is View subclass`() {
+    fun `RatingBar_is_View_subclass`() {
         assertEquals("true", mruby.eval("(Mrboto::RatingBar < Mrboto::View).to_s"))
     }
 
     @Test
-    fun `AutoCompleteTextView is EditText subclass`() {
+    fun `AutoCompleteTextView_is_EditText_subclass`() {
         assertEquals("true", mruby.eval("(Mrboto::AutoCompleteTextView < Mrboto::EditText).to_s"))
     }
 
     @Test
-    fun `SearchView is View subclass`() {
+    fun `SearchView_is_View_subclass`() {
         assertEquals("true", mruby.eval("(Mrboto::SearchView < Mrboto::View).to_s"))
     }
 
     @Test
-    fun `Toolbar is ViewGroup subclass`() {
+    fun `Toolbar_is_ViewGroup_subclass`() {
         assertEquals("true", mruby.eval("(Mrboto::Toolbar < Mrboto::ViewGroup).to_s"))
     }
 
     @Test
-    fun `NumberPicker is View subclass`() {
+    fun `NumberPicker_is_View_subclass`() {
         assertEquals("true", mruby.eval("(Mrboto::NumberPicker < Mrboto::View).to_s"))
     }
 
     @Test
-    fun `DatePicker is View subclass`() {
+    fun `DatePicker_is_View_subclass`() {
         assertEquals("true", mruby.eval("(Mrboto::DatePicker < Mrboto::View).to_s"))
     }
 
     @Test
-    fun `TimePicker is View subclass`() {
+    fun `TimePicker_is_View_subclass`() {
         assertEquals("true", mruby.eval("(Mrboto::TimePicker < Mrboto::View).to_s"))
     }
 
     @Test
-    fun `CalendarView is View subclass`() {
+    fun `CalendarView_is_View_subclass`() {
         assertEquals("true", mruby.eval("(Mrboto::CalendarView < Mrboto::View).to_s"))
     }
 
     @Test
-    fun `VideoView is View subclass`() {
+    fun `VideoView_is_View_subclass`() {
         assertEquals("true", mruby.eval("(Mrboto::VideoView < Mrboto::View).to_s"))
     }
 
     @Test
-    fun `Chronometer is View subclass`() {
+    fun `Chronometer_is_View_subclass`() {
         assertEquals("true", mruby.eval("(Mrboto::Chronometer < Mrboto::View).to_s"))
     }
 
     @Test
-    fun `TextClock is View subclass`() {
+    fun `TextClock_is_View_subclass`() {
         assertEquals("true", mruby.eval("(Mrboto::TextClock < Mrboto::View).to_s"))
     }
 
     // Container Controls
     @Test
-    fun `GridView is ViewGroup subclass`() {
+    fun `GridView_is_ViewGroup_subclass`() {
         assertEquals("true", mruby.eval("(Mrboto::GridView < Mrboto::ViewGroup).to_s"))
     }
 
     @Test
-    fun `ListView is ViewGroup subclass`() {
+    fun `ListView_is_ViewGroup_subclass`() {
         assertEquals("true", mruby.eval("(Mrboto::ListView < Mrboto::ViewGroup).to_s"))
     }
 
     @Test
-    fun `NestedScrollView is ViewGroup subclass`() {
+    fun `NestedScrollView_is_ViewGroup_subclass`() {
         assertEquals("true", mruby.eval("(Mrboto::NestedScrollView < Mrboto::ViewGroup).to_s"))
     }
 
     @Test
-    fun `HorizontalScrollView is ViewGroup subclass`() {
+    fun `HorizontalScrollView_is_ViewGroup_subclass`() {
         assertEquals("true", mruby.eval("(Mrboto::HorizontalScrollView < Mrboto::ViewGroup).to_s"))
     }
 
     @Test
-    fun `ViewPager is ViewGroup subclass`() {
+    fun `ViewPager_is_ViewGroup_subclass`() {
         assertEquals("true", mruby.eval("(Mrboto::ViewPager < Mrboto::ViewGroup).to_s"))
     }
 
     @Test
-    fun `TabLayout is ViewGroup subclass`() {
+    fun `TabLayout_is_ViewGroup_subclass`() {
         assertEquals("true", mruby.eval("(Mrboto::TabLayout < Mrboto::ViewGroup).to_s"))
     }
 
     @Test
-    fun `ViewSwitcher is ViewGroup subclass`() {
+    fun `ViewSwitcher_is_ViewGroup_subclass`() {
         assertEquals("true", mruby.eval("(Mrboto::ViewSwitcher < Mrboto::ViewGroup).to_s"))
     }
 
     // Material Design Controls
     @Test
-    fun `FloatingActionButton is View subclass`() {
+    fun `FloatingActionButton_is_View_subclass`() {
         assertEquals("true", mruby.eval("(Mrboto::FloatingActionButton < Mrboto::View).to_s"))
     }
 
     @Test
-    fun `MaterialButton is Button subclass`() {
+    fun `MaterialButton_is_Button_subclass`() {
         assertEquals("true", mruby.eval("(Mrboto::MaterialButton < Mrboto::Button).to_s"))
     }
 
     @Test
-    fun `CardView is ViewGroup subclass`() {
+    fun `CardView_is_ViewGroup_subclass`() {
         assertEquals("true", mruby.eval("(Mrboto::CardView < Mrboto::ViewGroup).to_s"))
     }
 
     @Test
-    fun `TextInputLayout is ViewGroup subclass`() {
+    fun `TextInputLayout_is_ViewGroup_subclass`() {
         assertEquals("true", mruby.eval("(Mrboto::TextInputLayout < Mrboto::ViewGroup).to_s"))
     }
 
     @Test
-    fun `TextInputEditText is EditText subclass`() {
+    fun `TextInputEditText_is_EditText_subclass`() {
         assertEquals("true", mruby.eval("(Mrboto::TextInputEditText < Mrboto::EditText).to_s"))
     }
 
     @Test
-    fun `BottomNavigationView is ViewGroup subclass`() {
+    fun `BottomNavigationView_is_ViewGroup_subclass`() {
         assertEquals("true", mruby.eval("(Mrboto::BottomNavigationView < Mrboto::ViewGroup).to_s"))
     }
 
     @Test
-    fun `AppBarLayout is ViewGroup subclass`() {
+    fun `AppBarLayout_is_ViewGroup_subclass`() {
         assertEquals("true", mruby.eval("(Mrboto::AppBarLayout < Mrboto::ViewGroup).to_s"))
     }
 
     // New Dependency Containers
     @Test
-    fun `DrawerLayout is ViewGroup subclass`() {
+    fun `DrawerLayout_is_ViewGroup_subclass`() {
         assertEquals("true", mruby.eval("(Mrboto::DrawerLayout < Mrboto::ViewGroup).to_s"))
     }
 
     @Test
-    fun `CoordinatorLayout is ViewGroup subclass`() {
+    fun `CoordinatorLayout_is_ViewGroup_subclass`() {
         assertEquals("true", mruby.eval("(Mrboto::CoordinatorLayout < Mrboto::ViewGroup).to_s"))
     }
 
     @Test
-    fun `NavigationView is ViewGroup subclass`() {
+    fun `NavigationView_is_ViewGroup_subclass`() {
         assertEquals("true", mruby.eval("(Mrboto::NavigationView < Mrboto::ViewGroup).to_s"))
     }
 
     // ── New Widget Method Existence Tests ─────────────────────────
 
     @Test
-    fun `SeekBar has progress and max setters`() {
+    fun `SeekBar_has_progress_and_max_setters`() {
         val methods = listOf("progress=", "max=")
         for (m in methods) {
             assertEquals("true", mruby.eval("Mrboto::SeekBar.instance_methods.include?(:$m).to_s"))
@@ -383,7 +383,7 @@ class WidgetsTest {
     }
 
     @Test
-    fun `RatingBar has rating, step_size and max setters`() {
+    fun `RatingBar_has_rating_step_size_and_max_setters`() {
         val methods = listOf("rating=", "step_size=", "max=")
         for (m in methods) {
             assertEquals("true", mruby.eval("Mrboto::RatingBar.instance_methods.include?(:$m).to_s"))
@@ -391,7 +391,7 @@ class WidgetsTest {
     }
 
     @Test
-    fun `SearchView has query and hint setters`() {
+    fun `SearchView_has_query_and_hint_setters`() {
         val methods = listOf("query=", "hint=")
         for (m in methods) {
             assertEquals("true", mruby.eval("Mrboto::SearchView.instance_methods.include?(:$m).to_s"))
@@ -399,7 +399,7 @@ class WidgetsTest {
     }
 
     @Test
-    fun `Toolbar has title and subtitle setters`() {
+    fun `Toolbar_has_title_and_subtitle_setters`() {
         val methods = listOf("title=", "subtitle=")
         for (m in methods) {
             assertEquals("true", mruby.eval("Mrboto::Toolbar.instance_methods.include?(:$m).to_s"))
@@ -407,7 +407,7 @@ class WidgetsTest {
     }
 
     @Test
-    fun `NumberPicker has value setters`() {
+    fun `NumberPicker_has_value_setters`() {
         val methods = listOf("min_value=", "max_value=", "value=")
         for (m in methods) {
             assertEquals("true", mruby.eval("Mrboto::NumberPicker.instance_methods.include?(:$m).to_s"))
@@ -415,7 +415,7 @@ class WidgetsTest {
     }
 
     @Test
-    fun `VideoView has playback methods`() {
+    fun `VideoView_has_playback_methods`() {
         val methods = listOf("start", "pause", "stop")
         for (m in methods) {
             assertEquals("true", mruby.eval("Mrboto::VideoView.instance_methods.include?(:$m).to_s"))
@@ -423,7 +423,7 @@ class WidgetsTest {
     }
 
     @Test
-    fun `Chronometer has start and stop methods`() {
+    fun `Chronometer_has_start_and_stop_methods`() {
         val methods = listOf("start", "stop")
         for (m in methods) {
             assertEquals("true", mruby.eval("Mrboto::Chronometer.instance_methods.include?(:$m).to_s"))
@@ -431,7 +431,7 @@ class WidgetsTest {
     }
 
     @Test
-    fun `TextClock has format setters`() {
+    fun `TextClock_has_format_setters`() {
         val methods = listOf("format_12_hour=", "format_24_hour=")
         for (m in methods) {
             assertEquals("true", mruby.eval("Mrboto::TextClock.instance_methods.include?(:$m).to_s"))
@@ -439,7 +439,7 @@ class WidgetsTest {
     }
 
     @Test
-    fun `CardView has elevation and radius setters`() {
+    fun `CardView_has_elevation_and_radius_setters`() {
         val methods = listOf("card_elevation=", "card_corner_radius=")
         for (m in methods) {
             assertEquals("true", mruby.eval("Mrboto::CardView.instance_methods.include?(:$m).to_s"))
@@ -447,7 +447,7 @@ class WidgetsTest {
     }
 
     @Test
-    fun `TextInputLayout has hint and error setters`() {
+    fun `TextInputLayout_has_hint_and_error_setters`() {
         val methods = listOf("hint=", "error=")
         for (m in methods) {
             assertEquals("true", mruby.eval("Mrboto::TextInputLayout.instance_methods.include?(:$m).to_s"))
@@ -455,17 +455,17 @@ class WidgetsTest {
     }
 
     @Test
-    fun `GridView has num_columns setter`() {
+    fun `GridView_has_num_columns_setter`() {
         assertEquals("true", mruby.eval("Mrboto::GridView.instance_methods.include?(:num_columns=).to_s"))
     }
 
     @Test
-    fun `ViewPager has current_item setter`() {
+    fun `ViewPager_has_current_item_setter`() {
         assertEquals("true", mruby.eval("Mrboto::ViewPager.instance_methods.include?(:current_item=).to_s"))
     }
 
     @Test
-    fun `ViewSwitcher has show methods`() {
+    fun `ViewSwitcher_has_show_methods`() {
         val methods = listOf("show_next", "show_previous")
         for (m in methods) {
             assertEquals("true", mruby.eval("Mrboto::ViewSwitcher.instance_methods.include?(:$m).to_s"))
@@ -475,7 +475,7 @@ class WidgetsTest {
     // ── Functional Tests (no crash on setter calls) ──────────────
 
     @Test
-    fun `SeekBar setters do not crash`() {
+    fun `SeekBar_setters_do_not_crash`() {
         setupActivity()
         val ctxId = mruby.eval("Mrboto._test_ctx_id")
         val result = mruby.eval("""
@@ -488,7 +488,7 @@ class WidgetsTest {
     }
 
     @Test
-    fun `RatingBar setters do not crash`() {
+    fun `RatingBar_setters_do_not_crash`() {
         setupActivity()
         val ctxId = mruby.eval("Mrboto._test_ctx_id")
         val result = mruby.eval("""
@@ -502,7 +502,7 @@ class WidgetsTest {
     }
 
     @Test
-    fun `NumberPicker setters do not crash`() {
+    fun `NumberPicker_setters_do_not_crash`() {
         setupActivity()
         val ctxId = mruby.eval("Mrboto._test_ctx_id")
         val result = mruby.eval("""
@@ -516,7 +516,7 @@ class WidgetsTest {
     }
 
     @Test
-    fun `TextClock setters do not crash`() {
+    fun `TextClock_setters_do_not_crash`() {
         setupActivity()
         val ctxId = mruby.eval("Mrboto._test_ctx_id")
         val result = mruby.eval("""
@@ -529,7 +529,7 @@ class WidgetsTest {
     }
 
     @Test
-    fun `GridView setter does not crash`() {
+    fun `GridView_setter_does_not_crash`() {
         setupActivity()
         val ctxId = mruby.eval("Mrboto._test_ctx_id")
         val result = mruby.eval("""
@@ -541,7 +541,7 @@ class WidgetsTest {
     }
 
     @Test
-    fun `CardView setters do not crash`() {
+    fun `CardView_setters_do_not_crash`() {
         setupActivity()
         val ctxId = mruby.eval("Mrboto._test_ctx_id")
         val result = mruby.eval("""
@@ -554,7 +554,7 @@ class WidgetsTest {
     }
 
     @Test
-    fun `TextInputLayout setters do not crash`() {
+    fun `TextInputLayout_setters_do_not_crash`() {
         setupActivity()
         val ctxId = mruby.eval("Mrboto._test_ctx_id")
         val result = mruby.eval("""
@@ -567,7 +567,7 @@ class WidgetsTest {
     }
 
     @Test
-    fun `BottomNavigationView setter does not crash`() {
+    fun `BottomNavigationView_setter_does_not_crash`() {
         setupActivity()
         val ctxId = mruby.eval("Mrboto._test_ctx_id")
         val result = mruby.eval("""
@@ -579,7 +579,7 @@ class WidgetsTest {
     }
 
     @Test
-    fun `ViewSwitcher methods do not crash`() {
+    fun `ViewSwitcher_methods_do_not_crash`() {
         setupActivity()
         val ctxId = mruby.eval("Mrboto._test_ctx_id")
         val result = mruby.eval("""
@@ -592,7 +592,7 @@ class WidgetsTest {
     }
 
     @Test
-    fun `Chronometer methods do not crash`() {
+    fun `Chronometer_methods_do_not_crash`() {
         setupActivity()
         val ctxId = mruby.eval("Mrboto._test_ctx_id")
         val result = mruby.eval("""
@@ -606,10 +606,55 @@ class WidgetsTest {
     }
 
     @Test
-    fun `JAVA_CLASS_MAP has all expected widgets`() {
+    fun `JAVA_CLASS_MAP_has_all_expected_widgets`() {
         val expectedMin = 40 // 15 original + ~29 new
         val result = mruby.eval("Mrboto::Widgets::JAVA_CLASS_MAP.size")
         val size = result.toIntOrNull()
         assertTrue("Should have at least $expectedMin widget entries, got $size", size != null && size >= expectedMin)
+    }
+
+    // ── Compound Drawable (icon) Tests ──────────────────────────────
+
+    @Test
+    fun `TextView_has_compound_drawable_left_setter`() {
+        assertEquals("true", mruby.eval("Mrboto::TextView.instance_methods.include?(:compound_drawable_left=).to_s"))
+    }
+
+    @Test
+    fun `TextView_has_compound_drawable_right_setter`() {
+        assertEquals("true", mruby.eval("Mrboto::TextView.instance_methods.include?(:compound_drawable_right=).to_s"))
+    }
+
+    @Test
+    fun `TextView_has_drawable_padding_setter`() {
+        assertEquals("true", mruby.eval("Mrboto::TextView.instance_methods.include?(:drawable_padding=).to_s"))
+    }
+
+    @Test
+    fun `compound_drawable_left_does_not_crash_with_system_icon_id`() {
+        setupActivity()
+        val ctxId = mruby.eval("Mrboto._test_ctx_id")
+        val result = mruby.eval("""
+            sys_id = Mrboto._get_sys_res_id(0, 'ic_menu_help', 'drawable')
+            v = Mrboto::TextView.from_registry($ctxId)
+            v.compound_drawable_left = sys_id
+            v.drawable_padding = 8
+            'ok'
+        """.trimIndent())
+        assertEquals("ok", result)
+    }
+
+    @Test
+    fun `compound_drawable_right_does_not_crash_with_system_icon_id`() {
+        setupActivity()
+        val ctxId = mruby.eval("Mrboto._test_ctx_id")
+        val result = mruby.eval("""
+            sys_id = Mrboto._get_sys_res_id(0, 'ic_menu_info_details', 'drawable')
+            v = Mrboto::TextView.from_registry($ctxId)
+            v.compound_drawable_right = sys_id
+            v.drawable_padding = 8
+            'ok'
+        """.trimIndent())
+        assertEquals("ok", result)
     }
 }

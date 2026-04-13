@@ -81,9 +81,10 @@ module Mrboto
     key = "#{type}/#{name}"
     return @@_android_sys_id_cache[key] if @@_android_sys_id_cache[key]
 
-    ctx = _app_context
-    return nil unless ctx
-    id = Mrboto._get_sys_res_id(ctx._registry_id, name.to_s, type.to_s)
+    # _get_sys_res_id for "drawable" uses android.R$drawable reflection,
+    # no context needed. For other types it falls back to Resources.getIdentifier.
+    id = Mrboto._get_sys_res_id(0, name.to_s, type.to_s)
+    $stderr.puts "android_sys_id: #{name}/#{type} => #{id}"
     @@_android_sys_id_cache[key] = id if id && id > 0
     id
   end
