@@ -657,4 +657,100 @@ class WidgetsTest {
         """.trimIndent())
         assertEquals("ok", result)
     }
+
+    // ── New Widget Class Tests ──────────────────────────────────────
+
+    @Test
+    fun `CheckBox_is_TextView_subclass`() {
+        assertEquals("true", mruby.eval("(Mrboto::CheckBox < Mrboto::TextView).to_s"))
+    }
+
+    @Test
+    fun `SwitchWidget_is_TextView_subclass`() {
+        assertEquals("true", mruby.eval("(Mrboto::SwitchWidget < Mrboto::TextView).to_s"))
+    }
+
+    @Test
+    fun `ProgressBar_is_View_subclass`() {
+        assertEquals("true", mruby.eval("(Mrboto::ProgressBar < Mrboto::View).to_s"))
+    }
+
+    @Test
+    fun `WebView_is_View_subclass`() {
+        assertEquals("true", mruby.eval("(Mrboto::WebView < Mrboto::View).to_s"))
+    }
+
+    @Test
+    fun `TableLayout_is_ViewGroup_subclass`() {
+        assertEquals("true", mruby.eval("(Mrboto::TableLayout < Mrboto::ViewGroup).to_s"))
+    }
+
+    @Test
+    fun `Spinner_is_View_subclass`() {
+        assertEquals("true", mruby.eval("(Mrboto::Spinner < Mrboto::View).to_s"))
+    }
+
+    @Test
+    fun `RadioGroup_is_ViewGroup_subclass`() {
+        assertEquals("true", mruby.eval("(Mrboto::RadioGroup < Mrboto::ViewGroup).to_s"))
+    }
+
+    @Test
+    fun `CheckBox_has_on_checked_changed_method`() {
+        assertEquals("true", mruby.eval("Mrboto::CheckBox.instance_methods.include?(:on_checked_changed).to_s"))
+    }
+
+    @Test
+    fun `SwitchWidget_has_on_checked_changed_method`() {
+        assertEquals("true", mruby.eval("Mrboto::SwitchWidget.instance_methods.include?(:on_checked_changed).to_s"))
+    }
+
+    @Test
+    fun `CheckBox_on_checked_changed_dispatches_callback`() {
+        setupActivity()
+        val ctxId = mruby.eval("Mrboto._test_ctx_id")
+        mruby.eval("""
+            @checked_state = nil
+            v = Mrboto::CheckBox.from_registry($ctxId)
+            v.on_checked_changed { |is_checked| @checked_state = is_checked }
+        """.trimIndent())
+        // Simulate dispatch_checked from Kotlin OnCheckedChangeListener
+        mruby.eval("Mrboto.dispatch_checked(1, true)")
+        assertEquals("true", mruby.eval("@checked_state.to_s"))
+    }
+
+    @Test
+    fun `SwitchWidget_on_checked_changed_dispatches_callback`() {
+        setupActivity()
+        val ctxId = mruby.eval("Mrboto._test_ctx_id")
+        mruby.eval("""
+            @switch_state = nil
+            v = Mrboto::SwitchWidget.from_registry($ctxId)
+            v.on_checked_changed { |is_checked| @switch_state = is_checked }
+        """.trimIndent())
+        mruby.eval("Mrboto.dispatch_checked(1, false)")
+        assertEquals("false", mruby.eval("@switch_state.to_s"))
+    }
+
+    @Test
+    fun `ProgressBar_creation_does_not_crash`() {
+        setupActivity()
+        val ctxId = mruby.eval("Mrboto._test_ctx_id")
+        val result = mruby.eval("""
+            v = Mrboto::ProgressBar.from_registry($ctxId)
+            'ok'
+        """.trimIndent())
+        assertEquals("ok", result)
+    }
+
+    @Test
+    fun `Spinner_creation_does_not_crash`() {
+        setupActivity()
+        val ctxId = mruby.eval("Mrboto._test_ctx_id")
+        val result = mruby.eval("""
+            v = Mrboto::Spinner.from_registry($ctxId)
+            'ok'
+        """.trimIndent())
+        assertEquals("ok", result)
+    }
 }

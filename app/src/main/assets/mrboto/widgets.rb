@@ -433,37 +433,6 @@ module Mrboto
     end
   end
 
-  # ── CheckBox ─────────────────────────────────────────────────────
-  class CheckBox < TextView
-    def on_checked_changed(&block)
-      cid = Mrboto.register_callback(&block)
-      Mrboto.current_activity.setCheckListener(@_registry_id, cid)
-    end
-  end
-
-  # ── SwitchWidget ─────────────────────────────────────────────────
-  class SwitchWidget < TextView
-    def on_checked_changed(&block)
-      cid = Mrboto.register_callback(&block)
-      Mrboto.current_activity.setCheckListener(@_registry_id, cid)
-    end
-  end
-
-  # ── ProgressBar ──────────────────────────────────────────────────
-  class ProgressBar < View; end
-
-  # ── WebView ──────────────────────────────────────────────────────
-  class WebView < View; end
-
-  # ── TableLayout ──────────────────────────────────────────────────
-  class TableLayout < ViewGroup; end
-
-  # ── Spinner ──────────────────────────────────────────────────────
-  class Spinner < View; end
-
-  # ── RadioGroup ───────────────────────────────────────────────────
-  class RadioGroup < ViewGroup; end
-
   # ── ViewGroup ────────────────────────────────────────────────────
   class ViewGroup < View
     def add_child(child)
@@ -496,6 +465,31 @@ module Mrboto
   class ScrollView < ViewGroup; end
   class RelativeLayout < ViewGroup; end
   class FrameLayout < ViewGroup; end
+  class TableLayout < ViewGroup; end
+
+  # ── CheckBox ─────────────────────────────────────────────────────
+  class CheckBox < TextView
+    def on_checked_changed(&block)
+      cid = Mrboto.register_callback(&block)
+      Mrboto.current_activity.setCheckListener(@_registry_id, cid)
+    end
+  end
+
+  # ── SwitchWidget ─────────────────────────────────────────────────
+  class SwitchWidget < TextView
+    def on_checked_changed(&block)
+      cid = Mrboto.register_callback(&block)
+      Mrboto.current_activity.setCheckListener(@_registry_id, cid)
+    end
+  end
+
+  # ── Progress ─────────────────────────────────────────────────────
+  class ProgressBar < View; end
+  class WebView < View; end
+  class Spinner < View; end
+
+  # ── RadioGroup ───────────────────────────────────────────────────
+  class RadioGroup < ViewGroup; end
 
   # ── Standard Controls ────────────────────────────────────────────
   class SeekBar < View
