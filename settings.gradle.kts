@@ -21,4 +21,5 @@ rootProject.name = "mrboto"
 include(":app")
 include(":demo")
 include(":executor")
+include(":showcase")
 project(":app").name = "mrboto"
