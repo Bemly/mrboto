@@ -75,12 +75,6 @@ module Mrboto
       cb = @@callbacks[id]
       cb.call(is_checked) if cb
     end
-
-    # PopupMenu item selection — currently unused (no-op placeholder).
-    # The callback mechanism is not wired into show_popup_menu yet.
-    def dispatch_popup_select(item_index, item_title)
-      # Future: call a registered callback with item_index and item_title
-    end
   end
 
   # ── JavaObject ─────────────────────────────────────────────────────

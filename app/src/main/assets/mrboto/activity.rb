@@ -94,11 +94,12 @@ module Mrboto
       call_java_method("showSnackbar", vid, message.to_s, dur)
     end
 
-    def show_popup_menu(view, items)
+    def show_popup_menu(view, items, &block)
       return unless items.is_a?(Array)
+      callback_id = block ? Mrboto.register_callback(&block) : 0
       vid = view.is_a?(View) ? view._registry_id : view
       items_json = "[" + items.map { |i| "\"#{i.to_s.gsub('"', '\\"')}\"" }.join(",") + "]"
-      call_java_method("showPopupMenu", vid, items_json)
+      call_java_method("showPopupMenu", vid, items_json, callback_id)
     end
   end
 end

@@ -341,11 +341,11 @@ abstract class MrbotoActivityBase : Activity() {
 
     /**
      * Show a PopupMenu. Called from Ruby via
-     * call_java_method("showPopupMenu", anchorRegistryId, items_json).
+     * call_java_method("showPopupMenu", anchorRegistryId, items_json, callbackId).
      * items_json: JSON array of item labels.
-     * Returns item index (0-based) or -1 on dismiss/error.
+     * callbackId: mruby callback ID to dispatch on item selection (0 for none).
      */
-    fun showPopupMenu(anchorRegistryId: Int, itemsJson: CharSequence) {
+    fun showPopupMenu(anchorRegistryId: Int, itemsJson: CharSequence, callbackId: Int) {
         val anchor = mruby.lookupJavaObject<View>(anchorRegistryId)
             ?: return
         val popup = PopupMenu(this, anchor)
@@ -357,9 +357,12 @@ abstract class MrbotoActivityBase : Activity() {
         } catch (e: Exception) {
             return
         }
-        popup.setOnMenuItemClickListener { item ->
-            mruby.eval("Mrboto.dispatch_popup_select(${item.itemId}, '${item.title}')")
-            true
+        if (callbackId > 0) {
+            popup.setOnMenuItemClickListener { item ->
+                val safeTitle = item.title.toString().replace("'", "\\\\'")
+                mruby.eval("Mrboto.dispatch_callback($callbackId, ${item.itemId}, '$safeTitle')")
+                true
+            }
         }
         popup.show()
     }

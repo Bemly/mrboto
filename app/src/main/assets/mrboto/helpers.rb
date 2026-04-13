@@ -134,13 +134,14 @@ module Mrboto
     end
 
     # ── PopupMenu ──────────────────────────────────────────────────────
-    def self.popup_menu(view_id, items)
+    def self.popup_menu(view_id, items, &block)
       activity = Mrboto.current_activity
       return nil unless activity
       return nil unless items.is_a?(Array)
 
+      callback_id = block ? Mrboto.register_callback(&block) : 0
       items_str = "[" + items.map { |i| "\"#{i.to_s.gsub('"', '\\"')}\"" }.join(",") + "]"
-      Mrboto._show_popup_menu(activity._registry_id, view_id, items_str)
+      activity.call_java_method("showPopupMenu", view_id, items_str, callback_id)
       "ok"
     end
 
@@ -236,8 +237,8 @@ def snackbar(view_id, message, duration = :short)
   Mrboto::Helpers.snackbar(view_id, message, duration)
 end
 
-def popup_menu(view_id, items)
-  Mrboto::Helpers.popup_menu(view_id, items)
+def popup_menu(view_id, items, &block)
+  Mrboto::Helpers.popup_menu(view_id, items, &block)
 end
 
 def fade(view_id, from = 1.0, to = 0.0, duration = 300)

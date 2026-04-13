@@ -47,7 +47,9 @@ class HelpersDemoActivity < Mrboto::Activity
         section_title("PopupMenu", "ic_menu_preferences")
 
         @popup_target = button(text: "Show Popup Menu", padding: 12) {
-          show_popup_menu(@popup_target, ["Item 1", "Item 2", "Item 3"])
+          show_popup_menu(@popup_target, ["Item 1", "Item 2", "Item 3"]) { |index, title|
+            toast("Selected: #{title} (index #{index})")
+          }
         }
 
         # ── Section: View Animations ──────────────────────────
