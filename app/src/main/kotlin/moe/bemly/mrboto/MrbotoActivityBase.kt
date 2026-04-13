@@ -79,6 +79,9 @@ abstract class MrbotoActivityBase : Activity() {
         mruby.eval("Mrboto.current_activity_id = $activityRefId")
 
         // Load the Ruby script (should define a class inheriting Mrboto::Activity)
+        // nativeLoadScript returns the last expression value on success,
+        // or "ClassName: message" on error. Only treat it as failure if it
+        // looks like an exception string.
         val script = try {
             assets.open(scriptPath).bufferedReader().use { it.readText() }
         } catch (e: Exception) {
@@ -88,7 +91,9 @@ abstract class MrbotoActivityBase : Activity() {
         }
 
         val loadResult = mruby.loadScript(script)
-        if (loadResult != "ok") {
+        if (loadResult.startsWith("SyntaxError:") ||
+            loadResult.startsWith("ScriptError:") ||
+            loadResult.startsWith("RuntimeError:")) {
             Log.e(TAG, "Script load error: $loadResult")
             showErrorPage("Ruby Script Error", "Failed to load $scriptPath\n\n$loadResult")
             return
