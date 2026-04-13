@@ -1,13 +1,17 @@
 package moe.bemly.mrboto
 
 import android.app.Activity
+import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
+import android.view.Gravity
 import android.view.View
 import android.view.animation.Animation
 import android.view.animation.AlphaAnimation
 import android.view.animation.TranslateAnimation
 import android.view.animation.ScaleAnimation
+import android.widget.ScrollView
+import android.widget.TextView
 import com.google.android.material.snackbar.Snackbar
 import androidx.appcompat.app.AlertDialog
 import android.widget.PopupMenu
@@ -64,6 +68,7 @@ abstract class MrbotoActivityBase : Activity() {
         val scriptPath = _dynamicScriptPath ?: getScriptPath()
         if (scriptPath == null) {
             Log.e(TAG, "No script path provided")
+            showErrorPage("No Script Path", "No script path was provided.\nOverride getScriptPath() or pass mrboto_script_path via Intent extra.")
             return
         }
 
@@ -74,18 +79,23 @@ abstract class MrbotoActivityBase : Activity() {
         mruby.eval("Mrboto.current_activity_id = $activityRefId")
 
         // Load the Ruby script (should define a class inheriting Mrboto::Activity)
-        try {
-            val script = assets.open(scriptPath).bufferedReader().use { it.readText() }
-            val result = mruby.loadScript(script)
-            if (result != "ok") {
-                Log.e(TAG, "Script load error: $result")
-            }
+        val script = try {
+            assets.open(scriptPath).bufferedReader().use { it.readText() }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to load script $scriptPath: ${e.message}")
+            showErrorPage("Script Not Found", "Cannot open asset: $scriptPath\n\n${e.message}")
+            return
+        }
+
+        val loadResult = mruby.loadScript(script)
+        if (loadResult != "ok") {
+            Log.e(TAG, "Script load error: $loadResult")
+            showErrorPage("Ruby Script Error", "Failed to load $scriptPath\n\n$loadResult")
+            return
         }
 
         // Debug: check what the script defined
-        val checkResult = mruby.eval("Mrboto.class.to_s rescue 'error:' + $!.message")
+        val checkResult = mruby.eval("Mrboto.class.to_s rescue 'error:' + \$!.message")
         Log.i(TAG, "Debug: Mrboto = $checkResult")
 
         // Instantiate the Ruby Activity class
@@ -100,6 +110,13 @@ abstract class MrbotoActivityBase : Activity() {
             "end"
         )
         Log.i(TAG, "Ruby activity instantiation: $instantiateResult")
+        if (instantiateResult != "instantiated") {
+            showErrorPage("No Activity Class",
+                "The script did not define Mrboto._ruby_activity_class.\n\n" +
+                "Add this line at the end of your script:\n" +
+                "  Mrboto._ruby_activity_class = YourClassName")
+            return
+        }
 
         // Dispatch on_create (bundle will be passed as argument to the Ruby method)
         val bundleId = if (savedInstanceState != null) {
@@ -110,13 +127,15 @@ abstract class MrbotoActivityBase : Activity() {
         val dispatchResult = mruby.dispatchLifecycle(activityRefId, "on_create", bundleId)
         if (dispatchResult != "ok") {
             Log.e(TAG, "on_create dispatch error: $dispatchResult")
+            showErrorPage("Lifecycle Error", "on_create dispatch failed:\n\n$dispatchResult")
+            return
         }
         rubyInstanceId = activityRefId
 
         // Check for widget creation errors (after dispatch, since that's when widgets are created)
-        val widgetError = mruby.eval($$"$mrboto_widget_error.to_s rescue ''")
-        if (widgetError.isNotEmpty()) {
-            Log.e(TAG, "Widget creation error: $widgetError")
+        val widgetErrors = mruby.eval("defined?(\$mrboto_widget_errors) && \$mrboto_widget_errors.to_a.size > 0 ? \$mrboto_widget_errors.join('\\n') : ''")
+        if (widgetErrors.isNotEmpty()) {
+            Log.e(TAG, "Widget creation errors:\n$widgetErrors")
         }
 
         Log.i(TAG, "Activity created, script: $scriptPath")
@@ -231,8 +250,28 @@ abstract class MrbotoActivityBase : Activity() {
     }
 
     /**
+     * Show a full-screen error page for script loading failures.
+     * Red background, white selectable text.
+     */
+    private fun showErrorPage(title: String, message: String) {
+        val scroll = ScrollView(this)
+        val textView = TextView(this).apply {
+            text = "⚠ $title\n\n$message"
+            textSize = 14f
+            setTextColor(Color.WHITE)
+            setBackgroundColor(Color.parseColor("#CC0000"))
+            setPadding(40, 60, 40, 40)
+            setTextIsSelectable(true)
+            gravity = Gravity.TOP
+        }
+        scroll.addView(textView)
+        setContentView(scroll)
+    }
+
+    /**
      * Start the generic Ruby Activity with a script path.
      * Called from Ruby via _call_java_method.
+     * On failure, shows a Toast to give visible feedback.
      */
     fun startRubyActivity(scriptPath: CharSequence) {
         try {
@@ -241,7 +280,9 @@ abstract class MrbotoActivityBase : Activity() {
             intent.putExtra(EXTRA_SCRIPT_PATH, scriptPath.toString())
             startActivity(intent)
         } catch (e: Exception) {
-            Log.e(TAG, "startRubyActivity failed: ${e.message}")
+            val msg = "Cannot open $scriptPath: ${e.message}"
+            android.widget.Toast.makeText(this, msg, android.widget.Toast.LENGTH_LONG).show()
+            Log.e(TAG, "startRubyActivity failed: $msg")
         }
     }
 

@@ -115,7 +115,8 @@ module Mrboto
 
       wrapper
     rescue => e
-      $mrboto_widget_error = "#{class_name}: #{e.class}: #{e.message}"
+      $mrboto_widget_errors ||= []
+      $mrboto_widget_errors << "#{class_name}: #{e.class}: #{e.message}"
       nil
     end
 
