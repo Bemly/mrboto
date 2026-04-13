@@ -741,36 +741,59 @@ mrb_value mrb_mrboto_get_sys_res_id(mrb_state *mrb, mrb_value self) {
     JNIEnv *env = mrboto_get_env();
     if (env == NULL) return mrb_fixnum_value(0);
 
+    jint id = 0;
+
+    /* For drawable type, use android.R$drawable reflection — most reliable
+       way to get system resource IDs. getIdentifier with "android" package
+       may fail on newer API levels even though the constants still exist. */
+    if (strcmp(type, "drawable") == 0) {
+        jclass r_drawable = (*env)->FindClass(env, "android/R$drawable");
+        if (r_drawable != NULL && !(*env)->ExceptionCheck(env)) {
+            jfieldID fid = (*env)->GetStaticFieldID(env, r_drawable, name, "I");
+            if (fid != NULL && !(*env)->ExceptionCheck(env)) {
+                id = (*env)->GetStaticIntField(env, r_drawable, fid);
+            } else {
+                (*env)->ExceptionClear(env);
+            }
+            (*env)->DeleteLocalRef(env, r_drawable);
+            LOGI("get_sys_res_id: android.R.drawable.%s => %d", name, (int)id);
+            return mrb_fixnum_value((mrb_int)id);
+        } else {
+            (*env)->ExceptionClear(env);
+        }
+    }
+
+    /* Fallback: use Resources.getIdentifier for non-drawable types */
     jobject ctx = mrboto_lookup_ref(env, (int)ctx_id);
     if (ctx == NULL) return mrb_fixnum_value(0);
 
-    /* Get Resources object */
     jclass ctx_cls = (*env)->GetObjectClass(env, ctx);
-    jmethodID get_res = (*env)->GetMethodID(env, ctx_cls, "getResources",
-                                            "()Landroid/content/res/Resources;");
-    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, ctx_cls); return mrb_fixnum_value(0); }
-    jobject res = (*env)->CallObjectMethod(env, ctx, get_res);
-    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, ctx_cls); return mrb_fixnum_value(0); }
-    (*env)->DeleteLocalRef(env, ctx_cls);
+    if (ctx_cls != NULL && !(*env)->ExceptionCheck(env)) {
+        jmethodID get_res = (*env)->GetMethodID(env, ctx_cls, "getResources",
+                                                "()Landroid/content/res/Resources;");
+        if (get_res != NULL && !(*env)->ExceptionCheck(env)) {
+            jobject res = (*env)->CallObjectMethod(env, ctx, get_res);
+            if (res != NULL && !(*env)->ExceptionCheck(env)) {
+                jclass res_cls = (*env)->GetObjectClass(env, res);
+                jmethodID get_id = (*env)->GetMethodID(env, res_cls, "getIdentifier",
+                    "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)I");
+                if (get_id != NULL && !(*env)->ExceptionCheck(env)) {
+                    jstring jname = (*env)->NewStringUTF(env, name);
+                    jstring jtype = (*env)->NewStringUTF(env, type);
+                    jstring jpkg = (*env)->NewStringUTF(env, "android");
+                    id = (*env)->CallIntMethod(env, res, get_id, jname, jtype, jpkg);
+                    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); }
+                    (*env)->DeleteLocalRef(env, jname);
+                    (*env)->DeleteLocalRef(env, jtype);
+                    (*env)->DeleteLocalRef(env, jpkg);
+                }
+                (*env)->DeleteLocalRef(env, res_cls);
+            }
+        }
+        (*env)->DeleteLocalRef(env, ctx_cls);
+    }
 
-    /* Get Resources.getIdentifier(String name, String defType, String defPackage) */
-    jclass res_cls = (*env)->GetObjectClass(env, res);
-    jmethodID get_id = (*env)->GetMethodID(env, res_cls, "getIdentifier",
-                                           "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)I");
-    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, res_cls); (*env)->DeleteLocalRef(env, res); return mrb_fixnum_value(0); }
-
-    jstring jname = (*env)->NewStringUTF(env, name);
-    jstring jtype = (*env)->NewStringUTF(env, type);
-    jstring jpkg = (*env)->NewStringUTF(env, "android");
-    jint id = (*env)->CallIntMethod(env, res, get_id, jname, jtype, jpkg);
-    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); }
-
-    (*env)->DeleteLocalRef(env, jname);
-    (*env)->DeleteLocalRef(env, jtype);
-    (*env)->DeleteLocalRef(env, jpkg);
-    (*env)->DeleteLocalRef(env, res_cls);
-    (*env)->DeleteLocalRef(env, res);
-
+    LOGI("get_sys_res_id: %s/%s => %d (fallback)", name, type, (int)id);
     return mrb_fixnum_value((mrb_int)id);
 }
 

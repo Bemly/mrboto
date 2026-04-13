@@ -139,7 +139,13 @@ abstract class MrbotoActivityBase : Activity() {
         rubyInstanceId = activityRefId
 
         // Check for widget creation errors (after dispatch, since that's when widgets are created)
-        val widgetErrors = mruby.eval("defined?(\$mrboto_widget_errors) && \$mrboto_widget_errors.to_a.size > 0 ? \$mrboto_widget_errors.join('\\n') : ''")
+        val widgetErrors = mruby.eval(
+            "begin\n" +
+            "  \$mrboto_widget_errors.to_a.size > 0 ? \$mrboto_widget_errors.join('\\n') : \"\"\n" +
+            "rescue\n" +
+            "  \"\"\n" +
+            "end"
+        )
         if (widgetErrors.isNotEmpty()) {
             Log.e(TAG, "Widget creation errors:\n$widgetErrors")
         }
