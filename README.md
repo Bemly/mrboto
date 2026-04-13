@@ -47,12 +47,26 @@ dependencies {
     ...>
 ```
 
-### 3. Create an Activity
+### 3. Create an Activity (Zero Kotlin)
 
-```kotlin
-class MainActivity : MrbotoActivityBase() {
-    override fun getScriptPath() = "main_activity.rb"
-}
+No Kotlin code needed — just declare `RubyActivity` in your manifest:
+
+```xml
+<!-- AndroidManifest.xml -->
+<activity android:name="moe.bemly.mrboto.RubyActivity">
+    <meta-data android:name="mrboto_script" android:value="main_activity.rb" />
+    <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.LAUNCHER" />
+    </intent-filter>
+</activity>
+```
+
+For dynamic navigation between Ruby Activities:
+
+```ruby
+# In a Ruby Activity:
+start_ruby_activity(script_path: "second_activity.rb")
 ```
 
 ### 4. Write Ruby UI
@@ -83,6 +97,16 @@ Mrboto._ruby_activity_class = MainActivity
 | C Bridge | [Wiki](https://github.com/Bemly/mrboto/wiki/C-Bridge) / [中文版](https://github.com/Bemly/mrboto/wiki/C-Bridge-zh) |
 | Architecture | [Wiki](https://github.com/Bemly/mrboto/wiki/Architecture) |
 | Testing | [Wiki](https://github.com/Bemly/mrboto/wiki/Testing) |
+
+### Ruby DSL Quick Reference
+
+**Widgets (44):** `linear_layout`, `text_view`, `button`, `edit_text`, `image_view`, `scroll_view`, `relative_layout`, `check_box`, `switch_widget`, `progress_bar`, `spinner`, `radio_group`, `web_view`, `frame_layout`, `table_layout`, `seek_bar`, `rating_bar`, `auto_complete_text_view`, `search_view`, `toolbar`, `number_picker`, `date_picker`, `time_picker`, `calendar_view`, `video_view`, `chronometer`, `text_clock`, `grid_view`, `list_view`, `nested_scroll_view`, `horizontal_scroll_view`, `view_pager`, `tab_layout`, `view_switcher`, `floating_action_button`, `material_button`, `card_view`, `text_input_layout`, `text_input_edit_text`, `bottom_navigation_view`, `app_bar_layout`, `drawer_layout`, `coordinator_layout`, `navigation_view`
+
+**View Methods:** `fade_in`, `fade_out`, `animate_translate`, `animate_scale`, `slide_in_bottom`, `pulse`, `clear_animation`, `width`, `height`, `visible?`, `show`, `hide`, `request_focus`, `perform_click`
+
+**Activity Methods:** `show_dialog`, `show_snackbar`, `show_popup_menu`
+
+**Helpers:** `toast`, `dialog`, `snackbar`, `popup_menu`, `start_activity`, `start_ruby_activity`, `get_extra`, `shared_preferences`, `run_on_ui_thread`, `package_name`
 
 ## Technical Stack
 
@@ -131,21 +155,25 @@ cd mruby && rake deep_clean && cd ..
 │       ├── cpp/
 │       │   ├── CMakeLists.txt
 │       │   ├── native-lib.c         # mruby VM lifecycle (open/close/eval/gc)
-│       │   ├── android-jni-bridge.c # JNI registry, reflection-based method calls
-│       │   └── mruby/               # Vendored mruby headers/libs
+│       │   ├── jni-registry.c/h     # 4096-slot JNI GlobalRef registry
+│       │   ├── jni-helpers.c/h      # toast/sp/start_activity C helpers
+│       │   ├── jni-ui.c/h           # dialog/snackbar/popup/animation C
+│       │   └── jni-bindings.c       # JNI_OnLoad + mrboto native methods
 │       ├── assets/mrboto/
 │       │   ├── core.rb              # Mrboto module, JavaObject, callbacks
 │       │   ├── layout.rb            # Layout constants, dp()
-│       │   ├── activity.rb          # Activity lifecycle hooks
-│       │   ├── widgets.rb           # Widget DSL (15 widgets)
-│       │   └── helpers.rb           # toast, SharedPreferences, etc.
+│       │   ├── activity.rb          # Activity lifecycle + instance methods
+│       │   ├── widgets.rb           # 44 widgets + View instance methods
+│       │   └── helpers.rb           # toast, dialog, snackbar, animations, etc.
 │       └── kotlin/moe/bemly/mrboto/
-│           ├── MRuby.kt             # AutoCloseable wrapper
+│           ├── MRuby.kt             # AutoCloseable mruby wrapper
 │           ├── MrbotoApplication.kt # Bootstraps global MRuby
-│           ├── MrbotoActivityBase.kt# Activity lifecycle delegation
+│           ├── MrbotoActivityBase.kt# Activity lifecycle + UI helpers
+│           ├── RubyActivity.kt      # Zero-Kotlin app support
 │           ├── ViewListeners.kt     # Click/Text/Check listeners
 │           └── JavaObjectWrapper.kt # Registry reference docs
-├── demo/                            # Demo app showing Ruby DSL
+├── demo/                            # Demo app (zero Kotlin)
+├── showcase/                        # Showcase app (44 widgets demo)
 ├── build_config.rb                  # mruby build config
 ├── build-android.sh                 # One-shot build script
 └── mruby/                           # git submodule (tag 3.4.0)

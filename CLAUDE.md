@@ -8,7 +8,8 @@ mrboto embeds mruby 3.4.0 into Android applications as a reusable library, with 
 
 Architecture:
 - `:mrboto` — Android Library module (`com.android.library`), published as AAR
-- `:demo` — Demo app that depends on `:mrboto`, shows Ruby DSL usage
+- `:demo` / `:showcase` — Apps that depend on `:mrboto`, show Ruby DSL usage
+- Apps require **zero Kotlin code** — only `AndroidManifest.xml` + Ruby scripts
 
 ## Key Directories
 
@@ -16,7 +17,8 @@ Architecture:
 - `app/src/main/kotlin/moe/bemly/mrboto/` — Kotlin API layer
   - `MRuby.kt` — core eval API + framework APIs (registerAndroidClasses, dispatchLifecycle, loadScript, registerJavaObject, lookupJavaObject)
   - `MrbotoApplication.kt` — bootstraps global MRuby, loads core Ruby scripts
-  - `MrbotoActivityBase.kt` — Activity base class, lifecycle delegation, setViewClickListener
+  - `MrbotoActivityBase.kt` — Activity base class, lifecycle delegation, showErrorPage, startRubyActivity, showDialog/showSnackbar/showPopupMenu, animate*/showDialog/showSnackbar/showPopupMenu Kotlin methods
+  - `RubyActivity.kt` — generic Activity that loads scripts from Intent extra or manifest meta-data
   - `ViewListeners.kt` — Click/Text/Check listeners delegating to mruby
   - `JavaObjectWrapper.kt` — registry reference docs
 - `app/src/main/assets/mrboto/` — Ruby DSL core scripts
@@ -126,6 +128,19 @@ cd mruby && rake deep_clean && cd ..
   after `mruby.close()` to free all JNI GlobalRefs. The C registry (`g_registry`) is a process-level
   static that is NOT cleaned by `mrb_close()`. Without this, 200+ tests accumulate ~600+ GlobalRefs,
   potentially causing memory pressure and test instability.
+- **Zero-Kotlin app architecture**: All app modules use `moe.bemly.mrboto.RubyActivity` declared
+  in `AndroidManifest.xml`. Script resolution: Intent extra `mrboto_script_path` (from
+  `startRubyActivity`) → manifest meta-data `mrboto_script`. No app-specific Kotlin classes needed.
+  `MrbotoActivityBase.startRubyActivity()` uses `componentName.className` to resolve the Activity
+  class (works for any subclass of RubyActivity).
+- **View instance methods**: `View` class in `widgets.rb` has instance methods replacing
+  `call_java_method`: `fade_in`, `fade_out`, `animate_translate`, `animate_scale`, `slide_in_bottom`,
+  `pulse`, `clear_animation`, `width`, `height`, `visible?`, `show`, `hide`, `request_focus`,
+  `perform_click`. These call the Kotlin-side `animateFade`/`animateTranslate`/`animateScale` methods
+  via `activity.call_java_method(...)`.
+- **Activity instance methods**: `Mrboto::Activity` in `activity.rb` has `show_dialog`,
+  `show_snackbar`, `show_popup_menu` that wrap `call_java_method` to the Kotlin-side
+  `showDialog`/`showSnackbar`/`showPopupMenu` methods.
 
 ## Architecture Details
 
@@ -166,10 +181,11 @@ All take registry IDs, look up GlobalRefs via `mrboto_lookup_ref()`, use Android
 | `RegistryStressTest.kt` | 6 | sequential IDs, 4096 capacity limit, overflow rejection |
 | `LayoutConstantsTest.kt` | 16 | MATCH_PARENT, WRAP_CONTENT, Gravity, Orientation, dp() |
 | `ActivityClassTest.kt` | 11 | Activity instantiation, content_view, title, lifecycle hooks |
-| `WidgetsTest.kt` | 74 | Widget creation, attributes, nesting, View.from_registry, 29 new widget hierarchy, 13 method existence, 10 functional tests |
+| `WidgetsTest.kt` | 74 | Widget creation, attributes, nesting, View.from_registry, 44 widget classes, method existence, functional tests |
 | `CallbackDispatchTest.kt` | 8 | register_callback, dispatch_callback, dispatch_text_changed, dispatch_checked |
 | `HelpersTest.kt` | 24 | toast, SharedPreferences, package_name, dialog, snackbar, popup_menu, animations |
 | `LifecycleDispatchTest.kt` | 7 | dispatchLifecycle, accessors, hook ordering |
+| `ViewInstanceMethodsTest.kt` | 16 | View: fade_in, fade_out, animate_translate, animate_scale, pulse, slide_in_bottom, clear_animation, width, height, visible?, show, hide, request_focus, perform_click; Activity: show_dialog, show_snackbar, show_popup_menu |
 
 ## Style Guidelines
 
