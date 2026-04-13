@@ -376,6 +376,69 @@ void mrboto_sp_put_string(mrb_state *mrb, int context_id,
     }
 }
 
+/* ── Helper: SharedPreferences int ────────────────────────────────── */
+
+mrb_value mrboto_sp_get_int(mrb_state *mrb, int context_id,
+                            const char *name, const char *key, int default_val) {
+    JNIEnv *env = mrboto_get_env();
+    jobject context = mrboto_lookup_ref(env, context_id);
+    if (context == NULL) return mrb_int_value(mrb, default_val);
+
+    jobject sp = get_shared_prefs(env, context, name);
+    int result = default_val;
+
+    if (sp != NULL) {
+        jclass sp_cls = (*env)->GetObjectClass(env, sp);
+        jmethodID get = (*env)->GetMethodID(env, sp_cls, "getInt",
+                                            "(Ljava/lang/String;I)I");
+        if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, sp_cls); return mrb_int_value(mrb, default_val); }
+        jstring jkey = (*env)->NewStringUTF(env, key);
+        if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, jkey); (*env)->DeleteLocalRef(env, sp_cls); return mrb_int_value(mrb, default_val); }
+        result = (*env)->CallIntMethod(env, sp, get, jkey, (jint)default_val);
+        if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); }
+
+        (*env)->DeleteLocalRef(env, jkey);
+        (*env)->DeleteLocalRef(env, sp_cls);
+    }
+
+    return mrb_int_value(mrb, result);
+}
+
+void mrboto_sp_put_int(mrb_state *mrb, int context_id,
+                       const char *name, const char *key, int value) {
+    (void)mrb;
+    JNIEnv *env = mrboto_get_env();
+    jobject context = mrboto_lookup_ref(env, context_id);
+    if (context == NULL) return;
+
+    jobject sp = get_shared_prefs(env, context, name);
+    if (sp != NULL) {
+        jclass sp_cls = (*env)->GetObjectClass(env, sp);
+        jmethodID edit = (*env)->GetMethodID(env, sp_cls, "edit",
+                                             "()Landroid/content/SharedPreferences$Editor;");
+        if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, sp_cls); return; }
+        jobject editor = (*env)->CallObjectMethod(env, sp, edit);
+        if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, sp_cls); return; }
+
+        jclass ed_cls = (*env)->GetObjectClass(env, editor);
+        jmethodID put = (*env)->GetMethodID(env, ed_cls, "putInt",
+                                            "(Ljava/lang/String;I)Landroid/content/SharedPreferences$Editor;");
+        if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, sp_cls); (*env)->DeleteLocalRef(env, editor); return; }
+        jstring jkey = (*env)->NewStringUTF(env, key);
+        (*env)->CallObjectMethod(env, editor, put, jkey, (jint)value);
+        if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); }
+
+        jmethodID apply = (*env)->GetMethodID(env, ed_cls, "apply", "()V");
+        (*env)->CallVoidMethod(env, editor, apply);
+        if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); }
+
+        (*env)->DeleteLocalRef(env, jkey);
+        (*env)->DeleteLocalRef(env, editor);
+        (*env)->DeleteLocalRef(env, ed_cls);
+        (*env)->DeleteLocalRef(env, sp_cls);
+    }
+}
+
 /* ── Helper: App Context ──────────────────────────────────────────── */
 
 jobject mrboto_get_app_context(mrb_state *mrb) {
@@ -488,19 +551,17 @@ mrb_value mrb_mrboto_sp_put_string(mrb_state *mrb, mrb_value self) {
 }
 
 mrb_value mrb_mrboto_sp_get_int(mrb_state *mrb, mrb_value self) {
-    mrb_int context_id;
+    mrb_int context_id, default_val = 0;
     const char *name, *key;
-    mrb_int default_val = 0;
     mrb_get_args(mrb, "izz|i", &context_id, &name, &key, &default_val);
-    (void)default_val;
-    return mrb_nil_value();
+    return mrboto_sp_get_int(mrb, (int)context_id, name, key, (int)default_val);
 }
 
 mrb_value mrb_mrboto_sp_put_int(mrb_state *mrb, mrb_value self) {
     mrb_int context_id, value;
     const char *name, *key;
     mrb_get_args(mrb, "izzi", &context_id, &name, &key, &value);
-    (void)value; /* stub — not yet implemented */
+    mrboto_sp_put_int(mrb, (int)context_id, name, key, (int)value);
     return mrb_nil_value();
 }
 

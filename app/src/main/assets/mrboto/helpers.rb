@@ -32,7 +32,7 @@ module Mrboto
       def get_int(key, default = 0)
         ctx = _context
         return default if ctx.nil?
-        Mrboto._sp_get_int(ctx, @name, key.to_s, default.to_i)
+        Mrboto._sp_get_int(ctx, @name, key.to_s, default)
       end
 
       def put_int(key, value)
