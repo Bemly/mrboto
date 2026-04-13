@@ -340,7 +340,10 @@ module Mrboto
     end
 
     def text
-      call_java_method('getText')
+      editable = call_java_method('getText')
+      editable ? editable.call_java_method('toString') : nil
+    rescue
+      nil
     end
 
     def text_size=(val)
