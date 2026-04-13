@@ -13,19 +13,19 @@ Architecture:
 
 ## Key Directories
 
-- `app/src/main/cpp/` — C JNI bridge (`native-lib.c`, `android-jni-bridge.c`), CMake, vendored mruby headers/libs
+- `app/src/main/cpp/` — C JNI bridge (`native-lib.c`, `jni-bindings.c`, `jni-helpers.c`, `jni-ui.c`, `jni-registry.c`), CMake, vendored mruby headers/libs
 - `app/src/main/kotlin/moe/bemly/mrboto/` — Kotlin API layer
-  - `MRuby.kt` — core eval API + framework APIs (registerAndroidClasses, dispatchLifecycle, loadScript, registerJavaObject, lookupJavaObject)
+  - `MRuby.kt` — core eval API + framework APIs (registerAndroidClasses, dispatchLifecycle, loadScript, registerJavaObject, lookupJavaObject, setTextWatcher)
   - `MrbotoApplication.kt` — bootstraps global MRuby, loads core Ruby scripts
-  - `MrbotoActivityBase.kt` — Activity base class, lifecycle delegation, showErrorPage, startRubyActivity, showDialog/showSnackbar/showPopupMenu, animate*/showDialog/showSnackbar/showPopupMenu Kotlin methods
+  - `MrbotoActivityBase.kt` — Activity base class, lifecycle delegation, showErrorPage, startRubyActivity, showDialog/showSnackbar/showPopupMenu, setViewPager2Adapter, Kotlin methods
   - `RubyActivity.kt` — generic Activity that loads scripts from Intent extra or manifest meta-data
-  - `ViewListeners.kt` — Click/Text/Check listeners delegating to mruby
+  - `ViewListeners.kt` — MrbotoClickListener/MrbotoTextWatcher/MrbotoCheckChangeListener/ViewPagerAdapter delegating to mruby
   - `JavaObjectWrapper.kt` — registry reference docs
 - `app/src/main/assets/mrboto/` — Ruby DSL core scripts
   - `core.rb` — Mrboto module, JavaObject base, callback registry, native method stubs
   - `layout.rb` — MATCH_PARENT, WRAP_CONTENT, Gravity, Orientation, dp()
   - `activity.rb` — Mrboto::Activity with lifecycle hooks, set_content_view
-  - `widgets.rb` — Widget builders (linear_layout, button, text_view, etc.) + top-level DSL
+  - `widgets.rb` — Widget builders (45 widgets including ViewPager2) + View instance methods + WebView API
   - `helpers.rb` — toast, start_activity, get_extra, shared_preferences, run_on_ui_thread, dialog, snackbar, popup_menu, animations
 - `demo/` — Demo app showing Ruby-driven Activities
 - `mruby/` — git submodule at tag 3.4.0
@@ -150,6 +150,20 @@ cd mruby && rake deep_clean && cd ..
 - **Activity class registration**: Use `Mrboto.register_activity_class(Class)` at the
   end of scripts instead of `Mrboto._ruby_activity_class = Class`. The old accessor
   still works for backwards compatibility.
+- **TextWatcher**: `EditText.on_text_changed { }` uses C `_set_text_watcher` to store
+  callback ID in View tag. Kotlin `MRuby.setTextWatcher` reads it and creates
+  `MrbotoTextWatcher`. The Activity holder pattern (`setActivityForTextWatcher`) enables
+  native-to-Kotlin callbacks. `dispatch_text_changed` passes text to the Ruby block.
+- **WebView**: Full API in `widgets.rb` — `loadUrl`, `loadData`, `loadDataWithBaseURL`,
+  `javascriptEnabled=`, `domStorageEnabled=`, `goBack`, `goForward`, `reload`, `stopLoading`,
+  `canGoBack`, `canGoForward`. Settings accessed via `call_java_method('getSettings')`.
+- **ViewPager2**: Widget class `view_pager_2` → `androidx.viewpager2.widget.ViewPager2`.
+  Kotlin `ViewPagerAdapter` maps registry IDs to Views. Ruby `set_adapter([id1, id2])`
+  calls `setViewPager2Adapter` on Kotlin side which creates adapter from JSON array of IDs.
+- **SharedPreferences `_context` fix**: `_context` in `helpers.rb` now checks
+  `if id && id > 0` before returning the registry ID from `_app_context`. If invalid (0),
+  falls through to `current_activity._registry_id`. This ensures SP works in both real app
+  (Application context) and instrumented tests (Activity context).
 
 ## Architecture Details
 
@@ -171,6 +185,8 @@ Ruby `linear_layout { }` → `Mrboto::Widgets.create_view(class_name, attrs)` �
 - `_show_snackbar(context_id, view_id, message, duration)` — Snackbar.make + show (exception cleared when View has no parent)
 - `_show_popup_menu(context_id, view_id, items_json)` — PopupMenu constructor + getMenu + add items (NO show() — hangs on unattached Views)
 - `_animate_fade/_animate_translate/_animate_scale` — View animations via JNI (create Animation + startAnimation on View)
+- `_set_text_watcher(view_id, callback_id)` — stores callback ID in View tag (same pattern as `_set_on_click`)
+- `_set_on_click(view_id, callback_id)` — stores callback ID in View tag
 
 All take registry IDs, look up GlobalRefs via `mrboto_lookup_ref()`, use Android APIs directly.
 
@@ -186,13 +202,13 @@ All take registry IDs, look up GlobalRefs via `mrboto_lookup_ref()`, use Android
 |---|---|---|
 | `MRubyTest.kt` | 14 | eval, version, gc, close, registerJavaObject, lookupJavaObject, loadScript |
 | `ErrorHandlingTest.kt` | 15 | syntax errors, runtime errors, invalid IDs, closed VM |
-| `BridgeMethodsTest.kt` | 17 | _toast, _start_activity, _get_extra, _sp_get/put_int, _app_context, _dp_to_px, _create_view, _set_on_click, _set_content_view, _run_on_ui_thread, stubs |
+| `BridgeMethodsTest.kt` | 17 | _toast, _start_activity, _get_extra, _sp_get/put_int, _app_context, _dp_to_px, _create_view, _set_on_click, _set_text_watcher, _set_content_view, _run_on_ui_thread, stubs |
 | `RegistryStressTest.kt` | 6 | sequential IDs, 4096 capacity limit, overflow rejection |
 | `LayoutConstantsTest.kt` | 16 | MATCH_PARENT, WRAP_CONTENT, Gravity, Orientation, dp() |
 | `ActivityClassTest.kt` | 11 | Activity instantiation, content_view, title, lifecycle hooks |
-| `WidgetsTest.kt` | 74 | Widget creation, attributes, nesting, View.from_registry, 44 widget classes, method existence, functional tests |
+| `WidgetsTest.kt` | 74 | Widget creation, attributes, nesting, View.from_registry, 45 widget classes, method existence, functional tests |
 | `CallbackDispatchTest.kt` | 8 | register_callback, dispatch_callback, dispatch_text_changed, dispatch_checked |
-| `HelpersTest.kt` | 24 | toast, SharedPreferences, package_name, dialog, snackbar, popup_menu, animations |
+| `HelpersTest.kt` | 27 | toast, SharedPreferences, package_name, dialog, snackbar, popup_menu, animations, _set_text_watcher, on_text_changed |
 | `LifecycleDispatchTest.kt` | 7 | dispatchLifecycle, accessors, hook ordering |
 | `ViewInstanceMethodsTest.kt` | 16 | View: fade_in, fade_out, animate_translate, animate_scale, pulse, slide_in_bottom, clear_animation, width, height, visible?, show, hide, request_focus, perform_click; Activity: show_dialog, show_snackbar, show_popup_menu |
 
