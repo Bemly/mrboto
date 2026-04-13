@@ -117,7 +117,7 @@ Mrboto._ruby_activity_class = MainActivity
 | minSdk | API 33 |
 | targetSdk | API 36 |
 | AGP | 9.1.0 |
-| CMake | 4.1.2 |
+| CMake | 4.3.1 |
 
 ## Development
 
