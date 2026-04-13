@@ -141,6 +141,15 @@ cd mruby && rake deep_clean && cd ..
 - **Activity instance methods**: `Mrboto::Activity` in `activity.rb` has `show_dialog`,
   `show_snackbar`, `show_popup_menu` that wrap `call_java_method` to the Kotlin-side
   `showDialog`/`showSnackbar`/`showPopupMenu` methods.
+- **Script evaluation APIs**: `Mrboto.load_script(path)` loads/executes asset scripts,
+  `Mrboto.load_script_source(path)` gets source without execution, `Mrboto.ruby_eval(code)`
+  evaluates raw Ruby strings via `call_java_method("evalRuby")`. These require
+  `current_activity` to be set. `Mrboto._eval(code)` is the C-native alternative that
+  calls `mrb_load_string` directly — no Activity needed, returns raw `mrb_value` (not
+  String-ified), useful when you need the actual Ruby return type.
+- **Activity class registration**: Use `Mrboto.register_activity_class(Class)` at the
+  end of scripts instead of `Mrboto._ruby_activity_class = Class`. The old accessor
+  still works for backwards compatibility.
 
 ## Architecture Details
 
