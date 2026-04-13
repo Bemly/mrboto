@@ -549,44 +549,6 @@ mrb_value mrb_mrboto_app_context(mrb_state *mrb, mrb_value self) {
     return result;
 }
 
-mrb_value mrb_mrboto_string_res(mrb_state *mrb, mrb_value self) {
-    mrb_int activity_id, res_id;
-    mrb_get_args(mrb, "ii", &activity_id, &res_id);
-
-    JNIEnv *env = mrboto_get_env();
-    jobject activity = mrboto_lookup_ref(env, (int)activity_id);
-    if (!activity) return mrb_nil_value();
-
-    jclass act_cls = (*env)->GetObjectClass(env, activity);
-    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); return mrb_nil_value(); }
-    jmethodID get_res = (*env)->GetMethodID(env, act_cls, "getResources",
-                                            "()Landroid/content/res/Resources;");
-    if (get_res == NULL) { (*env)->DeleteLocalRef(env, act_cls); return mrb_nil_value(); }
-    jobject resources = (*env)->CallObjectMethod(env, activity, get_res);
-    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); }
-    if (!resources) { (*env)->DeleteLocalRef(env, act_cls); return mrb_nil_value(); }
-
-    jclass res_cls = (*env)->GetObjectClass(env, resources);
-    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, resources); (*env)->DeleteLocalRef(env, act_cls); return mrb_nil_value(); }
-    jmethodID get_str = (*env)->GetMethodID(env, res_cls, "getString",
-                                            "(I)Ljava/lang/String;");
-    if (get_str == NULL) { (*env)->DeleteLocalRef(env, resources); (*env)->DeleteLocalRef(env, res_cls); (*env)->DeleteLocalRef(env, act_cls); return mrb_nil_value(); }
-    jstring jstr = (jstring)(*env)->CallObjectMethod(env, resources, get_str, (jint)res_id);
-    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); }
-
-    mrb_value result = mrb_nil_value();
-    if (jstr) {
-        const char *s = (*env)->GetStringUTFChars(env, jstr, NULL);
-        result = mrb_str_new_cstr(mrb, s);
-        (*env)->ReleaseStringUTFChars(env, jstr, s);
-        (*env)->DeleteLocalRef(env, jstr);
-    }
-    (*env)->DeleteLocalRef(env, resources);
-    (*env)->DeleteLocalRef(env, res_cls);
-    (*env)->DeleteLocalRef(env, act_cls);
-    return result;
-}
-
 mrb_value mrb_mrboto_create_view(mrb_state *mrb, mrb_value self) {
     mrb_int context_id;
     const char *class_name;
