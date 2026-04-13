@@ -25,31 +25,6 @@ module Mrboto
       @_ruby_activity_class = klass
     end
 
-    # ── Script Loading & Evaluation ────────────────────────────────
-    # These wrap call_java_method / _eval to provide clean Ruby APIs.
-
-    # Load and execute a Ruby script from assets.
-    # Returns the result string (may contain error messages on failure).
-    def self.load_script(script_path)
-      activity = current_activity
-      return nil unless activity
-      activity.call_java_method("loadAssetScript", script_path.to_s)
-    end
-
-    # Return the source content of a script from assets (no execution).
-    def self.load_script_source(script_path)
-      activity = current_activity
-      return nil unless activity
-      activity.call_java_method("loadAssetScriptSource", script_path.to_s)
-    end
-
-    # Evaluate a raw Ruby string via mruby eval.
-    def self.ruby_eval(code)
-      activity = current_activity
-      return nil unless activity
-      activity.call_java_method("evalRuby", code.to_s)
-    end
-
     # ── Callback Registry ──────────────────────────────────────────
     @@callbacks = {}
     @@next_callback_id = 1
@@ -75,6 +50,33 @@ module Mrboto
       cb = @@callbacks[id]
       cb.call(is_checked) if cb
     end
+  end
+
+  # ── Script Loading & Evaluation ────────────────────────────────
+  # These are defined at module level (not in class << self) because
+  # mruby makes methods defined with `def self.xxx` inside
+  # `class << self` private when class variables (`@@callbacks`)
+  # precede them.
+
+  # Load and execute a Ruby script from assets.
+  def self.load_script(script_path)
+    activity = current_activity
+    return nil unless activity
+    activity.call_java_method("loadAssetScript", script_path.to_s)
+  end
+
+  # Return the source content of a script from assets (no execution).
+  def self.load_script_source(script_path)
+    activity = current_activity
+    return nil unless activity
+    activity.call_java_method("loadAssetScriptSource", script_path.to_s)
+  end
+
+  # Evaluate a raw Ruby string via mruby eval.
+  def self.ruby_eval(code)
+    activity = current_activity
+    return nil unless activity
+    activity.call_java_method("evalRuby", code.to_s)
   end
 
   # ── JavaObject ─────────────────────────────────────────────────────
