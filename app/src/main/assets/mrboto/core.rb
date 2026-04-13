@@ -14,15 +14,14 @@ module Mrboto
     # ── Activity Class Registration ────────────────────────────────
     # Scripts should call Mrboto.register_activity_class(ClassName)
     # at the end. This auto-sets the class so Kotlin can instantiate it.
-    @_ruby_activity_class = nil
-    def self._ruby_activity_class
+    def _ruby_activity_class
       @_ruby_activity_class
     end
-    def self._ruby_activity_class=(klass)
+    def _ruby_activity_class=(klass)
       @_ruby_activity_class = klass
     end
 
-    def self.register_activity_class(klass)
+    def register_activity_class(klass)
       @_ruby_activity_class = klass
     end
 
@@ -75,6 +74,12 @@ module Mrboto
     def dispatch_checked(id, is_checked)
       cb = @@callbacks[id]
       cb.call(is_checked) if cb
+    end
+
+    # PopupMenu item selection — currently unused (no-op placeholder).
+    # The callback mechanism is not wired into show_popup_menu yet.
+    def dispatch_popup_select(item_index, item_title)
+      # Future: call a registered callback with item_index and item_title
     end
   end
 
