@@ -81,8 +81,46 @@ class HelpersTest {
             sp = shared_preferences("int_prefs")
             sp.get_int("count", 0)
         """.trimIndent())
-        // The C stub for _sp_get_int returns nil currently, so we just verify no crash
-        // This is a known stub - test verifies it doesn't crash
+        assertEquals("42", result)
+    }
+
+    @Test
+    fun `shared_preferences_get_int_returns_default_for_missing_key`() {
+        setupActivity()
+        val result = mruby.eval("""
+            sp = shared_preferences("int_prefs_missing")
+            sp.get_int("nonexistent", 777)
+        """.trimIndent())
+        assertEquals("777", result)
+    }
+
+    @Test
+    fun `shared_preferences_put_int_overwrites_previous_value`() {
+        setupActivity()
+        mruby.eval("""
+            sp = shared_preferences("int_prefs_overwrite")
+            sp.put_int("val", 1)
+            sp.put_int("val", 99)
+        """.trimIndent())
+        val result = mruby.eval("""
+            sp = shared_preferences("int_prefs_overwrite")
+            sp.get_int("val", 0)
+        """.trimIndent())
+        assertEquals("99", result)
+    }
+
+    @Test
+    fun `shared_preferences_put_int_with_string_coercion`() {
+        setupActivity()
+        mruby.eval("""
+            sp = shared_preferences("int_prefs_coerce")
+            sp.put_int("val", "123")
+        """.trimIndent())
+        val result = mruby.eval("""
+            sp = shared_preferences("int_prefs_coerce")
+            sp.get_int("val", 0)
+        """.trimIndent())
+        assertEquals("123", result)
     }
 
     @Test

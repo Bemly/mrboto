@@ -753,4 +753,61 @@ class WidgetsTest {
         """.trimIndent())
         assertEquals("ok", result)
     }
+
+    // ── TextView.text getter (Editable → String conversion) ──────────
+
+    @Test
+    fun `TextView_text_getter_returns_string_after_settext`() {
+        setupActivity()
+        val ctxId = mruby.eval("Mrboto._test_ctx_id")
+        mruby.eval("""
+            v = Mrboto::TextView.from_registry($ctxId)
+            v.text = "hello world"
+        """.trimIndent())
+        val result = mruby.eval("""
+            v = Mrboto::TextView.from_registry($ctxId)
+            v.text
+        """.trimIndent())
+        assertEquals("hello world", result)
+    }
+
+    @Test
+    fun `EditText_text_getter_returns_string_after_settext`() {
+        setupActivity()
+        val ctxId = mruby.eval("Mrboto._test_ctx_id")
+        val editTextId = mruby.eval("Mrboto._create_view(Mrboto._test_ctx_id, 'android.widget.EditText', {})")
+        mruby.eval("""
+            v = Mrboto::EditText.from_registry($editTextId)
+            v.text = "user input"
+        """.trimIndent())
+        val result = mruby.eval("""
+            v = Mrboto::EditText.from_registry($editTextId)
+            v.text
+        """.trimIndent())
+        assertEquals("user input", result)
+    }
+
+    @Test
+    fun `TextView_text_getter_returns_string_class`() {
+        setupActivity()
+        val ctxId = mruby.eval("Mrboto._test_ctx_id")
+        val result = mruby.eval("""
+            v = Mrboto::TextView.from_registry($ctxId)
+            v.text = "test"
+            v.text.class.to_s
+        """.trimIndent())
+        assertEquals("String", result)
+    }
+
+    @Test
+    fun `TextView_text_getter_on_empty_text`() {
+        setupActivity()
+        val ctxId = mruby.eval("Mrboto._test_ctx_id")
+        val result = mruby.eval("""
+            v = Mrboto::TextView.from_registry($ctxId)
+            v.text.to_s
+        """.trimIndent())
+        // Empty TextView returns empty string, not nil
+        assertEquals("", result)
+    }
 }

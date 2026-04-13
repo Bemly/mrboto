@@ -61,10 +61,22 @@ class BridgeMethodsTest {
     }
 
     @Test
-    fun `sp_get_int_returns_nil_as_stub`() {
-        val result = mruby.eval("Mrboto._sp_get_int($ctxId, 'test_int_prefs', 'count', 99)")
-        // C stub returns nil, not the default value
-        assertEquals("nil", result)
+    fun `_sp_get_int_returns_default_for_missing_key`() {
+        val result = mruby.eval("Mrboto._sp_get_int($ctxId, 'test_int_prefs', 'nonexistent', 99)")
+        assertEquals("99", result)
+    }
+
+    @Test
+    fun `_sp_put_int_and_get_int_roundtrip`() {
+        mruby.eval("Mrboto._sp_put_int($ctxId, 'roundtrip_int_prefs', 'value', 12345)")
+        val result = mruby.eval("Mrboto._sp_get_int($ctxId, 'roundtrip_int_prefs', 'value', 0)")
+        assertEquals("12345", result)
+    }
+
+    @Test
+    fun `_sp_get_int_returns_zero_for_missing_key_with_zero_default`() {
+        val result = mruby.eval("Mrboto._sp_get_int($ctxId, 'test_int_prefs', 'missing', 0)")
+        assertEquals("0", result)
     }
 
     // ── _app_context ─────────────────────────────────────────────────
