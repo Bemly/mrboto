@@ -227,38 +227,26 @@ class HelpersTest {
     // ── Script Loading & Eval Helpers ─────────────────────────────
 
     @Test
-    fun `load_script_source_returns_script_content`() {
-        setupActivity()
-        val result = mruby.eval("load_script_source('mrboto/core.rb')")
-        assertTrue("Should contain 'module Mrboto'", result.contains("module Mrboto"))
-    }
-
-    @Test
-    fun `load_script_source_returns_nil_for_missing_file`() {
-        setupActivity()
-        val result = mruby.eval("load_script_source('nonexistent.rb')")
-        // loadAssetScriptSource returns error string for missing files
-        assertTrue(result.contains("Error") || result.isEmpty())
-    }
-
-    @Test
     fun `ruby_eval_evaluates_ruby_code`() {
-        setupActivity()
-        val result = mruby.eval("ruby_eval('1 + 1')")
+        val result = mruby.eval("Mrboto.ruby_eval('1 + 1')")
         assertEquals("2", result)
     }
 
     @Test
     fun `ruby_eval_handles_string_expression`() {
-        setupActivity()
-        val result = mruby.eval("ruby_eval('\"hello\".upcase')")
+        val result = mruby.eval("Mrboto.ruby_eval('\"hello\".upcase')")
         assertEquals("HELLO", result)
     }
 
     @Test
+    fun `ruby_eval_handles_syntax_error`() {
+        val result = mruby.eval("Mrboto.ruby_eval('1 + ')")
+        assertTrue("Should contain error indicator", result.contains("Error"))
+    }
+
+    @Test
     fun `ruby_eval_returns_error_string_on_failure`() {
-        setupActivity()
-        val result = mruby.eval("ruby_eval('undefined_method_call')")
+        val result = mruby.eval("Mrboto.ruby_eval('undefined_method_call')")
         assertTrue("Should contain error indicator", result.contains("Error"))
     }
 

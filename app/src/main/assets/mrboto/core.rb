@@ -73,10 +73,14 @@ module Mrboto
   end
 
   # Evaluate a raw Ruby string via mruby eval.
+  # Falls back to _eval (C-side) when no Activity is set.
   def self.ruby_eval(code)
     activity = current_activity
-    return nil unless activity
-    activity.call_java_method("evalRuby", code.to_s)
+    if activity
+      activity.call_java_method("evalRuby", code.to_s)
+    else
+      Mrboto._eval(code.to_s)
+    end
   end
 
   # ── JavaObject ─────────────────────────────────────────────────────
