@@ -9,7 +9,7 @@ class HelpersDemoActivity < Mrboto::Activity
       linear_layout(orientation: :vertical, padding: 12) do
 
         # ── Section: Toast ────────────────────────────────────
-        section_title("Toast")
+        section_title("Toast", "ic_menu_info_details")
 
         button(text: "Show Toast", padding: 12) {
           toast("Hello from mrboto!")
@@ -19,14 +19,14 @@ class HelpersDemoActivity < Mrboto::Activity
         }
 
         # ── Section: Dialog ───────────────────────────────────
-        section_title("Dialog")
+        section_title("Dialog", "ic_dialog_alert")
 
         button(text: "Show Dialog", padding: 12) {
           show_dialog("Alert", "This is a dialog message from mrboto.", ["OK", "Cancel"])
         }
 
         # ── Section: Snackbar ─────────────────────────────────
-        section_title("Snackbar")
+        section_title("Snackbar", "ic_menu_edit")
 
         @snack_target = text_view(
           text: "Snackbar target (click button below)",
@@ -44,12 +44,14 @@ class HelpersDemoActivity < Mrboto::Activity
         }
 
         # ── Section: PopupMenu ────────────────────────────────
-        section_title("PopupMenu")
+        section_title("PopupMenu", "ic_menu_preferences")
 
-        @popup_target = button(text: "Show Popup Menu", padding: 12)
+        @popup_target = button(text: "Show Popup Menu", padding: 12) {
+          show_popup_menu(@popup_target, ["Item 1", "Item 2", "Item 3"])
+        }
 
         # ── Section: View Animations ──────────────────────────
-        section_title("View Animations")
+        section_title("View Animations", "ic_menu_rotate")
 
         @anim_target = text_view(
           text: "Animation Target",
@@ -81,8 +83,8 @@ class HelpersDemoActivity < Mrboto::Activity
           @anim_target.clear_animation
         }
 
-        # ── Section: View info ────────────────────────────────
-        section_title("View Info")
+        # ── Section: View Info ────────────────────────────────
+        section_title("View Info", "ic_menu_zoom")
 
         button(text: "Show Size", padding: 8) {
           toast("Target size: #{@anim_target.width} x #{@anim_target.height}")
@@ -95,7 +97,7 @@ class HelpersDemoActivity < Mrboto::Activity
         }
 
         # ── Section: Run on UI Thread ─────────────────────────
-        section_title("Run on UI Thread")
+        section_title("Run on UI Thread", "ic_menu_manage")
 
         @ui_thread_result = text_view(
           text: "Click to run on UI thread",
@@ -111,8 +113,8 @@ class HelpersDemoActivity < Mrboto::Activity
           }
         }
 
-        # ── Section: Resource Helper ──────────────────────────
-        section_title("Resource & Package")
+        # ── Section: Resource & Package ──────────────────────────
+        section_title("Resource & Package", "ic_menu_help")
 
         button(text: "Show Package Name", padding: 12) {
           toast("Package: #{package_name}")
@@ -130,13 +132,23 @@ class HelpersDemoActivity < Mrboto::Activity
     end
   end
 
-  def section_title(text)
-    text_view(
-      text: text,
+  def section_title(text, icon_name = nil)
+    attrs = {
+      text: "  #{text}",
       text_size: 18,
       text_color: "6200EE",
       padding: [8, 12, 4, 4]
-    )
+    }
+    if icon_name
+      res_id = sys_drawable(icon_name)
+      attrs[:compound_drawable_left] = res_id
+      attrs[:drawable_padding] = 8
+    end
+    text_view(attrs)
+  end
+
+  def sys_drawable(name)
+    Mrboto.android_sys_id(name, "drawable")
   end
 end
 
