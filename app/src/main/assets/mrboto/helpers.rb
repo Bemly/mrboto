@@ -44,9 +44,16 @@ module Mrboto
 
       def _context
         ctx = Mrboto._app_context
-        return ctx._registry_id if ctx
+        if ctx
+          return ctx._registry_id
+        end
         act = Mrboto.current_activity
-        act&._registry_id
+        if act
+          act._registry_id
+        else
+          puts "[SP] WARNING: no app context and no current activity"
+          nil
+        end
       end
     end
 

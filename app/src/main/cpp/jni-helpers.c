@@ -309,7 +309,10 @@ mrb_value mrboto_sp_get_string(mrb_state *mrb, int context_id,
                                const char *name, const char *key, const char *default_val) {
     JNIEnv *env = mrboto_get_env();
     jobject context = mrboto_lookup_ref(env, context_id);
-    if (context == NULL) return mrb_nil_value();
+    if (context == NULL) {
+        LOGE("[SP] get_string FAILED: context is NULL (name=%s, key=%s)", name, key);
+        return mrb_str_new_cstr(mrb, default_val ? default_val : "");
+    }
 
     jobject sp = get_shared_prefs(env, context, name);
     mrb_value result = mrb_nil_value();
@@ -318,18 +321,21 @@ mrb_value mrboto_sp_get_string(mrb_state *mrb, int context_id,
         jclass sp_cls = (*env)->GetObjectClass(env, sp);
         jmethodID get = (*env)->GetMethodID(env, sp_cls, "getString",
                                             "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;");
-        if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, sp_cls); return mrb_nil_value(); }
+        if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, sp_cls); return mrb_str_new_cstr(mrb, default_val ? default_val : ""); }
         jstring jkey = (*env)->NewStringUTF(env, key);
         jstring jdef = default_val ? (*env)->NewStringUTF(env, default_val) : NULL;
-        if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, jkey); if (jdef) (*env)->DeleteLocalRef(env, jdef); (*env)->DeleteLocalRef(env, sp_cls); return mrb_nil_value(); }
+        if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, jkey); if (jdef) (*env)->DeleteLocalRef(env, jdef); (*env)->DeleteLocalRef(env, sp_cls); return mrb_str_new_cstr(mrb, default_val ? default_val : ""); }
         jstring jval = (jstring)(*env)->CallObjectMethod(env, sp, get, jkey, jdef);
         if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); }
 
         if (jval != NULL) {
             const char *s = (*env)->GetStringUTFChars(env, jval, NULL);
+            LOGI("[SP] get_string: name=%s key=%s value=%s", name, key, s);
             result = mrb_str_new_cstr(mrb, s);
             (*env)->ReleaseStringUTFChars(env, jval, s);
             (*env)->DeleteLocalRef(env, jval);
+        } else {
+            LOGW("[SP] get_string: key=%s not found, returning default=%s", key, default_val ? default_val : "(nil)");
         }
         (*env)->DeleteLocalRef(env, jkey);
         if (jdef) (*env)->DeleteLocalRef(env, jdef);
@@ -344,36 +350,46 @@ void mrboto_sp_put_string(mrb_state *mrb, int context_id,
     (void)mrb;
     JNIEnv *env = mrboto_get_env();
     jobject context = mrboto_lookup_ref(env, context_id);
-    if (context == NULL) return;
+    if (context == NULL) {
+        LOGE("[SP] put_string FAILED: context is NULL (name=%s, key=%s)", name, key);
+        return;
+    }
 
     jobject sp = get_shared_prefs(env, context, name);
-    if (sp != NULL) {
-        jclass sp_cls = (*env)->GetObjectClass(env, sp);
-        jmethodID edit = (*env)->GetMethodID(env, sp_cls, "edit",
-                                             "()Landroid/content/SharedPreferences$Editor;");
-        if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, sp_cls); return; }
-        jobject editor = (*env)->CallObjectMethod(env, sp, edit);
-        if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, sp_cls); return; }
-
-        jclass ed_cls = (*env)->GetObjectClass(env, editor);
-        jmethodID put = (*env)->GetMethodID(env, ed_cls, "putString",
-                                            "(Ljava/lang/String;Ljava/lang/String;)Landroid/content/SharedPreferences$Editor;");
-        if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, sp_cls); (*env)->DeleteLocalRef(env, editor); return; }
-        jstring jkey = (*env)->NewStringUTF(env, key);
-        jstring jval = (*env)->NewStringUTF(env, value);
-        (*env)->CallObjectMethod(env, editor, put, jkey, jval);
-        if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); }
-
-        jmethodID apply = (*env)->GetMethodID(env, ed_cls, "apply", "()V");
-        (*env)->CallVoidMethod(env, editor, apply);
-        if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); }
-
-        (*env)->DeleteLocalRef(env, jkey);
-        (*env)->DeleteLocalRef(env, jval);
-        (*env)->DeleteLocalRef(env, editor);
-        (*env)->DeleteLocalRef(env, ed_cls);
-        (*env)->DeleteLocalRef(env, sp_cls);
+    if (sp == NULL) {
+        LOGE("[SP] put_string FAILED: get_shared_prefs returned NULL (name=%s)", name);
+        return;
     }
+
+    LOGI("[SP] put_string: name=%s key=%s value=%s", name, key, value);
+
+    jclass sp_cls = (*env)->GetObjectClass(env, sp);
+    jmethodID edit = (*env)->GetMethodID(env, sp_cls, "edit",
+                                         "()Landroid/content/SharedPreferences$Editor;");
+    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, sp_cls); LOGE("[SP] put_string: edit() failed"); return; }
+    jobject editor = (*env)->CallObjectMethod(env, sp, edit);
+    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, sp_cls); LOGE("[SP] put_string: edit call failed"); return; }
+
+    jclass ed_cls = (*env)->GetObjectClass(env, editor);
+    jmethodID put = (*env)->GetMethodID(env, ed_cls, "putString",
+                                        "(Ljava/lang/String;Ljava/lang/String;)Landroid/content/SharedPreferences$Editor;");
+    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, sp_cls); (*env)->DeleteLocalRef(env, editor); return; }
+    jstring jkey = (*env)->NewStringUTF(env, key);
+    jstring jval = (*env)->NewStringUTF(env, value);
+    (*env)->CallObjectMethod(env, editor, put, jkey, jval);
+    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); }
+
+    jmethodID apply = (*env)->GetMethodID(env, ed_cls, "apply", "()V");
+    (*env)->CallVoidMethod(env, editor, apply);
+    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); }
+
+    LOGI("[SP] put_string DONE: name=%s key=%s value=%s", name, key, value);
+
+    (*env)->DeleteLocalRef(env, jkey);
+    (*env)->DeleteLocalRef(env, jval);
+    (*env)->DeleteLocalRef(env, editor);
+    (*env)->DeleteLocalRef(env, ed_cls);
+    (*env)->DeleteLocalRef(env, sp_cls);
 }
 
 /* ── Helper: SharedPreferences int ────────────────────────────────── */
@@ -382,7 +398,10 @@ mrb_value mrboto_sp_get_int(mrb_state *mrb, int context_id,
                             const char *name, const char *key, int default_val) {
     JNIEnv *env = mrboto_get_env();
     jobject context = mrboto_lookup_ref(env, context_id);
-    if (context == NULL) return mrb_int_value(mrb, default_val);
+    if (context == NULL) {
+        LOGE("[SP] get_int FAILED: context is NULL (name=%s, key=%s)", name, key);
+        return mrb_int_value(mrb, default_val);
+    }
 
     jobject sp = get_shared_prefs(env, context, name);
     int result = default_val;
@@ -397,8 +416,12 @@ mrb_value mrboto_sp_get_int(mrb_state *mrb, int context_id,
         result = (*env)->CallIntMethod(env, sp, get, jkey, (jint)default_val);
         if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); }
 
+        LOGI("[SP] get_int: name=%s key=%s result=%d", name, key, result);
+
         (*env)->DeleteLocalRef(env, jkey);
         (*env)->DeleteLocalRef(env, sp_cls);
+    } else {
+        LOGE("[SP] get_int FAILED: get_shared_prefs returned NULL (name=%s)", name);
     }
 
     return mrb_int_value(mrb, result);
@@ -409,34 +432,44 @@ void mrboto_sp_put_int(mrb_state *mrb, int context_id,
     (void)mrb;
     JNIEnv *env = mrboto_get_env();
     jobject context = mrboto_lookup_ref(env, context_id);
-    if (context == NULL) return;
+    if (context == NULL) {
+        LOGE("[SP] put_int FAILED: context is NULL (name=%s, key=%s)", name, key);
+        return;
+    }
 
     jobject sp = get_shared_prefs(env, context, name);
-    if (sp != NULL) {
-        jclass sp_cls = (*env)->GetObjectClass(env, sp);
-        jmethodID edit = (*env)->GetMethodID(env, sp_cls, "edit",
-                                             "()Landroid/content/SharedPreferences$Editor;");
-        if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, sp_cls); return; }
-        jobject editor = (*env)->CallObjectMethod(env, sp, edit);
-        if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, sp_cls); return; }
-
-        jclass ed_cls = (*env)->GetObjectClass(env, editor);
-        jmethodID put = (*env)->GetMethodID(env, ed_cls, "putInt",
-                                            "(Ljava/lang/String;I)Landroid/content/SharedPreferences$Editor;");
-        if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, sp_cls); (*env)->DeleteLocalRef(env, editor); return; }
-        jstring jkey = (*env)->NewStringUTF(env, key);
-        (*env)->CallObjectMethod(env, editor, put, jkey, (jint)value);
-        if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); }
-
-        jmethodID apply = (*env)->GetMethodID(env, ed_cls, "apply", "()V");
-        (*env)->CallVoidMethod(env, editor, apply);
-        if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); }
-
-        (*env)->DeleteLocalRef(env, jkey);
-        (*env)->DeleteLocalRef(env, editor);
-        (*env)->DeleteLocalRef(env, ed_cls);
-        (*env)->DeleteLocalRef(env, sp_cls);
+    if (sp == NULL) {
+        LOGE("[SP] put_int FAILED: get_shared_prefs returned NULL (name=%s)", name);
+        return;
     }
+
+    LOGI("[SP] put_int: name=%s key=%s value=%d", name, key, value);
+
+    jclass sp_cls = (*env)->GetObjectClass(env, sp);
+    jmethodID edit = (*env)->GetMethodID(env, sp_cls, "edit",
+                                         "()Landroid/content/SharedPreferences$Editor;");
+    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, sp_cls); LOGE("[SP] put_int: edit() failed"); return; }
+    jobject editor = (*env)->CallObjectMethod(env, sp, edit);
+    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, sp_cls); LOGE("[SP] put_int: edit call failed"); return; }
+
+    jclass ed_cls = (*env)->GetObjectClass(env, editor);
+    jmethodID put = (*env)->GetMethodID(env, ed_cls, "putInt",
+                                        "(Ljava/lang/String;I)Landroid/content/SharedPreferences$Editor;");
+    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, sp_cls); (*env)->DeleteLocalRef(env, editor); return; }
+    jstring jkey = (*env)->NewStringUTF(env, key);
+    (*env)->CallObjectMethod(env, editor, put, jkey, (jint)value);
+    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); }
+
+    jmethodID apply = (*env)->GetMethodID(env, ed_cls, "apply", "()V");
+    (*env)->CallVoidMethod(env, editor, apply);
+    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); }
+
+    LOGI("[SP] put_int DONE: name=%s key=%s value=%d", name, key, value);
+
+    (*env)->DeleteLocalRef(env, jkey);
+    (*env)->DeleteLocalRef(env, editor);
+    (*env)->DeleteLocalRef(env, ed_cls);
+    (*env)->DeleteLocalRef(env, sp_cls);
 }
 
 /* ── Helper: App Context ──────────────────────────────────────────── */
