@@ -10,13 +10,14 @@
         android:theme="@style/Theme.MrbotoDemo">
 
         <activity
-            android:name=".DemoActivity"
+            android:name="moe.bemly.mrboto.RubyActivity"
             android:exported="true"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <meta-data android:name="mrboto_script" android:value="main_activity.rb" />
         </activity>
 
     </application>

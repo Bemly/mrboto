@@ -34,6 +34,7 @@ abstract class MrbotoActivityBase : Activity() {
     companion object {
         private const val TAG = "MrbotoActivity"
         const val EXTRA_SCRIPT_PATH = "mrboto_script_path"
+        const val META_DATA_SCRIPT = "mrboto_script"
     }
 
     internal lateinit var mruby: MRuby
@@ -64,8 +65,11 @@ abstract class MrbotoActivityBase : Activity() {
 
         super.onCreate(savedInstanceState)
 
-        // Determine script path: Intent extra > subclass override
-        val scriptPath = _dynamicScriptPath ?: getScriptPath()
+        // Determine script path: Intent extra > subclass override > manifest meta-data
+        var scriptPath = _dynamicScriptPath ?: getScriptPath()
+        if (scriptPath == null) {
+            scriptPath = packageManager.getActivityInfo(componentName, 0)?.metaData?.getString(META_DATA_SCRIPT)
+        }
         if (scriptPath == null) {
             Log.e(TAG, "No script path provided")
             showErrorPage("No Script Path", "No script path was provided.\nOverride getScriptPath() or pass mrboto_script_path via Intent extra.")
