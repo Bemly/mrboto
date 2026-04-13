@@ -730,5 +730,49 @@ mrb_value mrb_mrboto_package_name(mrb_state *mrb, mrb_value self) {
     return mrb_str_new_cstr(mrb, "unknown");
 }
 
+/* ── Helper: Get Android System Resource ID ───────────────────────── */
+
+mrb_value mrb_mrboto_get_sys_res_id(mrb_state *mrb, mrb_value self) {
+    mrb_int ctx_id;
+    const char *name;
+    const char *type;
+    mrb_get_args(mrb, "izz", &ctx_id, &name, &type);
+
+    JNIEnv *env = mrboto_get_env();
+    if (env == NULL) return mrb_fixnum_value(0);
+
+    jobject ctx = mrboto_lookup_ref(env, (int)ctx_id);
+    if (ctx == NULL) return mrb_fixnum_value(0);
+
+    /* Get Resources object */
+    jclass ctx_cls = (*env)->GetObjectClass(env, ctx);
+    jmethodID get_res = (*env)->GetMethodID(env, ctx_cls, "getResources",
+                                            "()Landroid/content/res/Resources;");
+    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, ctx_cls); return mrb_fixnum_value(0); }
+    jobject res = (*env)->CallObjectMethod(env, ctx, get_res);
+    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, ctx_cls); return mrb_fixnum_value(0); }
+    (*env)->DeleteLocalRef(env, ctx_cls);
+
+    /* Get Resources.getIdentifier(String name, String defType, String defPackage) */
+    jclass res_cls = (*env)->GetObjectClass(env, res);
+    jmethodID get_id = (*env)->GetMethodID(env, res_cls, "getIdentifier",
+                                           "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)I");
+    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, res_cls); (*env)->DeleteLocalRef(env, res); return mrb_fixnum_value(0); }
+
+    jstring jname = (*env)->NewStringUTF(env, name);
+    jstring jtype = (*env)->NewStringUTF(env, type);
+    jstring jpkg = (*env)->NewStringUTF(env, "android");
+    jint id = (*env)->CallIntMethod(env, res, get_id, jname, jtype, jpkg);
+    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); }
+
+    (*env)->DeleteLocalRef(env, jname);
+    (*env)->DeleteLocalRef(env, jtype);
+    (*env)->DeleteLocalRef(env, jpkg);
+    (*env)->DeleteLocalRef(env, res_cls);
+    (*env)->DeleteLocalRef(env, res);
+
+    return mrb_fixnum_value((mrb_int)id);
+}
+
 /* ── Java Object Registry Methods ─────────────────────────────────── */
 

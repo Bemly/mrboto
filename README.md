@@ -24,7 +24,7 @@ See [Architecture](https://github.com/Bemly/mrboto/wiki/Architecture) for detail
 ## Maven Coordinates
 
 ```
-moe.bemly.mrboto:mrboto:26.4.11
+moe.bemly.mrboto:mrboto:26.4.13
 ```
 
 ## Quick Start
@@ -34,7 +34,7 @@ moe.bemly.mrboto:mrboto:26.4.11
 ```kotlin
 // build.gradle.kts
 dependencies {
-    implementation("moe.bemly.mrboto:mrboto:26.4.11")
+    implementation("moe.bemly.mrboto:mrboto:26.4.13")
 }
 ```
 

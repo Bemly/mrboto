@@ -164,6 +164,12 @@ module Mrboto
           view.single_line = val if view.respond_to?(:single_line=)
         when :max_lines
           view.max_lines = val if view.respond_to?(:max_lines=)
+        when :compound_drawable_left
+          view.compound_drawable_left = val if view.respond_to?(:compound_drawable_left=)
+        when :compound_drawable_right
+          view.compound_drawable_right = val if view.respond_to?(:compound_drawable_right=)
+        when :drawable_padding
+          view.drawable_padding = val if view.respond_to?(:drawable_padding=)
         end
       end
     end
@@ -346,6 +352,25 @@ module Mrboto
 
     def hint=(val)
       call_java_method('setHint', val.to_s)
+    end
+
+    # Set compound drawable on the left side
+    # val: Android resource ID (e.g., android.R.drawable.ic_menu_info_details)
+    def compound_drawable_left=(res_id)
+      call_java_method('setCompoundDrawablesWithIntrinsicBounds',
+        res_id.to_i, 0, 0, 0)
+    end
+
+    # Set compound drawable on the right side
+    def compound_drawable_right=(res_id)
+      call_java_method('setCompoundDrawablesWithIntrinsicBounds',
+        0, 0, res_id.to_i, 0)
+    end
+
+    # Set padding between compound drawable and text (in dp)
+    def drawable_padding=(val)
+      px = dp(val)
+      call_java_method('setCompoundDrawablePadding', px)
     end
 
     # Append text without replacing existing content.

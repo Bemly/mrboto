@@ -72,4 +72,19 @@ module Mrboto
   # ── Native Methods (implemented in android-jni-bridge.c) ──────────
   # _eval(code) — evaluate Ruby code string, return result
   # _java_object_for, _call_java_method, _register_object, etc.
+
+  # ── Android System Resource Helper ────────────────────────────────
+  # Look up an Android system resource ID by name.
+  # Usage: android_sys_id("ic_menu_info_details", "drawable")
+  @@_android_sys_id_cache = {}
+  def self.android_sys_id(name, type = "drawable")
+    key = "#{type}/#{name}"
+    return @@_android_sys_id_cache[key] if @@_android_sys_id_cache[key]
+
+    ctx = _app_context
+    return nil unless ctx
+    id = Mrboto._get_sys_res_id(ctx._registry_id, name.to_s, type.to_s)
+    @@_android_sys_id_cache[key] = id if id && id > 0
+    id
+  end
 end
