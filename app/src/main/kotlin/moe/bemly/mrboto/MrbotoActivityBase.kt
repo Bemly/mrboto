@@ -68,7 +68,8 @@ abstract class MrbotoActivityBase : Activity() {
         // Determine script path: Intent extra > subclass override > manifest meta-data
         var scriptPath = _dynamicScriptPath ?: getScriptPath()
         if (scriptPath == null) {
-            scriptPath = packageManager.getActivityInfo(componentName, 0)?.metaData?.getString(META_DATA_SCRIPT)
+            val info = packageManager.getActivityInfo(componentName, android.content.pm.PackageManager.GET_META_DATA)
+            scriptPath = info?.metaData?.getString(META_DATA_SCRIPT)
         }
         if (scriptPath == null) {
             showErrorPage("No Script Path", "No script path was provided.\nOverride getScriptPath() or pass mrboto_script_path via Intent extra.")
