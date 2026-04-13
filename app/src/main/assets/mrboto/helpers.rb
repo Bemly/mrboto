@@ -68,6 +68,14 @@ module Mrboto
       Mrboto._start_activity(activity._registry_id, cls)
     end
 
+    # Start another Ruby Activity (reuse the same RubyActivity class)
+    # The script path is passed via Intent extra and resolved in MrbotoActivityBase.
+    def self.start_ruby_activity(script_path:)
+      activity = Mrboto.current_activity
+      return unless activity
+      activity.call_java_method('startRubyActivity', script_path)
+    end
+
     # Get an Intent extra passed to the current Activity
     def self.get_extra(key)
       activity = Mrboto.current_activity
@@ -187,6 +195,10 @@ end
 
 def start_activity(class_name:, package: nil)
   Mrboto::Helpers.start_activity(class_name: class_name, package: package)
+end
+
+def start_ruby_activity(script_path:)
+  Mrboto::Helpers.start_ruby_activity(script_path: script_path)
 end
 
 def get_extra(key)

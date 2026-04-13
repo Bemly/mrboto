@@ -178,11 +178,11 @@ module Mrboto
     end
 
     def id=(val)
-      Mrboto._call_java_method(@_registry_id, 'setId', val)
+      call_java_method('setId', val)
     end
 
     def enabled=(val)
-      Mrboto._call_java_method(@_registry_id, 'setEnabled', !!val)
+      call_java_method('setEnabled', !!val)
     end
 
     def visibility=(val)
@@ -191,7 +191,7 @@ module Mrboto
           when :invisible then 4
           else 0
           end
-      Mrboto._call_java_method(@_registry_id, 'setVisibility', v)
+      call_java_method('setVisibility', v)
     end
 
     def background_color=(val)
@@ -203,12 +203,12 @@ module Mrboto
                 v < 0x1000000 ? (0xFF000000 | v) : v
               else 0xFF000000
               end
-      Mrboto._call_java_method(@_registry_id, 'setBackgroundColor', color)
+      call_java_method('setBackgroundColor', color)
     end
 
     def padding=(val)
       px = dp(val)
-      Mrboto._call_java_method(@_registry_id, 'setPadding', px, px, px, px)
+      call_java_method('setPadding', px, px, px, px)
     end
 
     def gravity=(val)
@@ -223,12 +223,12 @@ module Mrboto
           when :right then Mrboto::Gravity::RIGHT
           else 0
           end
-      Mrboto._call_java_method(@_registry_id, 'setGravity', g)
+      call_java_method('setGravity', g)
     end
 
     def layout_weight=(val)
       # For LinearLayout children
-      Mrboto._call_java_method(@_registry_id, 'setLayoutParams',
+      call_java_method('setLayoutParams',
         # This requires creating LayoutParams - simplified for now
         val)
     end
@@ -245,16 +245,16 @@ module Mrboto
   # ── TextView ──────────────────────────────────────────────────────
   class TextView < View
     def text=(val)
-      Mrboto._call_java_method(@_registry_id, 'setText', val.to_s)
+      call_java_method('setText', val.to_s)
     end
 
     def text
-      Mrboto._call_java_method(@_registry_id, 'getText')
+      call_java_method('getText')
     end
 
     def text_size=(val)
       # setTextSize takes unit (1=SP) and size
-      Mrboto._call_java_method(@_registry_id, 'setTextSize', 1, val.to_f)
+      call_java_method('setTextSize', 1, val.to_f)
     end
 
     def text_color=(val)
@@ -266,11 +266,11 @@ module Mrboto
                 v < 0x1000000 ? (0xFF000000 | v) : v
               else 0xFF000000
               end
-      Mrboto._call_java_method(@_registry_id, 'setTextColor', color)
+      call_java_method('setTextColor', color)
     end
 
     def hint=(val)
-      Mrboto._call_java_method(@_registry_id, 'setHint', val.to_s)
+      call_java_method('setHint', val.to_s)
     end
 
     # Append text without replacing existing content.
@@ -296,15 +296,15 @@ module Mrboto
           when :phone then 3   # TYPE_CLASS_PHONE
           else 1
           end
-      Mrboto._call_java_method(@_registry_id, 'setInputType', t)
+      call_java_method('setInputType', t)
     end
 
     def single_line=(val)
-      Mrboto._call_java_method(@_registry_id, 'setSingleLine', !!val)
+      call_java_method('setSingleLine', !!val)
     end
 
     def max_lines=(val)
-      Mrboto._call_java_method(@_registry_id, 'setMaxLines', val.to_i)
+      call_java_method('setMaxLines', val.to_i)
     end
 
     def on_text_changed(&block)
@@ -319,7 +319,7 @@ module Mrboto
   # ── ImageView ────────────────────────────────────────────────────
   class ImageView < View
     def image_resource=(res_id)
-      Mrboto._call_java_method(@_registry_id, 'setImageResource', res_id)
+      call_java_method('setImageResource', res_id)
     end
   end
 
@@ -327,7 +327,7 @@ module Mrboto
   class ViewGroup < View
     def add_child(child)
       puts "add_child: adding #{child.class}(id=#{child._registry_id}) to #{self.class}(id=#{@_registry_id})"
-      result = Mrboto._call_java_method(@_registry_id, 'addView',
+      result = call_java_method('addView',
         Mrboto._java_object_for(child._registry_id))
       puts "add_child: addView returned #{result.inspect}"
       result
@@ -343,11 +343,11 @@ module Mrboto
             when Integer then val
             else Mrboto::Orientation::VERTICAL
             end
-      Mrboto._call_java_method(@_registry_id, 'setOrientation', dir)
+      call_java_method('setOrientation', dir)
     end
 
     def weight_sum=(val)
-      Mrboto._call_java_method(@_registry_id, 'setWeightSum', val.to_f)
+      call_java_method('setWeightSum', val.to_f)
     end
   end
 
@@ -359,25 +359,25 @@ module Mrboto
   # ── Standard Controls ────────────────────────────────────────────
   class SeekBar < View
     def progress=(val)
-      Mrboto._call_java_method(@_registry_id, 'setProgress', val.to_i)
+      call_java_method('setProgress', val.to_i)
     end
 
     def max=(val)
-      Mrboto._call_java_method(@_registry_id, 'setMax', val.to_i)
+      call_java_method('setMax', val.to_i)
     end
   end
 
   class RatingBar < View
     def rating=(val)
-      Mrboto._call_java_method(@_registry_id, 'setRating', val.to_f)
+      call_java_method('setRating', val.to_f)
     end
 
     def step_size=(val)
-      Mrboto._call_java_method(@_registry_id, 'setStepSize', val.to_f)
+      call_java_method('setStepSize', val.to_f)
     end
 
     def max=(val)
-      Mrboto._call_java_method(@_registry_id, 'setMax', val.to_i)
+      call_java_method('setMax', val.to_i)
     end
   end
 
@@ -385,35 +385,35 @@ module Mrboto
 
   class SearchView < View
     def query=(val)
-      Mrboto._call_java_method(@_registry_id, 'setQuery', val.to_s, false)
+      call_java_method('setQuery', val.to_s, false)
     end
 
     def hint=(val)
-      Mrboto._call_java_method(@_registry_id, 'setQueryHint', val.to_s)
+      call_java_method('setQueryHint', val.to_s)
     end
   end
 
   class Toolbar < ViewGroup
     def title=(val)
-      Mrboto._call_java_method(@_registry_id, 'setTitle', val.to_s)
+      call_java_method('setTitle', val.to_s)
     end
 
     def subtitle=(val)
-      Mrboto._call_java_method(@_registry_id, 'setSubtitle', val.to_s)
+      call_java_method('setSubtitle', val.to_s)
     end
   end
 
   class NumberPicker < View
     def min_value=(val)
-      Mrboto._call_java_method(@_registry_id, 'setMinValue', val.to_i)
+      call_java_method('setMinValue', val.to_i)
     end
 
     def max_value=(val)
-      Mrboto._call_java_method(@_registry_id, 'setMaxValue', val.to_i)
+      call_java_method('setMaxValue', val.to_i)
     end
 
     def value=(val)
-      Mrboto._call_java_method(@_registry_id, 'setValue', val.to_i)
+      call_java_method('setValue', val.to_i)
     end
   end
 
@@ -421,7 +421,7 @@ module Mrboto
     def date=(val)
       # val: [year, month, day]
       return unless val.is_a?(Array) && val.size == 3
-      Mrboto._call_java_method(@_registry_id, 'updateDate', val[0], val[1] - 1, val[2])
+      call_java_method('updateDate', val[0], val[1] - 1, val[2])
     end
   end
 
@@ -429,8 +429,8 @@ module Mrboto
     def time=(val)
       # val: [hour, minute]
       return unless val.is_a?(Array) && val.size == 2
-      Mrboto._call_java_method(@_registry_id, 'setHour', val[0])
-      Mrboto._call_java_method(@_registry_id, 'setMinute', val[1])
+      call_java_method('setHour', val[0])
+      call_java_method('setMinute', val[1])
     end
   end
 
@@ -438,56 +438,56 @@ module Mrboto
     def date=(val)
       # val: Time object or epoch milliseconds
       ms = val.respond_to?(:to_i) ? val.to_i * 1000 : val.to_i
-      Mrboto._call_java_method(@_registry_id, 'setDate', ms)
+      call_java_method('setDate', ms)
     end
   end
 
   class VideoView < View
     def video_path=(val)
-      Mrboto._call_java_method(@_registry_id, 'setVideoPath', val.to_s)
+      call_java_method('setVideoPath', val.to_s)
     end
 
     def start
-      Mrboto._call_java_method(@_registry_id, 'start')
+      call_java_method('start')
     end
 
     def pause
-      Mrboto._call_java_method(@_registry_id, 'pause')
+      call_java_method('pause')
     end
 
     def stop
-      Mrboto._call_java_method(@_registry_id, 'stopPlayback')
+      call_java_method('stopPlayback')
     end
   end
 
   class Chronometer < View
     def start
-      Mrboto._call_java_method(@_registry_id, 'start')
+      call_java_method('start')
     end
 
     def stop
-      Mrboto._call_java_method(@_registry_id, 'stop')
+      call_java_method('stop')
     end
 
     def format=(val)
-      Mrboto._call_java_method(@_registry_id, 'setFormat', val.to_s)
+      call_java_method('setFormat', val.to_s)
     end
   end
 
   class TextClock < View
     def format_12_hour=(val)
-      Mrboto._call_java_method(@_registry_id, 'setFormat12Hour', val.to_s)
+      call_java_method('setFormat12Hour', val.to_s)
     end
 
     def format_24_hour=(val)
-      Mrboto._call_java_method(@_registry_id, 'setFormat24Hour', val.to_s)
+      call_java_method('setFormat24Hour', val.to_s)
     end
   end
 
   # ── Additional Containers ────────────────────────────────────────
   class GridView < ViewGroup
     def num_columns=(val)
-      Mrboto._call_java_method(@_registry_id, 'setNumColumns', val.to_i)
+      call_java_method('setNumColumns', val.to_i)
     end
   end
 
@@ -499,13 +499,13 @@ module Mrboto
 
   class ViewPager < ViewGroup
     def current_item=(val)
-      Mrboto._call_java_method(@_registry_id, 'setCurrentItem', val.to_i)
+      call_java_method('setCurrentItem', val.to_i)
     end
   end
 
   class TabLayout < ViewGroup
     def selected_tab=(val)
-      Mrboto._call_java_method(@_registry_id, 'setScrollPosition', val.to_i, 0, true)
+      call_java_method('setScrollPosition', val.to_i, 0, true)
     end
 
     def tab_mode=(val)
@@ -514,7 +514,7 @@ module Mrboto
              when :scrollable then 0  # MODE_SCROLLABLE
              else 0
              end
-      Mrboto._call_java_method(@_registry_id, 'setTabMode', mode)
+      call_java_method('setTabMode', mode)
     end
 
     def tab_gravity=(val)
@@ -524,24 +524,24 @@ module Mrboto
           when :auto then -1  # GRAVITY_AUTO
           else -1
           end
-      Mrboto._call_java_method(@_registry_id, 'setTabGravity', g)
+      call_java_method('setTabGravity', g)
     end
   end
 
   class ViewSwitcher < ViewGroup
     def show_next
-      Mrboto._call_java_method(@_registry_id, 'showNext')
+      call_java_method('showNext')
     end
 
     def show_previous
-      Mrboto._call_java_method(@_registry_id, 'showPrevious')
+      call_java_method('showPrevious')
     end
   end
 
   # ── Material Design Controls ─────────────────────────────────────
   class FloatingActionButton < View
     def src=(res_id)
-      Mrboto._call_java_method(@_registry_id, 'setImageResource', res_id)
+      call_java_method('setImageResource', res_id)
     end
 
     def ripple_color=(val)
@@ -552,13 +552,13 @@ module Mrboto
                 v < 0x1000000 ? (0xFF000000 | v) : v
               else 0xFF000000
               end
-      Mrboto._call_java_method(@_registry_id, 'setRippleColorResource', color)
+      call_java_method('setRippleColorResource', color)
     end
   end
 
   class MaterialButton < Button
     def icon=(res_id)
-      Mrboto._call_java_method(@_registry_id, 'setIconResource', res_id)
+      call_java_method('setIconResource', res_id)
     end
 
     def ripple_color=(val)
@@ -569,29 +569,29 @@ module Mrboto
                 v < 0x1000000 ? (0xFF000000 | v) : v
               else 0xFF000000
               end
-      Mrboto._call_java_method(@_registry_id, 'setRippleColorResource', color)
+      call_java_method('setRippleColorResource', color)
     end
   end
 
   class CardView < ViewGroup
     def card_elevation=(val)
       px = dp(val)
-      Mrboto._call_java_method(@_registry_id, 'setCardElevation', px)
+      call_java_method('setCardElevation', px)
     end
 
     def card_corner_radius=(val)
       px = dp(val)
-      Mrboto._call_java_method(@_registry_id, 'setRadius', px)
+      call_java_method('setRadius', px)
     end
   end
 
   class TextInputLayout < ViewGroup
     def hint=(val)
-      Mrboto._call_java_method(@_registry_id, 'setHint', val.to_s)
+      call_java_method('setHint', val.to_s)
     end
 
     def error=(val)
-      Mrboto._call_java_method(@_registry_id, 'setError', val.to_s)
+      call_java_method('setError', val.to_s)
     end
   end
 
@@ -599,7 +599,7 @@ module Mrboto
 
   class BottomNavigationView < ViewGroup
     def selected_item=(val)
-      Mrboto._call_java_method(@_registry_id, 'setSelectedItemId', val.to_i)
+      call_java_method('setSelectedItemId', val.to_i)
     end
   end
 
@@ -612,7 +612,7 @@ module Mrboto
 
   class NavigationView < ViewGroup
     def menu_item=(res_id)
-      Mrboto._call_java_method(@_registry_id, 'inflateMenu', res_id)
+      call_java_method('inflateMenu', res_id)
     end
   end
 

@@ -43,10 +43,7 @@ class ShowcaseMenu < Mrboto::Activity
 
   # Open a Ruby Activity via Intent extra
   def open_ruby(script_path)
-    act = Mrboto.current_activity
-    return if act.nil?
-    # Use call_java_method to start activity with script path
-    Mrboto._call_java_method(act._registry_id, 'startRubyActivity', script_path)
+    start_ruby_activity(script_path: script_path)
   end
 end
 
