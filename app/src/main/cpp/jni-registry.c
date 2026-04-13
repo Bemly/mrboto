@@ -98,10 +98,6 @@ static const mrb_data_type mrboto_java_object_type = {
     "Mrboto::JavaObject", mrb_free
 };
 
-/* Struct stored inside mruby Data objects */
-typedef struct {
-    int registry_id;
-} mrboto_data_t;
 
 mrb_value mrboto_wrap_java_object(mrb_state *mrb, JNIEnv *env, jobject obj) {
     int id = mrboto_register_ref(env, obj);
