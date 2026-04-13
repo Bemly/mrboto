@@ -47,4 +47,4 @@ class ShowcaseMenu < Mrboto::Activity
   end
 end
 
-Mrboto._ruby_activity_class = ShowcaseMenu
+Mrboto.register_activity_class(ShowcaseMenu)

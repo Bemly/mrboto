@@ -43,4 +43,4 @@ class MainActivity < Mrboto::Activity
 end
 
 # Tell Kotlin which class to instantiate
-Mrboto._ruby_activity_class = MainActivity
+Mrboto.register_activity_class(MainActivity)

@@ -217,6 +217,21 @@ def dialog(title, message, buttons = nil)
   Mrboto::Helpers.dialog(title, message, buttons)
 end
 
+# Load and execute a Ruby script from assets.
+def load_script(script_path)
+  Mrboto.load_script(script_path)
+end
+
+# Return the source content of a script from assets.
+def load_script_source(script_path)
+  Mrboto.load_script_source(script_path)
+end
+
+# Evaluate a raw Ruby string via mruby eval.
+def ruby_eval(code)
+  Mrboto.ruby_eval(code)
+end
+
 def snackbar(view_id, message, duration = :short)
   Mrboto::Helpers.snackbar(view_id, message, duration)
 end

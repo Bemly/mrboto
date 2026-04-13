@@ -83,7 +83,7 @@ class ExecutorActivity < Mrboto::Activity
     @output.append_text("─── #{script_name} ───\n")
     begin
       # First, show the script source content
-      content = call_java_method("loadAssetScriptSource", script_name)
+      content = load_script_source(script_name)
       if content && !content.to_s.empty?
         content.to_s.each_line do |line|
           @output.append_text("  #{line}")
@@ -91,7 +91,7 @@ class ExecutorActivity < Mrboto::Activity
         @output.append_text("\n─── 结果 ───\n")
       end
       # Then run and show the result
-      result = call_java_method("loadAssetScript", script_name)
+      result = load_script(script_name)
       if result.nil? || result.to_s.empty?
         @output.append_text("  (no output)\n\n")
       else
@@ -109,7 +109,7 @@ class ExecutorActivity < Mrboto::Activity
 
     @output.append_text("─── custom ───\n")
     begin
-      result = call_java_method("evalRuby", code)
+      result = ruby_eval(code)
       if result.nil? || result.to_s.empty?
         @output.append_text("  (no output)\n\n")
       else
@@ -153,4 +153,4 @@ class ExecutorActivity < Mrboto::Activity
   end
 end
 
-Mrboto._ruby_activity_class = ExecutorActivity
+Mrboto.register_activity_class(ExecutorActivity)

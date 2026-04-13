@@ -88,4 +88,4 @@ class PrefsDemoActivity < Mrboto::Activity
   end
 end
 
-Mrboto._ruby_activity_class = PrefsDemoActivity
+Mrboto.register_activity_class(PrefsDemoActivity)

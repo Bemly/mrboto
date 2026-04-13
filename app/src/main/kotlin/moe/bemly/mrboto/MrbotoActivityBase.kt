@@ -115,9 +115,9 @@ abstract class MrbotoActivityBase : Activity() {
         Log.i(TAG, "Ruby activity instantiation: $instantiateResult")
         if (instantiateResult != "instantiated") {
             showErrorPage("No Activity Class",
-                "The script did not define Mrboto._ruby_activity_class.\n\n" +
+                "The script did not register an activity class.\n\n" +
                 "Add this line at the end of your script:\n" +
-                "  Mrboto._ruby_activity_class = YourClassName")
+                "  Mrboto.register_activity_class(YourClassName)")
             return
         }
 

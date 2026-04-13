@@ -210,4 +210,4 @@ class WidgetsGalleryActivity < Mrboto::Activity
   end
 end
 
-Mrboto._ruby_activity_class = WidgetsGalleryActivity
+Mrboto.register_activity_class(WidgetsGalleryActivity)

@@ -8,9 +8,48 @@ module Mrboto
   class << self
     attr_accessor :current_activity_id
     attr_accessor :current_activity
-    attr_accessor :_ruby_activity_class
     attr_accessor :_test_ctx_id
     attr_accessor :_test_view_id
+
+    # ── Activity Class Registration ────────────────────────────────
+    # Scripts should call Mrboto.register_activity_class(ClassName)
+    # at the end. This auto-sets the class so Kotlin can instantiate it.
+    @_ruby_activity_class = nil
+    def self._ruby_activity_class
+      @_ruby_activity_class
+    end
+    def self._ruby_activity_class=(klass)
+      @_ruby_activity_class = klass
+    end
+
+    def self.register_activity_class(klass)
+      @_ruby_activity_class = klass
+    end
+
+    # ── Script Loading & Evaluation ────────────────────────────────
+    # These wrap call_java_method / _eval to provide clean Ruby APIs.
+
+    # Load and execute a Ruby script from assets.
+    # Returns the result string (may contain error messages on failure).
+    def self.load_script(script_path)
+      activity = current_activity
+      return nil unless activity
+      activity.call_java_method("loadAssetScript", script_path.to_s)
+    end
+
+    # Return the source content of a script from assets (no execution).
+    def self.load_script_source(script_path)
+      activity = current_activity
+      return nil unless activity
+      activity.call_java_method("loadAssetScriptSource", script_path.to_s)
+    end
+
+    # Evaluate a raw Ruby string via mruby eval.
+    def self.ruby_eval(code)
+      activity = current_activity
+      return nil unless activity
+      activity.call_java_method("evalRuby", code.to_s)
+    end
 
     # ── Callback Registry ──────────────────────────────────────────
     @@callbacks = {}

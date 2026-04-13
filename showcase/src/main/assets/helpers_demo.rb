@@ -152,4 +152,4 @@ class HelpersDemoActivity < Mrboto::Activity
   end
 end
 
-Mrboto._ruby_activity_class = HelpersDemoActivity
+Mrboto.register_activity_class(HelpersDemoActivity)
