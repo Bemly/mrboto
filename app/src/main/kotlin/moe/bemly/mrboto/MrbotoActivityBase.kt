@@ -71,7 +71,6 @@ abstract class MrbotoActivityBase : Activity() {
             scriptPath = packageManager.getActivityInfo(componentName, 0)?.metaData?.getString(META_DATA_SCRIPT)
         }
         if (scriptPath == null) {
-            Log.e(TAG, "No script path provided")
             showErrorPage("No Script Path", "No script path was provided.\nOverride getScriptPath() or pass mrboto_script_path via Intent extra.")
             return
         }
@@ -89,7 +88,6 @@ abstract class MrbotoActivityBase : Activity() {
         val script = try {
             assets.open(scriptPath).bufferedReader().use { it.readText() }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to load script $scriptPath: ${e.message}")
             showErrorPage("Script Not Found", "Cannot open asset: $scriptPath\n\n${e.message}")
             return
         }
@@ -98,7 +96,6 @@ abstract class MrbotoActivityBase : Activity() {
         if (loadResult.startsWith("SyntaxError:") ||
             loadResult.startsWith("ScriptError:") ||
             loadResult.startsWith("RuntimeError:")) {
-            Log.e(TAG, "Script load error: $loadResult")
             showErrorPage("Ruby Script Error", "Failed to load $scriptPath\n\n$loadResult")
             return
         }
@@ -135,7 +132,6 @@ abstract class MrbotoActivityBase : Activity() {
         }
         val dispatchResult = mruby.dispatchLifecycle(activityRefId, "on_create", bundleId)
         if (dispatchResult != "ok") {
-            Log.e(TAG, "on_create dispatch error: $dispatchResult")
             showErrorPage("Lifecycle Error", "on_create dispatch failed:\n\n$dispatchResult")
             return
         }
@@ -263,6 +259,7 @@ abstract class MrbotoActivityBase : Activity() {
      * Red background, white selectable text.
      */
     private fun showErrorPage(title: String, message: String) {
+        Log.e(TAG, "⚠ $title\n$message")
         val scroll = ScrollView(this)
         val textView = TextView(this).apply {
             text = "⚠ $title\n\n$message"
