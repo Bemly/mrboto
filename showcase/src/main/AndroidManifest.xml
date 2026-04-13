@@ -14,8 +14,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".WidgetsGalleryActivity" />
-        <activity android:name=".HelpersDemoActivity" />
-        <activity android:name=".PrefsDemoActivity" />
+        <activity android:name=".RubyActivity" />
     </application>
 </manifest>

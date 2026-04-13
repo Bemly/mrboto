@@ -27,18 +27,26 @@ class ShowcaseMenu < Mrboto::Activity
 
         # ── 主菜单按钮 ──────────────────────────────────────
         material_button(text: "Widgets Gallery", padding: 16, gravity: :center) {
-          start_activity(class_name: ".WidgetsGalleryActivity")
+          open_ruby("widgets_gallery.rb")
         }
 
         material_button(text: "Helpers Demo", padding: 16, gravity: :center) {
-          start_activity(class_name: ".HelpersDemoActivity")
+          open_ruby("helpers_demo.rb")
         }
 
         material_button(text: "Shared Preferences", padding: 16, gravity: :center) {
-          start_activity(class_name: ".PrefsDemoActivity")
+          open_ruby("shared_prefs_demo.rb")
         }
       end
     end
+  end
+
+  # Open a Ruby Activity via Intent extra
+  def open_ruby(script_path)
+    act = Mrboto.current_activity
+    return if act.nil?
+    # Use call_java_method to start activity with script path
+    Mrboto._call_java_method(act._registry_id, 'startRubyActivity', script_path)
   end
 end
 

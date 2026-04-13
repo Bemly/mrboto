@@ -29,6 +29,7 @@ abstract class MrbotoActivityBase : Activity() {
 
     companion object {
         private const val TAG = "MrbotoActivity"
+        const val EXTRA_SCRIPT_PATH = "mrboto_script_path"
     }
 
     internal lateinit var mruby: MRuby
@@ -38,9 +39,15 @@ abstract class MrbotoActivityBase : Activity() {
     protected fun getMRuby(): MRuby = mruby
 
     /** Override to return the Ruby script asset path */
-    protected abstract fun getScriptPath(): String
+    protected open fun getScriptPath(): String? = null
+
+    /** Dynamic script path from Intent extra (if set) */
+    private var _dynamicScriptPath: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Read dynamic script path from Intent extra
+        _dynamicScriptPath = intent.getStringExtra(EXTRA_SCRIPT_PATH)
+
         // Get or create the MRuby instance from the Application
         mruby = (application as? MrbotoApplication)?.mruby
             ?: run {
@@ -53,6 +60,13 @@ abstract class MrbotoActivityBase : Activity() {
 
         super.onCreate(savedInstanceState)
 
+        // Determine script path: Intent extra > subclass override
+        val scriptPath = _dynamicScriptPath ?: getScriptPath()
+        if (scriptPath == null) {
+            Log.e(TAG, "No script path provided")
+            return
+        }
+
         // Wrap 'this' Activity as a JavaObject in mruby
         val activityRefId = mruby.registerJavaObject(this)
 
@@ -61,13 +75,13 @@ abstract class MrbotoActivityBase : Activity() {
 
         // Load the Ruby script (should define a class inheriting Mrboto::Activity)
         try {
-            val script = assets.open(getScriptPath()).bufferedReader().use { it.readText() }
+            val script = assets.open(scriptPath).bufferedReader().use { it.readText() }
             val result = mruby.loadScript(script)
             if (result != "ok") {
                 Log.e(TAG, "Script load error: $result")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to load script ${getScriptPath()}: ${e.message}")
+            Log.e(TAG, "Failed to load script $scriptPath: ${e.message}")
         }
 
         // Debug: check what the script defined
@@ -105,7 +119,7 @@ abstract class MrbotoActivityBase : Activity() {
             Log.e(TAG, "Widget creation error: $widgetError")
         }
 
-        Log.i(TAG, "Activity created, script: ${getScriptPath()}")
+        Log.i(TAG, "Activity created, script: $scriptPath")
     }
 
     override fun onResume() {
@@ -216,7 +230,20 @@ abstract class MrbotoActivityBase : Activity() {
         }
     }
 
-    // ── Dialog / Snackbar / Popup helpers ─────────────────────────
+    /**
+     * Start the generic Ruby Activity with a script path.
+     * Called from Ruby via _call_java_method.
+     */
+    fun startRubyActivity(scriptPath: CharSequence) {
+        try {
+            val rubyActivityClass = Class.forName("${packageName}.RubyActivity")
+            val intent = android.content.Intent(this, rubyActivityClass)
+            intent.putExtra(EXTRA_SCRIPT_PATH, scriptPath.toString())
+            startActivity(intent)
+        } catch (e: Exception) {
+            Log.e(TAG, "startRubyActivity failed: ${e.message}")
+        }
+    }
 
     /**
      * Show an AlertDialog. Called from Ruby via
@@ -232,7 +259,7 @@ abstract class MrbotoActivityBase : Activity() {
             builder.setPositiveButton("OK") { d, _ -> d.dismiss() }
         } else {
             try {
-                val labels = org.json.JSONArray(buttonJson.toString())
+                val labels = org.json.JSONArray(buttonsJson.toString())
                 if (labels.length() >= 2) {
                     builder.setPositiveButton(labels.getString(0)) { d, _ -> d.dismiss() }
                     builder.setNegativeButton(labels.getString(1)) { d, _ -> d.dismiss() }
