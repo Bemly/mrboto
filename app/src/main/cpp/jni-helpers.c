@@ -112,8 +112,32 @@ void mrboto_set_on_click(int view_id, int callback_id) {
 }
 
 void mrboto_set_text_watcher(int view_id, int callback_id) {
-    (void)view_id;
-    (void)callback_id;
+    JNIEnv *env = mrboto_get_env();
+    jobject view = mrboto_lookup_ref(env, view_id);
+    if (view == NULL || env == NULL) return;
+
+    /* Store callback ID in view tag (same pattern as set_on_click).
+     * Kotlin's setTextWatcher reads this tag and creates MrbotoTextWatcher. */
+    jclass view_cls = (*env)->GetObjectClass(env, view);
+    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, view_cls); return; }
+    jmethodID setTag = (*env)->GetMethodID(env, view_cls, "setTag", "(Ljava/lang/Object;)V");
+    if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, view_cls); return; }
+    if (setTag != NULL) {
+        jclass integer_cls = (*env)->FindClass(env, "java/lang/Integer");
+        if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, view_cls); return; }
+        jmethodID int_init = (*env)->GetMethodID(env, integer_cls, "<init>", "(I)V");
+        if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); (*env)->DeleteLocalRef(env, integer_cls); (*env)->DeleteLocalRef(env, view_cls); return; }
+        jobject int_obj = (*env)->NewObject(env, integer_cls, int_init, (jint)callback_id);
+        if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); }
+        if (int_obj != NULL) {
+            (*env)->CallVoidMethod(env, view, setTag, int_obj);
+            if ((*env)->ExceptionCheck(env)) { (*env)->ExceptionClear(env); }
+            (*env)->DeleteLocalRef(env, int_obj);
+        }
+        (*env)->DeleteLocalRef(env, integer_cls);
+    }
+    (*env)->DeleteLocalRef(env, view_cls);
+
     LOGD("set_text_watcher: view=%d callback=%d", view_id, callback_id);
 }
 
@@ -661,6 +685,13 @@ mrb_value mrb_mrboto_set_on_click(mrb_state *mrb, mrb_value self) {
     mrb_int view_id, callback_id;
     mrb_get_args(mrb, "ii", &view_id, &callback_id);
     mrboto_set_on_click((int)view_id, (int)callback_id);
+    return mrb_nil_value();
+}
+
+mrb_value mrb_mrboto_set_text_watcher(mrb_state *mrb, mrb_value self) {
+    mrb_int view_id, callback_id;
+    mrb_get_args(mrb, "ii", &view_id, &callback_id);
+    mrboto_set_text_watcher((int)view_id, (int)callback_id);
     return mrb_nil_value();
 }
 

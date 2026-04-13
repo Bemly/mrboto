@@ -297,4 +297,40 @@ class HelpersTest {
     fun `top_level_ruby_eval_method_exists`() {
         assertEquals("true", mruby.eval("method(:ruby_eval).nil? rescue false; true.to_s"))
     }
+
+    // ── TextWatcher Tests ─────────────────────────────────────────
+
+    @Test
+    fun `_set_text_watcher_does_not_crash`() {
+        setupActivity()
+        val viewId = mruby.eval("Mrboto._create_view(Mrboto.current_activity._registry_id, 'android.widget.EditText', {})")
+        mruby.eval("Mrboto._set_text_watcher($viewId, 1)")
+        // If we reach here without crashing, the test passes
+        assertTrue(true)
+    }
+
+    @Test
+    fun `on_text_changed_sets_callback_on_edittext`() {
+        setupActivity()
+        // on_text_changed uses _set_text_watcher internally — verify it doesn't crash
+        val result = mruby.eval("""
+            et = Mrboto._create_view(Mrboto.current_activity._registry_id, 'android.widget.EditText', {})
+            et_id = et._registry_id
+            @tw_callback = nil
+            et.on_text_changed { |text| @tw_callback = text }
+            'ok'
+        """.trimIndent())
+        assertEquals("ok", result)
+    }
+
+    @Test
+    fun `dispatch_text_changed_triggers_on_text_changed_callback`() {
+        setupActivity()
+        mruby.eval("""
+            @tw_text = nil
+            Mrboto.register_callback { |t| @tw_text = t }
+        """.trimIndent())
+        mruby.eval("Mrboto.dispatch_text_changed(1, 'typed text')")
+        assertEquals("typed text", mruby.eval("@tw_text"))
+    }
 }

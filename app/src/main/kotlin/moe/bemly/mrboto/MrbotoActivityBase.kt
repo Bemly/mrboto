@@ -11,9 +11,11 @@ import android.widget.TextView
 import com.google.android.material.snackbar.Snackbar
 import androidx.appcompat.app.AlertDialog
 import android.widget.PopupMenu
+import androidx.viewpager2.widget.ViewPager2
 import moe.bemly.mrboto.MrbotoCheckChangeListener
 import moe.bemly.mrboto.MrbotoClickListener
 import moe.bemly.mrboto.MrbotoTextWatcher
+import moe.bemly.mrboto.ViewPagerAdapter
 
 /**
  * Base class for Ruby-backed Activities.
@@ -134,6 +136,9 @@ abstract class MrbotoActivityBase : Activity() {
         }
         rubyInstanceId = activityRefId
 
+        // Set activity holder for native-to-Kotlin callbacks (e.g. TextWatcher)
+        mruby.setActivityForTextWatcher(this)
+
         // Check for widget creation errors (after dispatch, since that's when widgets are created)
         val widgetErrors = mruby.eval(
             "begin\n" +
@@ -170,6 +175,7 @@ abstract class MrbotoActivityBase : Activity() {
     }
 
     override fun onDestroy() {
+        mruby.setActivityForTextWatcher(null)
         mruby.dispatchLifecycle(rubyInstanceId, "on_destroy")
         super.onDestroy()
     }
@@ -205,6 +211,8 @@ abstract class MrbotoActivityBase : Activity() {
 
     /**
      * Set a text watcher on an EditText that dispatches to mruby.
+     * Called from JNI (nativeSetTextWatcher) after the callback ID
+     * has been stored in the View's tag.
      *
      * @param viewRegistryId the registry ID of the EditText
      * @param callbackId the mruby callback ID
@@ -222,6 +230,24 @@ abstract class MrbotoActivityBase : Activity() {
         val view = mruby.lookupJavaObject<android.widget.CompoundButton>(viewRegistryId)
             ?: return
         view.setOnCheckedChangeListener(MrbotoCheckChangeListener(this, callbackId))
+    }
+
+    /**
+     * Set a ViewPagerAdapter on a ViewPager2. Called from Ruby via
+     * call_java_method("setViewPager2Adapter", vpRegistryId, json_of_view_ids).
+     * json_of_view_ids: JSON array of view registry IDs, e.g. "[10,11,12]".
+     */
+    fun setViewPager2Adapter(vpRegistryId: Int, viewIdsJson: CharSequence) {
+        val viewPager = mruby.lookupJavaObject<ViewPager2>(vpRegistryId)
+            ?: return
+        val ids = try {
+            val arr = org.json.JSONArray(viewIdsJson.toString())
+            (0 until arr.length()).map { arr.getInt(it) }
+        } catch (e: Exception) {
+            return
+        }
+        val adapter = ViewPagerAdapter(this, ids)
+        viewPager.adapter = adapter
     }
 
     /**

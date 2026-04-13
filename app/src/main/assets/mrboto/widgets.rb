@@ -45,6 +45,7 @@ module Mrboto
       nested_scroll_view: 'androidx.core.widget.NestedScrollView',
       horizontal_scroll_view: 'android.widget.HorizontalScrollView',
       view_pager:     'androidx.viewpager.widget.ViewPager',
+      view_pager_2:   'androidx.viewpager2.widget.ViewPager2',
       tab_layout:     'com.google.android.material.tabs.TabLayout',
       view_switcher:  'android.widget.ViewSwitcher',
       # Material Design controls
@@ -419,10 +420,7 @@ module Mrboto
 
     def on_text_changed(&block)
       cid = Mrboto.register_callback(&block)
-      activity = Mrboto.current_activity
-      if activity.respond_to?(:setTextWatcher)
-        activity.setTextWatcher(@_registry_id, cid)
-      end
+      Mrboto._set_text_watcher(@_registry_id, cid)
     end
   end
 
@@ -436,10 +434,8 @@ module Mrboto
   # ── ViewGroup ────────────────────────────────────────────────────
   class ViewGroup < View
     def add_child(child)
-      puts "add_child: adding #{child.class}(id=#{child._registry_id}) to #{self.class}(id=#{@_registry_id})"
       result = call_java_method('addView',
         Mrboto._java_object_for(child._registry_id))
-      puts "add_child: addView returned #{result.inspect}"
       result
     end
   end
@@ -485,7 +481,56 @@ module Mrboto
 
   # ── Progress ─────────────────────────────────────────────────────
   class ProgressBar < View; end
-  class WebView < View; end
+  class WebView < View
+    def load_url(url)
+      call_java_method('loadUrl', url.to_s)
+    end
+
+    def load_data(html, mime_type = "text/html", encoding = "UTF-8")
+      call_java_method('loadData', html.to_s, mime_type.to_s, encoding.to_s)
+    end
+
+    def load_data_with_base_url(html, base_url, mime_type = "text/html", encoding = "UTF-8", history_url = nil)
+      call_java_method('loadDataWithBaseURL', base_url.to_s, html.to_s,
+        mime_type.to_s, encoding.to_s, history_url.to_s)
+    end
+
+    def javascript_enabled=(val)
+      settings = call_java_method('getSettings')
+      return unless settings
+      settings.call_java_method('setJavaScriptEnabled', !!val)
+    end
+
+    def dom_storage_enabled=(val)
+      settings = call_java_method('getSettings')
+      return unless settings
+      settings.call_java_method('setDomStorageEnabled', !!val)
+    end
+
+    def go_back
+      call_java_method('goBack')
+    end
+
+    def go_forward
+      call_java_method('goForward')
+    end
+
+    def reload
+      call_java_method('reload')
+    end
+
+    def stop_loading
+      call_java_method('stopLoading')
+    end
+
+    def can_go_back
+      call_java_method('canGoBack')
+    end
+
+    def can_go_forward
+      call_java_method('canGoForward')
+    end
+  end
   class Spinner < View; end
 
   # ── RadioGroup ───────────────────────────────────────────────────
@@ -638,9 +683,42 @@ module Mrboto
     end
   end
 
+  class ViewPager2 < ViewGroup
+    def current_item=(val)
+      call_java_method('setCurrentItem', val.to_i)
+    end
+
+    def offscreen_page_limit=(val)
+      call_java_method('setOffscreenPageLimit', val.to_i)
+    end
+
+    def user_input_enabled=(val)
+      call_java_method('setUserInputEnabled', !!val)
+    end
+
+    def orientation=(val)
+      dir = case val
+            when :vertical then 1
+            when :horizontal then 0
+            else 0
+            end
+      call_java_method('setOrientation', dir)
+    end
+
+    def set_adapter(view_ids)
+      return unless view_ids.is_a?(Array)
+      json = "[" + view_ids.map { |v| v.to_i.to_s }.join(",") + "]"
+      call_java_method("setViewPager2Adapter", @_registry_id, json)
+    end
+  end
+
   class TabLayout < ViewGroup
     def selected_tab=(val)
       call_java_method('setScrollPosition', val.to_i, 0, true)
+    end
+
+    def select_tab(index)
+      call_java_method('selectTab', index.to_i)
     end
 
     def tab_mode=(val)
@@ -660,6 +738,14 @@ module Mrboto
           else -1
           end
       call_java_method('setTabGravity', g)
+    end
+
+    def add_tab(text)
+      call_java_method('addTab', call_java_method('newTab').call_java_method('setText', text.to_s))
+    end
+
+    def tab_count
+      call_java_method('getTabCount')
     end
   end
 
@@ -689,11 +775,44 @@ module Mrboto
               end
       call_java_method('setRippleColorResource', color)
     end
+
+    def size=(val)
+      sz = case val
+           when :auto then -1
+           when :mini then 1
+           when :normal then 0
+           else 0
+           end
+      call_java_method('setSize', sz)
+    end
+
+    def hide
+      call_java_method('hide')
+    end
+
+    def show
+      call_java_method('show')
+    end
+
+    def toggle
+      call_java_method('toggle')
+    end
   end
 
   class MaterialButton < Button
     def icon=(res_id)
       call_java_method('setIconResource', res_id)
+    end
+
+    def icon_tint=(val)
+      color = case val
+              when Integer then val
+              when String
+                v = val.to_i(16)
+                v < 0x1000000 ? (0xFF000000 | v) : v
+              else 0xFF000000
+              end
+      call_java_method('setIconTintResource', color)
     end
 
     def ripple_color=(val)
@@ -705,6 +824,38 @@ module Mrboto
               else 0xFF000000
               end
       call_java_method('setRippleColorResource', color)
+    end
+
+    def corner_radius=(val)
+      px = dp(val)
+      call_java_method('setCornerRadius', px)
+    end
+
+    def stroke_width=(val)
+      px = dp(val)
+      call_java_method('setStrokeWidth', px)
+    end
+
+    def stroke_color=(val)
+      color = case val
+              when Integer then val
+              when String
+                v = val.to_i(16)
+                v < 0x1000000 ? (0xFF000000 | v) : v
+              else 0xFF000000
+              end
+      call_java_method('setStrokeColorResource', color)
+    end
+
+    def background_tint=(val)
+      color = case val
+              when Integer then val
+              when String
+                v = val.to_i(16)
+                v < 0x1000000 ? (0xFF000000 | v) : v
+              else 0xFF000000
+              end
+      call_java_method('setBackgroundTintResource', color)
     end
   end
 
@@ -718,6 +869,22 @@ module Mrboto
       px = dp(val)
       call_java_method('setRadius', px)
     end
+
+    def card_background_color=(val)
+      color = case val
+              when Integer then val
+              when String
+                v = val.to_i(16)
+                v < 0x1000000 ? (0xFF000000 | v) : v
+              else 0xFF000000
+              end
+      call_java_method('setCardBackgroundColor', color)
+    end
+
+    def content_padding=(top, right, bottom, left)
+      t = dp(top); r = dp(right); b = dp(bottom); l = dp(left)
+      call_java_method('setContentPadding', l, t, r, b)
+    end
   end
 
   class TextInputLayout < ViewGroup
@@ -728,6 +895,43 @@ module Mrboto
     def error=(val)
       call_java_method('setError', val.to_s)
     end
+
+    def helper_text=(val)
+      call_java_method('setHelperText', val.to_s)
+    end
+
+    def password_toggle_enabled=(val)
+      call_java_method('setPasswordVisibilityToggleEnabled', !!val)
+    end
+
+    def box_background_mode=(val)
+      mode = case val
+             when :outline then 1
+             when :filled then 0
+             when :none then -1
+             else -1
+             end
+      call_java_method('setBoxBackgroundMode', mode)
+    end
+
+    def counter_enabled=(val)
+      call_java_method('setCounterEnabled', !!val)
+    end
+
+    def counter_max_length=(val)
+      call_java_method('setCounterMaxLength', val.to_i)
+    end
+
+    def end_icon_mode=(val)
+      mode = case val
+             when :none then 0
+             when :password_toggle then 1
+             when :clear_text then 2
+             when :custom then 3
+             else 0
+             end
+      call_java_method('setEndIconMode', mode)
+    end
   end
 
   class TextInputEditText < EditText; end
@@ -735,6 +939,25 @@ module Mrboto
   class BottomNavigationView < ViewGroup
     def selected_item=(val)
       call_java_method('setSelectedItemId', val.to_i)
+    end
+
+    def label_visibility_mode=(val)
+      mode = case val
+             when :auto then -1
+             when :selected then 0
+             when :labeled then 1
+             when :unlabeled then 2
+             else -1
+             end
+      call_java_method('setLabelVisibilityMode', mode)
+    end
+
+    def item_icon_tint=(res_id)
+      call_java_method('setItemIconTintResource', res_id)
+    end
+
+    def item_text_color=(res_id)
+      call_java_method('setItemTextColor', res_id)
     end
   end
 
@@ -748,6 +971,16 @@ module Mrboto
   class NavigationView < ViewGroup
     def menu_item=(res_id)
       call_java_method('inflateMenu', res_id)
+    end
+
+    def set_item_listener(&block)
+      cid = Mrboto.register_callback(&block)
+      call_java_method('setNavigationItemSelectedListener', cid)
+    end
+
+    def header_text(index, text)
+      header = call_java_method('getHeaderView', index.to_i)
+      header&.call_java_method('setText', text.to_s)
     end
   end
 

@@ -694,6 +694,7 @@ static void mrb_mrboto_define_methods(mrb_state *mrb, struct RClass *mrboto) {
     mrb_define_module_function(mrb, mrboto, "_string_res", mrb_mrboto_string_res, MRB_ARGS_REQ(2));
     mrb_define_module_function(mrb, mrboto, "_create_view", mrb_mrboto_create_view, MRB_ARGS_ANY());
     mrb_define_module_function(mrb, mrboto, "_set_on_click", mrb_mrboto_set_on_click, MRB_ARGS_REQ(2));
+    mrb_define_module_function(mrb, mrboto, "_set_text_watcher", mrb_mrboto_set_text_watcher, MRB_ARGS_REQ(2));
     mrb_define_module_function(mrb, mrboto, "_run_on_ui_thread", mrb_mrboto_run_on_ui_thread, MRB_ARGS_REQ(2));
     mrb_define_module_function(mrb, mrboto, "_dp_to_px", mrb_mrboto_dp_to_px, MRB_ARGS_REQ(1));
     mrb_define_module_function(mrb, mrboto, "_package_name", mrb_mrboto_package_name, MRB_ARGS_NONE());
@@ -923,6 +924,37 @@ Java_moe_bemly_mrboto_MRuby_nativeSetOnClick(JNIEnv *env, jobject thiz,
     (void)viewId;
     (void)callbackId;
     LOGD("nativeSetOnClick: view=%d callback=%d", viewId, callbackId);
+}
+
+JNIEXPORT void JNICALL
+Java_moe_bemly_mrboto_MRuby_nativeSetTextWatcher(JNIEnv *env, jobject thiz,
+                                           jlong mrbPtr, jint viewId, jint callbackId) {
+    (void)thiz;
+    (void)mrbPtr;
+
+    /* Look up the view and store callback ID in tag */
+    jobject view = mrboto_lookup_ref(env, (int)viewId);
+    if (view == NULL) return;
+
+    jclass view_cls = (*env)->GetObjectClass(env, view);
+    if (view_cls == NULL) { (*env)->ExceptionClear(env); return; }
+    jmethodID setTag = (*env)->GetMethodID(env, view_cls, "setTag", "(Ljava/lang/Object;)V");
+    if (setTag != NULL && !(*env)->ExceptionCheck(env)) {
+        jclass integer_cls = (*env)->FindClass(env, "java/lang/Integer");
+        if (integer_cls != NULL && !(*env)->ExceptionCheck(env)) {
+            jmethodID int_init = (*env)->GetMethodID(env, integer_cls, "<init>", "(I)V");
+            if (int_init != NULL && !(*env)->ExceptionCheck(env)) {
+                jobject int_obj = (*env)->NewObject(env, integer_cls, int_init, (jint)callbackId);
+                if (int_obj != NULL && !(*env)->ExceptionCheck(env)) {
+                    (*env)->CallVoidMethod(env, view, setTag, int_obj);
+                    (*env)->DeleteLocalRef(env, int_obj);
+                }
+            }
+            (*env)->DeleteLocalRef(env, integer_cls);
+        }
+    }
+    (*env)->DeleteLocalRef(env, view_cls);
+    LOGD("nativeSetTextWatcher: view=%d callback=%d", viewId, callbackId);
 }
 
 JNIEXPORT void JNICALL

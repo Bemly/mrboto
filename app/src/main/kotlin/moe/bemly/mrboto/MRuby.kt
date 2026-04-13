@@ -140,6 +140,30 @@ class MRuby : AutoCloseable {
     }
 
     /**
+     * Set TextWatcher on an EditText with a mruby callback ID.
+     */
+    fun setTextWatcher(viewId: Int, callbackId: Int) {
+        check(mrbPtr != 0L) { "mruby VM is not open" }
+        nativeSetTextWatcher(mrbPtr, viewId, callbackId)
+        /* The native method stores callbackId in the View tag.
+         * Now create and attach the actual TextWatcher using
+         * the holder pattern (setActivityForTextWatcher below). */
+        attachTextWatcher(viewId, callbackId)
+    }
+
+    /** Activity holder for native-to-Kotlin callbacks */
+    @Volatile private var currentActivity: MrbotoActivityBase? = null
+
+    fun setActivityForTextWatcher(activity: MrbotoActivityBase?) {
+        currentActivity = activity
+    }
+
+    private fun attachTextWatcher(viewId: Int, callbackId: Int) {
+        currentActivity?.setTextWatcher(viewId, callbackId)
+            ?: Log.w(TAG, "setTextWatcher: no activity set")
+    }
+
+    /**
      * Call setContentView on the Activity.
      */
     fun setContentView(activityId: Int, viewId: Int) {
@@ -180,5 +204,6 @@ class MRuby : AutoCloseable {
     private external fun nativeLookupObject(mrbPtr: Long, registryId: Int): Any?
     private external fun nativeClearRegistry()
     private external fun nativeSetOnClick(mrbPtr: Long, viewId: Int, callbackId: Int)
+    private external fun nativeSetTextWatcher(mrbPtr: Long, viewId: Int, callbackId: Int)
     private external fun nativeSetContentView(mrbPtr: Long, activityId: Int, viewId: Int)
 }

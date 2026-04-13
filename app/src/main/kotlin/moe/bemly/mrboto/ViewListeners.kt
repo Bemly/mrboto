@@ -3,7 +3,11 @@ package moe.bemly.mrboto
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
+import android.view.ViewGroup
 import android.widget.CompoundButton
+import androidx.recyclerview.widget.RecyclerView
+import androidx.viewpager2.adapter.FragmentStateAdapter
+import androidx.viewpager2.widget.ViewPager2
 
 /**
  * View event listeners that delegate to mruby callback procs.
@@ -55,5 +59,38 @@ class MrbotoCheckChangeListener(
 ) : CompoundButton.OnCheckedChangeListener {
     override fun onCheckedChanged(button: CompoundButton, isChecked: Boolean) {
         activity.mruby.eval("Mrboto.dispatch_checked($callbackId, $isChecked)")
+    }
+}
+
+/**
+ * Simple RecyclerView.Adapter for ViewPager2 that wraps a list of pre-built Views.
+ * Each view is created from a registry ID and managed by the adapter lifecycle.
+ */
+class ViewPagerAdapter(
+    private val activity: MrbotoActivityBase,
+    private val viewRegistryIds: List<Int>
+) : RecyclerView.Adapter<ViewPagerAdapter.ViewHolder>() {
+
+    class ViewHolder(val view: View) : RecyclerView.ViewHolder(view)
+
+    override fun getItemCount(): Int = viewRegistryIds.size
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+        val view = View(parent.context)
+        view.layoutParams = ViewGroup.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.MATCH_PARENT
+        )
+        return ViewHolder(view)
+    }
+
+    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+        val registryId = viewRegistryIds[position]
+        val createdView = activity.mruby.lookupJavaObject<View>(registryId)
+        if (createdView != null) {
+            val parent = holder.itemView as? ViewGroup
+            parent?.removeAllViews()
+            parent?.addView(createdView)
+        }
     }
 }
