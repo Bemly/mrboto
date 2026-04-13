@@ -17,8 +17,20 @@ class PrefsDemoActivity < Mrboto::Activity
         )
 
         button(text: "Save Name", padding: 12) {
+          ctx = Mrboto._app_context
+          ctx_id = ctx ? ctx._registry_id : -1
+          toast("ctx_id=#{ctx_id}")
+
+          if ctx_id > 0
+            Mrboto._sp_put_string(ctx_id, "prefs_demo", "debug_test", "hello_from_c")
+            result = Mrboto._sp_get_string(ctx_id, "prefs_demo", "debug_test", "fallback")
+            toast("C result=#{result.inspect}")
+          end
+
           sp = shared_preferences("prefs_demo")
           name = @name_input.text
+          toast("text=#{name.inspect} class=#{name.class}")
+
           sp.put_string("user_name", name || "")
           toast("Name saved!")
         }
