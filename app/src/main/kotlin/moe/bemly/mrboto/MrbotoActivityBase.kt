@@ -216,6 +216,15 @@ abstract class MrbotoActivityBase : Activity() {
     }
 
     /**
+     * Set a check listener on a CompoundButton (CheckBox, Switch) that dispatches to mruby.
+     */
+    fun setCheckListener(viewRegistryId: Int, callbackId: Int) {
+        val view = mruby.lookupJavaObject<android.widget.CompoundButton>(viewRegistryId)
+            ?: return
+        view.setOnCheckedChangeListener(MrbotoCheckChangeListener(this, callbackId))
+    }
+
+    /**
      * Return the source content of a script from assets.
      * Called from Ruby via call_java_method("loadAssetScriptSource", path).
      */

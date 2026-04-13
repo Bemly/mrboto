@@ -159,10 +159,9 @@ class WidgetsGalleryActivity < Mrboto::Activity
         # ── Section: Navigation Containers ────────────────────
         section_title("Navigation Containers", "ic_menu_directions")
 
-        drawer_layout(padding: 4) do
-          text_view(text: "  DrawerLayout (content)", text_size: 14, padding: 8,
-                    compound_drawable_left: sys_drawable("ic_menu_directions"), drawable_padding: 8)
-        end
+        # DrawerLayout requires EXACTLY measurement, can't render inside ScrollView
+        text_view(text: "  DrawerLayout (requires exact sizing — use directly as content_view)",
+                  text_size: 12, text_color: "9E9E9E", padding: 4)
 
         coordinator_layout(padding: 4) do
           text_view(text: "  CoordinatorLayout", text_size: 14, padding: 8,
