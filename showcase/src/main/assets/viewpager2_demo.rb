@@ -27,8 +27,13 @@ class ViewPager2DemoActivity < Mrboto::Activity
         page_icons.each_slice(2) do |row|
           linear_layout(orientation: :horizontal, gravity: :center, padding: 8) do
             row.each do |icon_name|
+              icon_id = Mrboto.android_sys_id(icon_name, "drawable")
+              log("icon #{icon_name} => #{icon_id}")
               linear_layout(orientation: :vertical, gravity: :center, padding: 16) do
-                image_view(image_resource: sys_drawable(icon_name), padding: 8)
+                iv = image_view(padding: 8)
+                if icon_id && icon_id > 0
+                  iv.image_resource = icon_id
+                end
                 text_view(
                   text: icon_name.sub("ic_menu_", ""),
                   text_size: 12,
@@ -119,10 +124,6 @@ class ViewPager2DemoActivity < Mrboto::Activity
         }
       end
     end
-  end
-
-  def sys_drawable(name)
-    Mrboto.android_sys_id(name, "drawable")
   end
 
   def log(msg)
