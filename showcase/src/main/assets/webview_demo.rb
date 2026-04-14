@@ -68,52 +68,50 @@ class WebViewDemoActivity < Mrboto::Activity
     log("=== WebView Demo: ALL 13 tests passed ===")
 
     # ── 布局 ─────────────────────────────────────────────────
-    self.content_view = scroll_view(orientation: :vertical) do |root|
-      linear_layout(orientation: :vertical, gravity: :center, padding: 16) do |inner|
-        inner.add_child(@wv)
+    # WebView 自己处理滚动，不套 ScrollView
+    self.content_view = linear_layout(orientation: :vertical) do |root|
+      root.add_child(@wv)
 
-        text_view(
-          text: "All 13 tests passed!",
-          text_size: 16,
-          text_color: "4CAF50",
-          gravity: :center,
-          padding: 16
-        )
+      text_view(
+        text: "All 13 tests passed!",
+        text_size: 16,
+        text_color: "4CAF50",
+        gravity: :center,
+        padding: 16
+      )
 
-        text_view(
-          text: "logcat filter: mrboto",
-          text_size: 12,
-          text_color: "9E9E9E",
-          gravity: :center,
-          padding: 4
-        )
+      text_view(
+        text: "logcat filter: mrboto",
+        text_size: 12,
+        text_color: "9E9E9E",
+        gravity: :center,
+        padding: 4
+      )
 
-        # ── Interactive buttons ──────────────────────────────
-        material_button(text: "Reload HTML", padding: 8) do
-          @wv.load_data('<html><body style="padding:16px"><h2>Reloaded!</h2></body></html>')
-          toast("Reloaded")
-        end
+      # ── Interactive buttons ──────────────────────────────
+      material_button(text: "Reload HTML", padding: 8) do
+        @wv.load_data('<html><body style="padding:16px"><h2>Reloaded!</h2></body></html>')
+        toast("Reloaded")
+      end
 
-        material_button(text: "Toggle JS", padding: 8) do
-          @js_on = !@js_on
-          @wv.javascript_enabled = @js_on
-          toast("JS: #{@js_on}")
-        end
+      material_button(text: "Toggle JS", padding: 8) do
+        @js_on = !@js_on
+        @wv.javascript_enabled = @js_on
+        toast("JS: #{@js_on}")
+      end
 
-        material_button(text: "Toggle DOM Storage", padding: 8) do
-          @dom_on = !@dom_on
-          @wv.dom_storage_enabled = @dom_on
-          toast("DOM: #{@dom_on}")
-        end
+      material_button(text: "Toggle DOM Storage", padding: 8) do
+        @dom_on = !@dom_on
+        @wv.dom_storage_enabled = @dom_on
+        toast("DOM: #{@dom_on}")
       end
     end
 
-    # WebView 在 ScrollView 内 WRAP_CONTENT 报告高度 0
-    # setMinimumHeight 强制 WebView 保持最小高度
+    # WebView 在 LinearLayout 中需要固定高度
     wv_h = dp(400)
-    log("14. Setting WebView minimumHeight: id=#{@wv._registry_id} h=#{wv_h}px")
-    @wv.call_java_method('setMinimumHeight', wv_h)
-    log("15. setMinimumHeight done")
+    log("14. Setting WebView height: id=#{@wv._registry_id} h=#{wv_h}px")
+    Mrboto._set_layout_height(@wv._registry_id, wv_h)
+    log("15. _set_layout_height done")
   end
 
   def log(msg)
