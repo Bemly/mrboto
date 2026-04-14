@@ -71,8 +71,8 @@ class ViewPager2DemoActivity < Mrboto::Activity
     log("=== ViewPager2 Demo: ALL 7 tests passed ===")
 
     # 布局
-    self.content_view = linear_layout(orientation: :vertical) do
-      @vp
+    self.content_view = linear_layout(orientation: :vertical) do |root|
+      root.add_child(@vp)
 
       text_view(
         text: "All 7 tests passed - swipe or use buttons",
@@ -121,9 +121,6 @@ class ViewPager2DemoActivity < Mrboto::Activity
     log("8. Setting layout height AFTER addView: vp_id=#{@vp._registry_id} height=#{vp_h}px")
     Mrboto._set_layout_height(@vp._registry_id, vp_h)
     log("9. _set_layout_height done")
-
-    @vp.invalidate
-    log("10. invalidate done")
   end
 
   def log(msg)
