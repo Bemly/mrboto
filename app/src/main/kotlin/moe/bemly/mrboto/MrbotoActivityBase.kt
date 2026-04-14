@@ -181,6 +181,17 @@ abstract class MrbotoActivityBase : Activity() {
     }
 
     /**
+     * Called from native C code. Posts a Ruby callback to the UI thread.
+     * Used by run_on_ui_thread to defer execution until after on_create returns
+     * and the window is attached (e.g. WebView rendering engine is ready).
+     */
+    fun runOnUiThreadFromNative(callbackId: Int) {
+        runOnUiThread {
+            mruby.eval("Mrboto.dispatch_callback($callbackId, 0)")
+        }
+    }
+
+    /**
      * Load mrboto core scripts into a fresh MRuby instance.
      */
     private fun loadMrbotoCore(assets: android.content.res.AssetManager, mruby: MRuby) {

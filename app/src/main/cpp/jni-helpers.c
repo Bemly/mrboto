@@ -698,26 +698,34 @@ mrb_value mrb_mrboto_set_text_watcher(mrb_state *mrb, mrb_value self) {
 mrb_value mrb_mrboto_run_on_ui_thread(mrb_state *mrb, mrb_value self) {
     mrb_int activity_id, callback_id;
     mrb_get_args(mrb, "ii", &activity_id, &callback_id);
-    /* The @@callbacks hash is stored in the singleton class of Mrboto module
-     * (because it's defined inside class << self). Access it via singleton class
-     * + mrb_cv_get to avoid calling dispatch_callback singleton method (which
-     * mrb_funcall cannot safely resolve on a module). */
-    mrb_value mrboto_mod = mrb_const_get(mrb, mrb_obj_value(mrb->object_class),
-                                         mrb_intern_lit(mrb, "Mrboto"));
-    if (!mrb_nil_p(mrboto_mod)) {
-        mrb_value singleton = mrb_singleton_class(mrb, mrboto_mod);
-        mrb_value callbacks = mrb_cv_get(mrb, singleton, mrb_intern_lit(mrb, "@@callbacks"));
-        if (mrb->exc) { mrb->exc = NULL; }
-        if (mrb_hash_p(callbacks)) {
-            mrb_value key = mrb_fixnum_value((mrb_int)callback_id);
-            mrb_value proc = mrb_hash_fetch(mrb, callbacks, key, mrb_nil_value());
-            if (!mrb_nil_p(proc)) {
-                mrb_funcall(mrb, proc, "call", 0);
-                if (mrb->exc) { mrb->exc = NULL; }
-            }
-        }
+
+    JNIEnv *env = mrboto_get_env();
+    if (env == NULL) return mrb_nil_value();
+
+    jobject activity = mrboto_lookup_ref(env, (int)activity_id);
+    if (activity == NULL) {
+        LOGE("run_on_ui_thread: invalid activity_id=%d", (int)activity_id);
+        return mrb_nil_value();
     }
-    (void)activity_id;
+
+    /* Call Activity.runOnUiThreadFromNative(callbackId) which posts
+     * Mrboto.dispatch_callback(callbackId, 0) to the UI thread message queue.
+     * This ensures the block executes AFTER on_create returns and the window
+     * is attached — critical for WebView rendering engine initialization. */
+    jclass cls = (*env)->GetObjectClass(env, activity);
+    jmethodID mid = (*env)->GetMethodID(env, cls, "runOnUiThreadFromNative", "(I)V");
+    if (mid == NULL) {
+        (*env)->ExceptionClear(env);
+        LOGE("run_on_ui_thread: runOnUiThreadFromNative method not found");
+        return mrb_nil_value();
+    }
+
+    (*env)->CallVoidMethod(env, activity, mid, (jint)callback_id);
+    if ((*env)->ExceptionCheck(env)) {
+        (*env)->ExceptionClear(env);
+    }
+
+    (void)mrb;
     (void)self;
     return mrb_nil_value();
 }
