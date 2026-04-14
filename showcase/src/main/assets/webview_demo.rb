@@ -14,58 +14,22 @@ class WebViewDemoActivity < Mrboto::Activity
     @wv = web_view(padding: 8)
     log("1. WebView created: #{@wv.class}")
 
-    # ── load_data ────────────────────────────────────────────
-    html = '<html><body style="background:#f5f5f5;font-family:sans-serif;padding:16px">
-      <h1>WebView Test</h1>
-      <p>Loaded via <b>load_data</b></p>
-    </body></html>'
-    @wv.load_data(html)
-    log("2. load_data: OK")
-
-    # ── javascript_enabled ───────────────────────────────────
+    # ── Settings 测试（不需要延迟）────────────────────────────
     @wv.javascript_enabled = true
-    log("3. javascript_enabled = true: OK")
+    log("2. javascript_enabled = true: OK")
 
     @wv.javascript_enabled = false
-    log("4. javascript_enabled = false: OK")
+    log("3. javascript_enabled = false: OK")
 
-    # ── dom_storage_enabled ──────────────────────────────────
     @wv.dom_storage_enabled = true
-    log("5. dom_storage_enabled = true: OK")
+    log("4. dom_storage_enabled = true: OK")
 
     @wv.dom_storage_enabled = false
-    log("6. dom_storage_enabled = false: OK")
+    log("5. dom_storage_enabled = false: OK")
 
-    # ── load_data_with_base_url ──────────────────────────────
-    html2 = '<html><body style="background:#e8f5e9;padding:16px">
-      <h2>load_data_with_base_url</h2>
-      <p>Base URL test passed</p>
-    </body></html>'
-    @wv.load_data_with_base_url(html2, "https://example.com/")
-    log("7. load_data_with_base_url: OK")
-
-    # ── can_go_back / can_go_forward ─────────────────────────
-    back = @wv.can_go_back
-    forward = @wv.can_go_forward
-    log("8. can_go_back: #{back} (#{back.class})")
-    log("9. can_go_forward: #{forward} (#{forward.class})")
-
-    # ── reload ───────────────────────────────────────────────
-    @wv.reload
-    log("10. reload: OK")
-
-    # ── stop_loading ─────────────────────────────────────────
-    @wv.stop_loading
-    log("11. stop_loading: OK")
-
-    # ── go_back / go_forward (no history, no-op) ────────────
-    @wv.go_back
-    log("12. go_back: OK (no history, no-op)")
-    @wv.go_forward
-    log("13. go_forward: OK (no history, no-op)")
-
-    # ── Summary ──────────────────────────────────────────────
-    log("=== WebView Demo: ALL 13 tests passed ===")
+    # ── 布局（先设置 UI，再延迟加载 HTML）────────────────────
+    # WebView 需要先 attach 到窗口才能正常渲染
+    # loadData 放到 run_on_ui_thread 延迟执行
 
     # ── 布局 ─────────────────────────────────────────────────
     # WebView 自己处理滚动，不套 ScrollView
@@ -109,9 +73,44 @@ class WebViewDemoActivity < Mrboto::Activity
 
     # WebView 在 LinearLayout 中需要固定高度
     wv_h = dp(400)
-    log("14. Setting WebView height: id=#{@wv._registry_id} h=#{wv_h}px")
+    log("6. Setting WebView height: id=#{@wv._registry_id} h=#{wv_h}px")
     Mrboto._set_layout_height(@wv._registry_id, wv_h)
-    log("15. _set_layout_height done")
+    log("7. _set_layout_height done")
+
+    # 延迟加载 HTML — 等 WebView attach 到窗口并完成初始化
+    run_on_ui_thread do
+      html = '<html><body style="background:#f5f5f5;font-family:sans-serif;padding:16px">
+        <h1>WebView Test</h1>
+        <p>Loaded via <b>load_data</b></p>
+      </body></html>'
+      @wv.load_data(html)
+      log("8. load_data: OK")
+
+      html2 = '<html><body style="background:#e8f5e9;padding:16px">
+        <h2>load_data_with_base_url</h2>
+        <p>Base URL test passed</p>
+      </body></html>'
+      @wv.load_data_with_base_url(html2, "https://example.com/")
+      log("9. load_data_with_base_url: OK")
+
+      back = @wv.can_go_back
+      forward = @wv.can_go_forward
+      log("10. can_go_back: #{back}")
+      log("11. can_go_forward: #{forward}")
+
+      @wv.reload
+      log("12. reload: OK")
+
+      @wv.stop_loading
+      log("13. stop_loading: OK")
+
+      @wv.go_back
+      log("14. go_back: OK")
+      @wv.go_forward
+      log("15. go_forward: OK")
+
+      log("=== WebView Demo: ALL 15 tests passed ===")
+    end
   end
 
   def log(msg)
