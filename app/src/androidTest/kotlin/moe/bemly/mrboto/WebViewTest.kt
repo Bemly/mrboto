@@ -104,7 +104,8 @@ class WebViewTest {
         setupActivity()
         val ctxId = mruby.eval("Mrboto._test_ctx_id")
         val result = mruby.eval("""
-            v = Mrboto::WebView.from_registry($ctxId)
+            wv_id = Mrboto._create_view($ctxId, 'android.webkit.WebView', {})
+            v = Mrboto::WebView.from_registry(wv_id)
             'ok'
         """.trimIndent())
         assertEquals("ok", result)
@@ -115,7 +116,8 @@ class WebViewTest {
         setupActivity()
         val ctxId = mruby.eval("Mrboto._test_ctx_id")
         val result = mruby.eval("""
-            v = Mrboto::WebView.from_registry($ctxId)
+            wv_id = Mrboto._create_view($ctxId, 'android.webkit.WebView', {})
+            v = Mrboto::WebView.from_registry(wv_id)
             v.load_data('<html><body>Hello</body></html>')
             'ok'
         """.trimIndent())
@@ -127,7 +129,8 @@ class WebViewTest {
         setupActivity()
         val ctxId = mruby.eval("Mrboto._test_ctx_id")
         val result = mruby.eval("""
-            v = Mrboto::WebView.from_registry($ctxId)
+            wv_id = Mrboto._create_view($ctxId, 'android.webkit.WebView', {})
+            v = Mrboto::WebView.from_registry(wv_id)
             v.javascript_enabled = true
             v.javascript_enabled = false
             'ok'
@@ -140,7 +143,8 @@ class WebViewTest {
         setupActivity()
         val ctxId = mruby.eval("Mrboto._test_ctx_id")
         val result = mruby.eval("""
-            v = Mrboto::WebView.from_registry($ctxId)
+            wv_id = Mrboto._create_view($ctxId, 'android.webkit.WebView', {})
+            v = Mrboto::WebView.from_registry(wv_id)
             v.dom_storage_enabled = true
             v.dom_storage_enabled = false
             'ok'
@@ -153,7 +157,8 @@ class WebViewTest {
         setupActivity()
         val ctxId = mruby.eval("Mrboto._test_ctx_id")
         val result = mruby.eval("""
-            v = Mrboto::WebView.from_registry($ctxId)
+            wv_id = Mrboto._create_view($ctxId, 'android.webkit.WebView', {})
+            v = Mrboto::WebView.from_registry(wv_id)
             v.reload
             v.stop_loading
             'ok'
@@ -166,11 +171,11 @@ class WebViewTest {
         setupActivity()
         val ctxId = mruby.eval("Mrboto._test_ctx_id")
         val result = mruby.eval("""
-            v = Mrboto::WebView.from_registry($ctxId)
+            wv_id = Mrboto._create_view($ctxId, 'android.webkit.WebView', {})
+            v = Mrboto::WebView.from_registry(wv_id)
             r = v.can_go_back
             r.class.to_s
         """.trimIndent())
-        // canGoBack returns boolean, which mruby converts to TrueClass/FalseClass
         assertTrue("Expected TrueClass or FalseClass, got: $result",
             result == "TrueClass" || result == "FalseClass")
     }
@@ -180,7 +185,8 @@ class WebViewTest {
         setupActivity()
         val ctxId = mruby.eval("Mrboto._test_ctx_id")
         val result = mruby.eval("""
-            v = Mrboto::WebView.from_registry($ctxId)
+            wv_id = Mrboto._create_view($ctxId, 'android.webkit.WebView', {})
+            v = Mrboto::WebView.from_registry(wv_id)
             r = v.can_go_forward
             r.class.to_s
         """.trimIndent())
