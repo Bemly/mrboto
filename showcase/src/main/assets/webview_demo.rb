@@ -89,18 +89,18 @@ class WebViewDemoActivity < Mrboto::Activity
         )
 
         # ── Interactive buttons ──────────────────────────────
-        material_button(text: "Reload HTML", padding: 8) {
+        material_button(text: "Reload HTML", padding: 8) do
           @wv.load_data('<html><body style="padding:16px"><h2>Reloaded!</h2></body></html>')
           toast("Reloaded")
-        }
+        end
 
-        material_button(text: "Toggle JS", padding: 8) {
+        material_button(text: "Toggle JS", padding: 8) do
           @js_on = !@js_on
           @wv.javascript_enabled = @js_on
           toast("JS: #{@js_on}")
-        }
+        end
 
-        material_button(text: "Toggle DOM Storage", padding: 8) {
+        material_button(text: "Toggle DOM Storage", padding: 8) do
           @dom_on = !@dom_on
           @wv.dom_storage_enabled = @dom_on
           toast("DOM: #{@dom_on}")
