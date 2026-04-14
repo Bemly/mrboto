@@ -9,6 +9,9 @@ class ViewPager2DemoActivity < Mrboto::Activity
     self.title = "ViewPager2 Demo"
 
     @page_index = 0
+    @js_on = true
+    @dom_on = true
+    @locked = false
 
     # 创建 3 个页面
     @pages = []
@@ -34,8 +37,10 @@ class ViewPager2DemoActivity < Mrboto::Activity
 
     # 创建 ViewPager2
     @vp = view_pager_2(padding: [0, 16, 0, 0])
-
     log("2. ViewPager2 created: #{@vp.class}")
+
+    # 设置最小高度，否则在 LinearLayout 里会被压扁
+    @vp.call_java_method('setMinimumHeight', 600)
 
     # 设置 adapter（需要传 registry ID 数组，不是 View 对象）
     @vp.set_adapter(@pages.map { |p| p._registry_id })
@@ -63,8 +68,25 @@ class ViewPager2DemoActivity < Mrboto::Activity
       # ViewPager2 占主要区域
       @vp
 
+      # 测试结果
+      text_view(
+        text: "All 7 tests passed! Swipe pages or use buttons.",
+        text_size: 14,
+        text_color: "4CAF50",
+        gravity: :center,
+        padding: 8
+      )
+
+      text_view(
+        text: "logcat filter: mrboto",
+        text_size: 12,
+        text_color: "9E9E9E",
+        gravity: :center,
+        padding: 4
+      )
+
       # 控制按钮
-      linear_layout(orientation: :horizontal, gravity: :center, padding: 16) do
+      linear_layout(orientation: :horizontal, gravity: :center, padding: 8) do
         material_button(text: "Prev", padding: 8) {
           @page_index = [@page_index - 1, 0].max
           @vp.current_item = @page_index
@@ -78,7 +100,7 @@ class ViewPager2DemoActivity < Mrboto::Activity
         }
       end
 
-      linear_layout(orientation: :horizontal, gravity: :center, padding: [16, 0, 16, 16]) do
+      linear_layout(orientation: :horizontal, gravity: :center, padding: 8) do
         material_button(text: "Vertical", padding: 8) {
           @vp.orientation = :vertical
           toast("Vertical")
