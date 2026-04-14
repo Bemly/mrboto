@@ -13,6 +13,7 @@
 #include <mruby.h>
 #include <mruby/data.h>
 #include <mruby/string.h>
+#include <mruby/variable.h>
 
 #include "android-jni-bridge.h"
 
