@@ -315,7 +315,7 @@ class HelpersTest {
         // on_text_changed uses _set_text_watcher internally — verify it doesn't crash
         val result = mruby.eval("""
             et_id = Mrboto._create_view(Mrboto.current_activity._registry_id, 'android.widget.EditText', {})
-            et = Mrboto::View.from_registry(et_id)
+            et = Mrboto::EditText.from_registry(et_id)
             @tw_callback = nil
             et.on_text_changed { |text| @tw_callback = text }
             'ok'
