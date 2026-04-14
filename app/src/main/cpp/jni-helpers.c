@@ -956,10 +956,10 @@ mrb_value mrb_mrboto_set_layout_height(mrb_state *mrb, mrb_value self) {
     mrb_int view_id, height_px;
     mrb_get_args(mrb, "ii", &view_id, &height_px);
 
-    JNIEnv *env = mrboto_jni_env();
+    JNIEnv *env = mrboto_get_env();
     if (env == NULL) return mrb_nil_value();
 
-    jobject view = mrboto_lookup_ref((int)view_id);
+    jobject view = mrboto_lookup_ref(env, (int)view_id);
     if (view == NULL) return mrb_nil_value();
 
     /* LinearLayout.LayoutParams(int width, int height) */
