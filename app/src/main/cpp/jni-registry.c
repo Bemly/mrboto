@@ -109,6 +109,15 @@ mrb_value mrboto_wrap_java_object(mrb_state *mrb, JNIEnv *env, jobject obj) {
     /* Wrap as Ruby Data object */
     struct RData *rdata = mrb_data_object_alloc(mrb, g_java_object_class, data, &mrboto_java_object_type);
     mrb_value val = mrb_obj_value(rdata);
+
+    /* Set @_registry_id instance variable so Ruby attr_reader works.
+     * JavaObject.call_java_method reads @_registry_id, but the C Data
+     * struct stores registry_id separately. Without this iv_set, wrappers
+     * created by mrboto_wrap_java_object (e.g. from call_java_method return
+     * values) have nil @_registry_id, causing "nil cannot be converted to
+     * Integer" when chaining calls like settings.call_java_method(...). */
+    mrb_iv_set(mrb, val, mrb_intern_lit(mrb, "@_registry_id"), mrb_fixnum_value(id));
+
     return val;
 }
 
