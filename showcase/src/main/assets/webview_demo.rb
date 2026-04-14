@@ -108,12 +108,12 @@ class WebViewDemoActivity < Mrboto::Activity
       end
     end
 
-    # WebView 被 addView 后 LinearLayout 会覆盖 LayoutParams
-    # 必须在 content_view 设置之后再设置高度
+    # WebView 在 ScrollView 内 WRAP_CONTENT 报告高度 0
+    # setMinimumHeight 强制 WebView 保持最小高度
     wv_h = dp(400)
-    log("14. Setting WebView height AFTER addView: id=#{@wv._registry_id} h=#{wv_h}px")
-    Mrboto._set_layout_height(@wv._registry_id, wv_h)
-    log("15. _set_layout_height done")
+    log("14. Setting WebView minimumHeight: id=#{@wv._registry_id} h=#{wv_h}px")
+    @wv.call_java_method('setMinimumHeight', wv_h)
+    log("15. setMinimumHeight done")
   end
 
   def log(msg)
