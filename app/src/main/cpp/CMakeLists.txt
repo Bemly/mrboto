@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.31)
 project(mrboto LANGUAGES C)
 
+set(CMAKE_C_STANDARD 23)
+
 # ──────────────────────────────────────────────────────────────
 # mruby prebuilt static library (ABI-specific)
 # ──────────────────────────────────────────────────────────────
