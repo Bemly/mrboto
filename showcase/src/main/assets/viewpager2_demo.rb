@@ -28,11 +28,9 @@ class ViewPager2DemoActivity < Mrboto::Activity
           linear_layout(orientation: :horizontal, gravity: :center, padding: 8) do
             row.each do |icon_name|
               icon_id = Mrboto.android_sys_id(icon_name, "drawable")
-              log("icon #{icon_name} => #{icon_id}")
               linear_layout(orientation: :vertical, gravity: :center, padding: 16) do
-                iv = image_view(padding: 8)
                 if icon_id && icon_id > 0
-                  iv.image_resource = icon_id
+                  image_view(image_resource: icon_id, padding: 8)
                 end
                 text_view(
                   text: icon_name.sub("ic_menu_", ""),
@@ -82,14 +80,6 @@ class ViewPager2DemoActivity < Mrboto::Activity
         text_color: "4CAF50",
         gravity: :center,
         padding: 8
-      )
-
-      text_view(
-        text: "Page #{@page_index + 1} of 3",
-        text_size: 12,
-        text_color: "9E9E9E",
-        gravity: :center,
-        padding: 4
       )
 
       linear_layout(orientation: :horizontal, gravity: :center, padding: 8) do

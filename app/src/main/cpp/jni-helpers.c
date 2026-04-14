@@ -74,6 +74,32 @@ int mrboto_create_view(mrb_state *mrb, int context_id, const char *class_name,
 
     int view_id = 0;
     if (view != NULL) {
+        /* Set default LayoutParams: MATCH_PARENT x MATCH_PARENT */
+        jclass lp_cls = (*env)->FindClass(env, "android/view/ViewGroup$LayoutParams");
+        if (lp_cls != NULL && !(*env)->ExceptionCheck(env)) {
+            jmethodID lp_init = (*env)->GetMethodID(env, lp_cls, "<init>", "(II)V");
+            if (lp_init != NULL && !(*env)->ExceptionCheck(env)) {
+                jobject lp = (*env)->NewObject(env, lp_cls, lp_init, -1, -1);
+                if (lp != NULL && !(*env)->ExceptionCheck(env)) {
+                    jclass view_cls = (*env)->GetObjectClass(env, view);
+                    jmethodID set_lp = (*env)->GetMethodID(env, view_cls, "setLayoutParams", "(Landroid/view/ViewGroup$LayoutParams;)V");
+                    if (set_lp != NULL && !(*env)->ExceptionCheck(env)) {
+                        (*env)->CallVoidMethod(env, view, set_lp, lp);
+                        if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
+                    }
+                    (*env)->DeleteLocalRef(env, view_cls);
+                    (*env)->DeleteLocalRef(env, lp);
+                } else {
+                    if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
+                }
+            } else {
+                (*env)->ExceptionClear(env);
+            }
+            (*env)->DeleteLocalRef(env, lp_cls);
+        } else {
+            if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
+        }
+
         view_id = mrboto_register_ref(env, view);
         (*env)->DeleteLocalRef(env, view);
     }

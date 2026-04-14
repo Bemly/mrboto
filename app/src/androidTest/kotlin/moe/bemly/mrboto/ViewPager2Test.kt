@@ -74,7 +74,8 @@ class ViewPager2Test {
         setupActivity()
         val ctxId = mruby.eval("Mrboto._test_ctx_id")
         val result = mruby.eval("""
-            v = Mrboto::ViewPager2.from_registry($ctxId)
+            id = Mrboto._create_view($ctxId, 'androidx.viewpager2.widget.ViewPager2', {})
+            v = Mrboto::ViewPager2.from_registry(id)
             'ok'
         """.trimIndent())
         assertEquals("ok", result)
@@ -85,7 +86,8 @@ class ViewPager2Test {
         setupActivity()
         val ctxId = mruby.eval("Mrboto._test_ctx_id")
         val result = mruby.eval("""
-            v = Mrboto::ViewPager2.from_registry($ctxId)
+            id = Mrboto._create_view($ctxId, 'androidx.viewpager2.widget.ViewPager2', {})
+            v = Mrboto::ViewPager2.from_registry(id)
             v.current_item = 0
             'ok'
         """.trimIndent())
@@ -97,7 +99,8 @@ class ViewPager2Test {
         setupActivity()
         val ctxId = mruby.eval("Mrboto._test_ctx_id")
         val result = mruby.eval("""
-            v = Mrboto::ViewPager2.from_registry($ctxId)
+            id = Mrboto._create_view($ctxId, 'androidx.viewpager2.widget.ViewPager2', {})
+            v = Mrboto::ViewPager2.from_registry(id)
             v.offscreen_page_limit = 1
             'ok'
         """.trimIndent())
@@ -109,7 +112,8 @@ class ViewPager2Test {
         setupActivity()
         val ctxId = mruby.eval("Mrboto._test_ctx_id")
         val result = mruby.eval("""
-            v = Mrboto::ViewPager2.from_registry($ctxId)
+            id = Mrboto._create_view($ctxId, 'androidx.viewpager2.widget.ViewPager2', {})
+            v = Mrboto::ViewPager2.from_registry(id)
             v.user_input_enabled = false
             v.user_input_enabled = true
             'ok'
@@ -122,7 +126,8 @@ class ViewPager2Test {
         setupActivity()
         val ctxId = mruby.eval("Mrboto._test_ctx_id")
         val result = mruby.eval("""
-            v = Mrboto::ViewPager2.from_registry($ctxId)
+            id = Mrboto._create_view($ctxId, 'androidx.viewpager2.widget.ViewPager2', {})
+            v = Mrboto::ViewPager2.from_registry(id)
             v.orientation = :horizontal
             v.orientation = :vertical
             'ok'
@@ -137,7 +142,8 @@ class ViewPager2Test {
         val result = mruby.eval("""
             id1 = Mrboto._create_view($ctxId, 'android.widget.TextView', {})
             id2 = Mrboto._create_view($ctxId, 'android.widget.TextView', {})
-            v = Mrboto::ViewPager2.from_registry($ctxId)
+            vp_id = Mrboto._create_view($ctxId, 'androidx.viewpager2.widget.ViewPager2', {})
+            v = Mrboto::ViewPager2.from_registry(vp_id)
             v.set_adapter([id1, id2])
             'ok'
         """.trimIndent())
