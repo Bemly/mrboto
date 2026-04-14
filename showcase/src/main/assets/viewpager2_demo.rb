@@ -37,8 +37,8 @@ class ViewPager2DemoActivity < Mrboto::Activity
 
     log("2. ViewPager2 created: #{@vp.class}")
 
-    # 设置 adapter
-    @vp.set_adapter(@pages)
+    # 设置 adapter（需要传 registry ID 数组，不是 View 对象）
+    @vp.set_adapter(@pages.map { |p| p._registry_id })
     log("3. set_adapter with 3 pages: OK")
 
     # offscreen_page_limit
