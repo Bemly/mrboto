@@ -708,7 +708,7 @@ module Mrboto
     def set_adapter(view_ids)
       return unless view_ids.is_a?(Array)
       json = "[" + view_ids.map { |v| v.to_i.to_s }.join(",") + "]"
-      call_java_method("setViewPager2Adapter", @_registry_id, json)
+      Mrboto.current_activity.call_java_method("setViewPager2Adapter", @_registry_id, json)
     end
   end
 
