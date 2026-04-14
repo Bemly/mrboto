@@ -37,6 +37,10 @@ class ShowcaseMenu < Mrboto::Activity
         material_button(text: "Shared Preferences", padding: 16, gravity: :center) {
           open_ruby("shared_prefs_demo.rb")
         }
+
+        material_button(text: "WebView Demo", padding: 16, gravity: :center) {
+          open_ruby("webview_demo.rb")
+        }
       end
     end
   end
