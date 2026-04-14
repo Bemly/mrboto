@@ -238,16 +238,21 @@ abstract class MrbotoActivityBase : Activity() {
      * json_of_view_ids: JSON array of view registry IDs, e.g. "[10,11,12]".
      */
     fun setViewPager2Adapter(vpRegistryId: Int, viewIdsJson: CharSequence) {
+        Log.i("setViewPager2Adapter", "vpRegistryId=$vpRegistryId json=$viewIdsJson")
         val viewPager = mruby.lookupJavaObject<ViewPager2>(vpRegistryId)
-            ?: return
+            ?: run { Log.e("setViewPager2Adapter", "ViewPager2 not found for id=$vpRegistryId"); return }
         val ids = try {
             val arr = org.json.JSONArray(viewIdsJson.toString())
             (0 until arr.length()).map { arr.getInt(it) }
         } catch (e: Exception) {
-            return
+            Log.e("setViewPager2Adapter", "JSON parse error: ${e.message}"); return
         }
+        Log.i("setViewPager2Adapter", "ids=$ids viewPager=${viewPager.javaClass.simpleName} " +
+            "w=${viewPager.width} h=${viewPager.height} mw=${viewPager.measuredWidth} mh=${viewPager.measuredHeight}")
         val adapter = ViewPagerAdapter(this, ids)
         viewPager.adapter = adapter
+        Log.i("setViewPager2Adapter", "adapter set, itemCount=${adapter.itemCount} " +
+            "adapter=${viewPager.adapter?.javaClass?.simpleName}")
     }
 
     /**

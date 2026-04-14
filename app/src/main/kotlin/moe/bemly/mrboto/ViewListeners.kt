@@ -2,9 +2,11 @@ package moe.bemly.mrboto
 
 import android.text.Editable
 import android.text.TextWatcher
+import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import android.widget.CompoundButton
+import android.widget.FrameLayout
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
@@ -76,21 +78,28 @@ class ViewPagerAdapter(
     override fun getItemCount(): Int = viewRegistryIds.size
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val view = View(parent.context)
-        view.layoutParams = ViewGroup.LayoutParams(
+        val container = FrameLayout(parent.context)
+        container.layoutParams = ViewGroup.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT
         )
-        return ViewHolder(view)
+        Log.i("ViewPagerAdapter", "onCreateViewHolder: container=$container")
+        return ViewHolder(container)
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val registryId = viewRegistryIds[position]
         val createdView = activity.mruby.lookupJavaObject<View>(registryId)
+        Log.i("ViewPagerAdapter", "onBindViewHolder: pos=$position registryId=$registryId " +
+            "view=$createdView class=${createdView?.javaClass?.simpleName}")
         if (createdView != null) {
             val parent = holder.itemView as? ViewGroup
+            Log.i("ViewPagerAdapter", "  parent=$parent parentType=${parent?.javaClass?.simpleName}")
             parent?.removeAllViews()
             parent?.addView(createdView)
+            Log.i("ViewPagerAdapter", "  addView done, childCount=${parent?.childCount}")
+        } else {
+            Log.e("ViewPagerAdapter", "  createdView is NULL for registryId=$registryId")
         }
     }
 }

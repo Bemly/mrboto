@@ -74,32 +74,6 @@ int mrboto_create_view(mrb_state *mrb, int context_id, const char *class_name,
 
     int view_id = 0;
     if (view != NULL) {
-        /* Set default LayoutParams: MATCH_PARENT x MATCH_PARENT */
-        jclass lp_cls = (*env)->FindClass(env, "android/view/ViewGroup$LayoutParams");
-        if (lp_cls != NULL && !(*env)->ExceptionCheck(env)) {
-            jmethodID lp_init = (*env)->GetMethodID(env, lp_cls, "<init>", "(II)V");
-            if (lp_init != NULL && !(*env)->ExceptionCheck(env)) {
-                jobject lp = (*env)->NewObject(env, lp_cls, lp_init, -1, -1);
-                if (lp != NULL && !(*env)->ExceptionCheck(env)) {
-                    jclass view_cls = (*env)->GetObjectClass(env, view);
-                    jmethodID set_lp = (*env)->GetMethodID(env, view_cls, "setLayoutParams", "(Landroid/view/ViewGroup$LayoutParams;)V");
-                    if (set_lp != NULL && !(*env)->ExceptionCheck(env)) {
-                        (*env)->CallVoidMethod(env, view, set_lp, lp);
-                        if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
-                    }
-                    (*env)->DeleteLocalRef(env, view_cls);
-                    (*env)->DeleteLocalRef(env, lp);
-                } else {
-                    if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
-                }
-            } else {
-                (*env)->ExceptionClear(env);
-            }
-            (*env)->DeleteLocalRef(env, lp_cls);
-        } else {
-            if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
-        }
-
         view_id = mrboto_register_ref(env, view);
         (*env)->DeleteLocalRef(env, view);
     }
@@ -949,8 +923,8 @@ mrb_value mrb_mrboto_get_sys_res_id(mrb_state *mrb, mrb_value self) {
 }
 
 /* ── Helper: Set Layout Height ────────────────────────────────────── */
-/* Sets LinearLayout.LayoutParams(MATCH_PARENT, height_px) on a view. */
-/* Needed because MATCH_PARENT inside LinearLayout acts as WRAP_CONTENT. */
+/* Sets LinearLayout.LayoutParams(MATCH_PARENT, height_px) on a view   */
+/* and forces a layout pass. Called after content_view to fix ViewPager2. */
 
 mrb_value mrb_mrboto_set_layout_height(mrb_state *mrb, mrb_value self) {
     mrb_int view_id, height_px;
@@ -970,11 +944,14 @@ mrb_value mrb_mrboto_set_layout_height(mrb_state *mrb, mrb_value self) {
         return mrb_nil_value();
     }
 
+    jclass view_cls = (*env)->GetObjectClass(env, view);
+
     /* LinearLayout.LayoutParams(int width, int height) */
     jclass lp_cls = (*env)->FindClass(env, "android/widget/LinearLayout$LayoutParams");
     if (lp_cls == NULL || (*env)->ExceptionCheck(env)) {
         LOGE("_set_layout_height: FindClass LinearLayout$LayoutParams failed");
         if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
+        (*env)->DeleteLocalRef(env, view_cls);
         return mrb_nil_value();
     }
     jmethodID lp_init = (*env)->GetMethodID(env, lp_cls, "<init>", "(II)V");
@@ -982,6 +959,7 @@ mrb_value mrb_mrboto_set_layout_height(mrb_state *mrb, mrb_value self) {
         LOGE("_set_layout_height: GetMethodID <init> failed");
         if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
         (*env)->DeleteLocalRef(env, lp_cls);
+        (*env)->DeleteLocalRef(env, view_cls);
         return mrb_nil_value();
     }
     /* MATCH_PARENT = -1 */
@@ -990,10 +968,10 @@ mrb_value mrb_mrboto_set_layout_height(mrb_state *mrb, mrb_value self) {
         LOGE("_set_layout_height: NewObject LayoutParams failed");
         if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
         (*env)->DeleteLocalRef(env, lp_cls);
+        (*env)->DeleteLocalRef(env, view_cls);
         return mrb_nil_value();
     }
 
-    jclass view_cls = (*env)->GetObjectClass(env, view);
     jmethodID set_lp = (*env)->GetMethodID(env, view_cls, "setLayoutParams",
                                             "(Landroid/view/ViewGroup$LayoutParams;)V");
     if (set_lp != NULL && !(*env)->ExceptionCheck(env)) {
@@ -1002,15 +980,67 @@ mrb_value mrb_mrboto_set_layout_height(mrb_state *mrb, mrb_value self) {
             LOGE("_set_layout_height: setLayoutParams threw exception");
             (*env)->ExceptionClear(env);
         } else {
-            LOGI("_set_layout_height: SUCCESS, setLayoutParams(%d, %d)", -1, (int)height_px);
+            LOGI("_set_layout_height: setLayoutParams(-1, %d) OK", (int)height_px);
         }
     } else {
         LOGE("_set_layout_height: setLayoutParams method not found");
+        if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
     }
 
-    (*env)->DeleteLocalRef(env, view_cls);
+    /* Log measured dimensions */
+    jmethodID get_mh = (*env)->GetMethodID(env, view_cls, "getMeasuredHeight", "()I");
+    jmethodID get_mw = (*env)->GetMethodID(env, view_cls, "getMeasuredWidth", "()I");
+    if (get_mh && get_mw && !(*env)->ExceptionCheck(env)) {
+        jint mh = (*env)->CallIntMethod(env, view, get_mh);
+        jint mw = (*env)->CallIntMethod(env, view, get_mw);
+        LOGI("_set_layout_height: measured=%dx%d w=%d h=%d",
+             (int)mw, (int)mh,
+             (int)(*env)->CallIntMethod(env, view, (*env)->GetMethodID(env, view_cls, "getWidth", "()I")),
+             (int)(*env)->CallIntMethod(env, view, (*env)->GetMethodID(env, view_cls, "getHeight", "()I")));
+    }
+
+    /* Log parent info */
+    jmethodID get_parent = (*env)->GetMethodID(env, view_cls, "getParent",
+                                                "()Landroid/view/ViewParent;");
+    if (get_parent && !(*env)->ExceptionCheck(env)) {
+        jobject parent = (*env)->CallObjectMethod(env, view, get_parent);
+        if (parent != NULL) {
+            jclass parent_cls = (*env)->GetObjectClass(env, parent);
+            jmethodID parent_get_class = (*env)->GetMethodID(env, parent_cls, "getClass",
+                                                              "()Ljava/lang/Class;");
+            jobject parent_class = (*env)->CallObjectMethod(env, parent, parent_get_class);
+            jclass class_cls2 = (*env)->GetObjectClass(env, parent_class);
+            jmethodID get_name = (*env)->GetMethodID(env, class_cls2, "getSimpleName",
+                                                      "()Ljava/lang/String;");
+            jstring name_str = (jstring)(*env)->CallObjectMethod(env, parent_class, get_name);
+            const char *name_c = (*env)->GetStringUTFChars(env, name_str, NULL);
+            LOGI("_set_layout_height: parent=%s", name_c);
+            (*env)->ReleaseStringUTFChars(env, name_str, name_c);
+            (*env)->DeleteLocalRef(env, name_str);
+            (*env)->DeleteLocalRef(env, class_cls2);
+            (*env)->DeleteLocalRef(env, parent_class);
+            (*env)->DeleteLocalRef(env, parent_cls);
+        } else {
+            LOGI("_set_layout_height: parent=NULL (not attached)");
+        }
+        if (parent) (*env)->DeleteLocalRef(env, parent);
+    }
+
+    /* requestLayout */
+    jmethodID req_layout = (*env)->GetMethodID(env, view_cls, "requestLayout", "()V");
+    if (req_layout != NULL && !(*env)->ExceptionCheck(env)) {
+        (*env)->CallVoidMethod(env, view, req_layout);
+        if ((*env)->ExceptionCheck(env)) {
+            LOGE("_set_layout_height: requestLayout threw exception");
+            (*env)->ExceptionClear(env);
+        } else {
+            LOGI("_set_layout_height: requestLayout() OK");
+        }
+    }
+
     (*env)->DeleteLocalRef(env, lp);
     (*env)->DeleteLocalRef(env, lp_cls);
+    (*env)->DeleteLocalRef(env, view_cls);
     (void)self;
     return mrb_nil_value();
 }
