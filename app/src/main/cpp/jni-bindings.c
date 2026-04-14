@@ -438,27 +438,75 @@ mrb_value mrb_mrboto_call_java_method(mrb_state *mrb, mrb_value self) {
         jobject method = (*env)->CallObjectMethod(env, target_class, get_method,
                                                    jmethod_name, param_types);
         if ((*env)->ExceptionCheck(env)) {
-            jthrowable exc = (*env)->ExceptionOccurred(env);
             (*env)->ExceptionClear(env);
 
-            /* Log target class name + full getMethod exception for easy debugging */
-            jclass tc_cls = (*env)->GetObjectClass(env, target_class);
-            if (tc_cls != NULL) {
-                jmethodID tcGetName = (*env)->GetMethodID(env, tc_cls, "getName",
-                    "()Ljava/lang/String;");
-                if (tcGetName != NULL && !(*env)->ExceptionCheck(env)) {
-                    jstring tcName = (jstring)(*env)->CallObjectMethod(env, target_class, tcGetName);
-                    if (tcName) {
-                        const char *className = (*env)->GetStringUTFChars(env, tcName, NULL);
-                        LOGE("call_java_method('%s'): target class is %s", method_name, className);
-                        (*env)->ReleaseStringUTFChars(env, tcName, className);
-                        (*env)->DeleteLocalRef(env, tcName);
+            /* Fallback: if getMethod failed with CharSequence params, retry with String.
+             * Some methods (WebView.loadData, loadDataWithBaseURL) declare String params,
+             * not CharSequence. Class.getMethod requires exact type match. */
+            int has_charseq = 0;
+            if (param_types != NULL && charsequence_cls != NULL) {
+                for (mrb_int i = 0; i < argc; i++) {
+                    jobject pt = (*env)->GetObjectArrayElement(env, param_types, (jsize)i);
+                    if (pt != NULL && (*env)->IsSameObject(env, pt, charsequence_cls)) {
+                        has_charseq = 1;
                     }
+                    if (pt) (*env)->DeleteLocalRef(env, pt);
+                    if (has_charseq) break;
                 }
-                (*env)->DeleteLocalRef(env, tc_cls);
             }
-            log_invoke_exception(env, method_name, exc);
-        } else if (method != NULL) {
+
+            if (has_charseq) {
+                /* Build a new param_types array replacing CharSequence with String */
+                jclass string_cls = (*env)->FindClass(env, "java/lang/String");
+                if (string_cls != NULL && !(*env)->ExceptionCheck(env)) {
+                    jobjectArray fallback_types = (*env)->NewObjectArray(env, (jsize)argc,
+                        class_cls, object_cls);
+                    if (fallback_types != NULL) {
+                        for (mrb_int i = 0; i < argc; i++) {
+                            jobject pt = (*env)->GetObjectArrayElement(env, param_types, (jsize)i);
+                            if (pt != NULL && (*env)->IsSameObject(env, pt, charsequence_cls)) {
+                                (*env)->SetObjectArrayElement(env, fallback_types, (jsize)i, string_cls);
+                            } else {
+                                (*env)->SetObjectArrayElement(env, fallback_types, (jsize)i, pt);
+                            }
+                            if (pt) (*env)->DeleteLocalRef(env, pt);
+                        }
+                        method = (*env)->CallObjectMethod(env, target_class, get_method,
+                                                          jmethod_name, fallback_types);
+                        if ((*env)->ExceptionCheck(env)) {
+                            (*env)->ExceptionClear(env);
+                            method = NULL;
+                        } else if (method != NULL) {
+                            LOGI("getMethod('%s') succeeded on String fallback", method_name);
+                        }
+                        (*env)->DeleteLocalRef(env, fallback_types);
+                    }
+                    (*env)->DeleteLocalRef(env, string_cls);
+                }
+            }
+
+            if (method == NULL) {
+                /* Log target class name for debugging */
+                jclass tc_cls = (*env)->GetObjectClass(env, target_class);
+                if (tc_cls != NULL) {
+                    jmethodID tcGetName = (*env)->GetMethodID(env, tc_cls, "getName",
+                        "()Ljava/lang/String;");
+                    if (tcGetName != NULL && !(*env)->ExceptionCheck(env)) {
+                        jstring tcName = (jstring)(*env)->CallObjectMethod(env, target_class, tcGetName);
+                        if (tcName) {
+                            const char *className = (*env)->GetStringUTFChars(env, tcName, NULL);
+                            LOGE("call_java_method('%s'): target class is %s", method_name, className);
+                            (*env)->ReleaseStringUTFChars(env, tcName, className);
+                            (*env)->DeleteLocalRef(env, tcName);
+                        }
+                    }
+                    (*env)->DeleteLocalRef(env, tc_cls);
+                }
+                LOGW("getMethod('%s') failed for all type combinations", method_name);
+            }
+        }
+
+        if (method != NULL) {
             LOGI("getMethod('%s') succeeded, invoking...", method_name);
             /* Call Method.invoke(target, javaArgs) */
             jclass method_cls = (*env)->GetObjectClass(env, method);
