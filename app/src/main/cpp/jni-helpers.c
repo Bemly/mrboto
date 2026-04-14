@@ -956,20 +956,30 @@ mrb_value mrb_mrboto_set_layout_height(mrb_state *mrb, mrb_value self) {
     mrb_int view_id, height_px;
     mrb_get_args(mrb, "ii", &view_id, &height_px);
 
+    LOGI("_set_layout_height: view_id=%d height_px=%d", (int)view_id, (int)height_px);
+
     JNIEnv *env = mrboto_get_env();
-    if (env == NULL) return mrb_nil_value();
+    if (env == NULL) {
+        LOGE("_set_layout_height: env is NULL");
+        return mrb_nil_value();
+    }
 
     jobject view = mrboto_lookup_ref(env, (int)view_id);
-    if (view == NULL) return mrb_nil_value();
+    if (view == NULL) {
+        LOGE("_set_layout_height: view lookup failed for id=%d", (int)view_id);
+        return mrb_nil_value();
+    }
 
     /* LinearLayout.LayoutParams(int width, int height) */
     jclass lp_cls = (*env)->FindClass(env, "android/widget/LinearLayout$LayoutParams");
     if (lp_cls == NULL || (*env)->ExceptionCheck(env)) {
+        LOGE("_set_layout_height: FindClass LinearLayout$LayoutParams failed");
         if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
         return mrb_nil_value();
     }
     jmethodID lp_init = (*env)->GetMethodID(env, lp_cls, "<init>", "(II)V");
     if (lp_init == NULL || (*env)->ExceptionCheck(env)) {
+        LOGE("_set_layout_height: GetMethodID <init> failed");
         if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
         (*env)->DeleteLocalRef(env, lp_cls);
         return mrb_nil_value();
@@ -977,6 +987,7 @@ mrb_value mrb_mrboto_set_layout_height(mrb_state *mrb, mrb_value self) {
     /* MATCH_PARENT = -1 */
     jobject lp = (*env)->NewObject(env, lp_cls, lp_init, -1, (int)height_px);
     if (lp == NULL || (*env)->ExceptionCheck(env)) {
+        LOGE("_set_layout_height: NewObject LayoutParams failed");
         if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
         (*env)->DeleteLocalRef(env, lp_cls);
         return mrb_nil_value();
@@ -987,7 +998,14 @@ mrb_value mrb_mrboto_set_layout_height(mrb_state *mrb, mrb_value self) {
                                             "(Landroid/view/ViewGroup$LayoutParams;)V");
     if (set_lp != NULL && !(*env)->ExceptionCheck(env)) {
         (*env)->CallVoidMethod(env, view, set_lp, lp);
-        if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
+        if ((*env)->ExceptionCheck(env)) {
+            LOGE("_set_layout_height: setLayoutParams threw exception");
+            (*env)->ExceptionClear(env);
+        } else {
+            LOGI("_set_layout_height: SUCCESS, setLayoutParams(%d, %d)", -1, (int)height_px);
+        }
+    } else {
+        LOGE("_set_layout_height: setLayoutParams method not found");
     }
 
     (*env)->DeleteLocalRef(env, view_cls);
