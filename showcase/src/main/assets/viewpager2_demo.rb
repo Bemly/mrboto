@@ -1,6 +1,6 @@
 # viewpager2_demo.rb — ViewPager2 功能测试页面
 #
-# 在真实 Activity 中测试 ViewPager2 的所有方法
+# 每页展示 6 个系统图标，共 3 页覆盖 18 个图标
 # logcat 过滤 "mrboto" 即可看到结果
 
 class ViewPager2DemoActivity < Mrboto::Activity
@@ -9,68 +9,70 @@ class ViewPager2DemoActivity < Mrboto::Activity
     self.title = "ViewPager2 Demo"
 
     @page_index = 0
-    @js_on = true
-    @dom_on = true
     @locked = false
 
-    # 创建 3 个页面
+    icons = [
+      "ic_menu_edit", "ic_menu_save", "ic_menu_send",
+      "ic_menu_search", "ic_menu_zoom", "ic_menu_preferences",
+      "ic_menu_sort_by_size", "ic_menu_rotate", "ic_menu_today",
+      "ic_menu_gallery", "ic_menu_play", "ic_menu_agenda",
+      "ic_menu_starred", "ic_menu_info_details", "ic_menu_help",
+      "ic_menu_compose", "ic_menu_view", "ic_menu_manage"
+    ]
+
+    # 每页 6 个图标，分 3 行 x 2 列
     @pages = []
-    3.times do |i|
-      page = linear_layout(orientation: :vertical, gravity: :center, padding: 24) do
-        text_view(
-          text: "Page #{i + 1}",
-          text_size: 32,
-          text_color: ["2196F3", "4CAF50", "FF5722"][i],
-          gravity: :center
-        )
-        text_view(
-          text: "This is page #{i + 1} of 3",
-          text_size: 16,
-          gravity: :center,
-          padding: 8
-        )
+    icons.each_slice(6) do |page_icons|
+      page = linear_layout(orientation: :vertical, padding: 16) do
+        page_icons.each_slice(2) do |row|
+          linear_layout(orientation: :horizontal, gravity: :center, padding: 8) do
+            row.each do |icon_name|
+              linear_layout(orientation: :vertical, gravity: :center, padding: 16) do
+                image_view(image_resource: sys_drawable(icon_name), padding: 8)
+                text_view(
+                  text: icon_name.sub("ic_menu_", ""),
+                  text_size: 12,
+                  gravity: :center,
+                  text_color: "757575"
+                )
+              end
+            end
+          end
+        end
       end
       @pages << page
     end
 
-    log("1. Created 3 pages")
+    log("1. Created #{@pages.size} pages with #{icons.size} icons")
 
-    # 创建 ViewPager2
+    # ViewPager2
     @vp = view_pager_2(padding: [0, 16, 0, 0])
     log("2. ViewPager2 created: #{@vp.class}")
 
-    # 设置最小高度，否则在 LinearLayout 里会被压扁
-    @vp.call_java_method('setMinimumHeight', 600)
-
-    # 设置 adapter（需要传 registry ID 数组，不是 View 对象）
+    # adapter
     @vp.set_adapter(@pages.map { |p| p._registry_id })
-    log("3. set_adapter with 3 pages: OK")
+    log("3. set_adapter: OK")
 
-    # offscreen_page_limit
     @vp.offscreen_page_limit = 1
     log("4. offscreen_page_limit = 1: OK")
 
-    # user_input_enabled
     @vp.user_input_enabled = true
     log("5. user_input_enabled = true: OK")
 
-    # current_item
     @vp.current_item = 0
     log("6. current_item = 0: OK")
 
-    # orientation
     @vp.orientation = :horizontal
     log("7. orientation = :horizontal: OK")
 
     log("=== ViewPager2 Demo: ALL 7 tests passed ===")
 
+    # 布局
     self.content_view = linear_layout(orientation: :vertical) do
-      # ViewPager2 占主要区域
       @vp
 
-      # 测试结果
       text_view(
-        text: "All 7 tests passed! Swipe pages or use buttons.",
+        text: "All 7 tests passed - swipe or use buttons",
         text_size: 14,
         text_color: "4CAF50",
         gravity: :center,
@@ -78,14 +80,13 @@ class ViewPager2DemoActivity < Mrboto::Activity
       )
 
       text_view(
-        text: "logcat filter: mrboto",
+        text: "Page #{@page_index + 1} of 3",
         text_size: 12,
         text_color: "9E9E9E",
         gravity: :center,
         padding: 4
       )
 
-      # 控制按钮
       linear_layout(orientation: :horizontal, gravity: :center, padding: 8) do
         material_button(text: "Prev", padding: 8) {
           @page_index = [@page_index - 1, 0].max
@@ -118,6 +119,10 @@ class ViewPager2DemoActivity < Mrboto::Activity
         }
       end
     end
+  end
+
+  def sys_drawable(name)
+    Mrboto.android_sys_id(name, "drawable")
   end
 
   def log(msg)
