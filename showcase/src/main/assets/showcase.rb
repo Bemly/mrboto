@@ -41,6 +41,10 @@ class ShowcaseMenu < Mrboto::Activity
         material_button(text: "WebView Demo", padding: 16, gravity: :center) {
           open_ruby("webview_demo.rb")
         }
+
+        material_button(text: "ViewPager2 Demo", padding: 16, gravity: :center) {
+          open_ruby("viewpager2_demo.rb")
+        }
       end
     end
   end
