@@ -70,13 +70,7 @@ class ViewPager2DemoActivity < Mrboto::Activity
 
     log("=== ViewPager2 Demo: ALL 7 tests passed ===")
 
-    # 布局 — ViewPager2 需要固定高度，LinearLayout WRAP_CONTENT 会压扁它
-    # 使用 C bridge 设置 LinearLayout.LayoutParams(MATCH_PARENT, 400dp)
-    vp_h = dp(400)
-    log("8. Setting layout height: vp_id=#{@vp._registry_id} height=#{vp_h}px (400dp)")
-    Mrboto._set_layout_height(@vp._registry_id, vp_h)
-    log("9. _set_layout_height done")
-
+    # 布局
     self.content_view = linear_layout(orientation: :vertical) do
       @vp
 
@@ -120,6 +114,13 @@ class ViewPager2DemoActivity < Mrboto::Activity
         }
       end
     end
+
+    # ViewPager2 被 addView 后 LinearLayout 会覆盖 LayoutParams
+    # 必须在 content_view 设置之后再设置高度
+    vp_h = dp(400)
+    log("8. Setting layout height AFTER addView: vp_id=#{@vp._registry_id} height=#{vp_h}px")
+    Mrboto._set_layout_height(@vp._registry_id, vp_h)
+    log("9. _set_layout_height done")
   end
 
   def log(msg)
