@@ -111,13 +111,14 @@ module Mrboto
 
       # Register this view as a child of the current parent (if any)
       if (parent = @_view_parent_stack.last)
-        (@_view_children[parent.object_id] ||= []) << wrapper
+        (@_view_children[parent.object_id] ||= []) << wrapper if wrapper
       end
 
       wrapper
     rescue => e
       $mrboto_widget_errors ||= []
-      $mrboto_widget_errors << "#{class_name}: #{e.class}: #{e.message}"
+      bt = e.backtrace ? e.backtrace.first(3).join("; ") : ""
+      $mrboto_widget_errors << "#{class_name}: #{e.class}: #{e.message} [#{bt}]"
       nil
     end
 
@@ -434,6 +435,7 @@ module Mrboto
   # ── ViewGroup ────────────────────────────────────────────────────
   class ViewGroup < View
     def add_child(child)
+      return if child.nil?
       result = call_java_method('addView',
         Mrboto._java_object_for(child._registry_id))
       result
