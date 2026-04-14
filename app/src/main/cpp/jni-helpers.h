@@ -33,6 +33,7 @@ mrb_value mrb_mrboto_sp_put_int(mrb_state *mrb, mrb_value self);
 mrb_value mrb_mrboto_app_context(mrb_state *mrb, mrb_value self);
 mrb_value mrb_mrboto_create_view(mrb_state *mrb, mrb_value self);
 mrb_value mrb_mrboto_set_on_click(mrb_state *mrb, mrb_value self);
+mrb_value mrb_mrboto_set_text_watcher(mrb_state *mrb, mrb_value self);
 mrb_value mrb_mrboto_run_on_ui_thread(mrb_state *mrb, mrb_value self);
 mrb_value mrb_mrboto_dp_to_px(mrb_state *mrb, mrb_value self);
 mrb_value mrb_mrboto_package_name(mrb_state *mrb, mrb_value self);

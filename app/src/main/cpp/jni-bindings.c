@@ -23,6 +23,7 @@
 #include <mruby/object.h>
 
 #include "android-jni-bridge.h"
+#include "jni-helpers.h"
 
 #define LOG_TAG "mrboto-bridge"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
