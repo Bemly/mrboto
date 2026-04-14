@@ -700,6 +700,7 @@ static void mrb_mrboto_define_methods(mrb_state *mrb, struct RClass *mrboto) {
     mrb_define_module_function(mrb, mrboto, "_dp_to_px", mrb_mrboto_dp_to_px, MRB_ARGS_REQ(1));
     mrb_define_module_function(mrb, mrboto, "_package_name", mrb_mrboto_package_name, MRB_ARGS_NONE());
     mrb_define_module_function(mrb, mrboto, "_get_sys_res_id", mrb_mrboto_get_sys_res_id, MRB_ARGS_REQ(3));
+    mrb_define_module_function(mrb, mrboto, "_set_layout_height", mrb_mrboto_set_layout_height, MRB_ARGS_REQ(2));
     mrb_define_module_function(mrb, mrboto, "_register_object", mrb_mrboto_register_object, MRB_ARGS_REQ(1));
     mrb_define_module_function(mrb, mrboto, "_java_object_for", mrb_mrboto_java_object_for, MRB_ARGS_REQ(1));
     mrb_define_module_function(mrb, mrboto, "_call_java_method", mrb_mrboto_call_java_method, MRB_ARGS_ANY());

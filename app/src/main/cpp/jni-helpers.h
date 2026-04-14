@@ -38,5 +38,6 @@ mrb_value mrb_mrboto_run_on_ui_thread(mrb_state *mrb, mrb_value self);
 mrb_value mrb_mrboto_dp_to_px(mrb_state *mrb, mrb_value self);
 mrb_value mrb_mrboto_package_name(mrb_state *mrb, mrb_value self);
 mrb_value mrb_mrboto_get_sys_res_id(mrb_state *mrb, mrb_value self);
+mrb_value mrb_mrboto_set_layout_height(mrb_state *mrb, mrb_value self);
 
 #endif /* JNI_HELPERS_H */

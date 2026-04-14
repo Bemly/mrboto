@@ -948,5 +948,54 @@ mrb_value mrb_mrboto_get_sys_res_id(mrb_state *mrb, mrb_value self) {
     return mrb_fixnum_value((mrb_int)id);
 }
 
+/* ── Helper: Set Layout Height ────────────────────────────────────── */
+/* Sets LinearLayout.LayoutParams(MATCH_PARENT, height_px) on a view. */
+/* Needed because MATCH_PARENT inside LinearLayout acts as WRAP_CONTENT. */
+
+mrb_value mrb_mrboto_set_layout_height(mrb_state *mrb, mrb_value self) {
+    mrb_int view_id, height_px;
+    mrb_get_args(mrb, "ii", &view_id, &height_px);
+
+    JNIEnv *env = mrboto_jni_env();
+    if (env == NULL) return mrb_nil_value();
+
+    jobject view = mrboto_lookup_ref((int)view_id);
+    if (view == NULL) return mrb_nil_value();
+
+    /* LinearLayout.LayoutParams(int width, int height) */
+    jclass lp_cls = (*env)->FindClass(env, "android/widget/LinearLayout$LayoutParams");
+    if (lp_cls == NULL || (*env)->ExceptionCheck(env)) {
+        if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
+        return mrb_nil_value();
+    }
+    jmethodID lp_init = (*env)->GetMethodID(env, lp_cls, "<init>", "(II)V");
+    if (lp_init == NULL || (*env)->ExceptionCheck(env)) {
+        if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
+        (*env)->DeleteLocalRef(env, lp_cls);
+        return mrb_nil_value();
+    }
+    /* MATCH_PARENT = -1 */
+    jobject lp = (*env)->NewObject(env, lp_cls, lp_init, -1, (int)height_px);
+    if (lp == NULL || (*env)->ExceptionCheck(env)) {
+        if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
+        (*env)->DeleteLocalRef(env, lp_cls);
+        return mrb_nil_value();
+    }
+
+    jclass view_cls = (*env)->GetObjectClass(env, view);
+    jmethodID set_lp = (*env)->GetMethodID(env, view_cls, "setLayoutParams",
+                                            "(Landroid/view/ViewGroup$LayoutParams;)V");
+    if (set_lp != NULL && !(*env)->ExceptionCheck(env)) {
+        (*env)->CallVoidMethod(env, view, set_lp, lp);
+        if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
+    }
+
+    (*env)->DeleteLocalRef(env, view_cls);
+    (*env)->DeleteLocalRef(env, lp);
+    (*env)->DeleteLocalRef(env, lp_cls);
+    (void)self;
+    return mrb_nil_value();
+}
+
 /* ── Java Object Registry Methods ─────────────────────────────────── */
 
