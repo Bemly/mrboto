@@ -185,6 +185,10 @@ module Mrboto
       from_registry(id)
     end
 
+    def set_layer_type(type)
+      call_java_method('setLayerType', @_registry_id, type.to_s)
+    end
+
     def id=(val)
       call_java_method('setId', val)
     end

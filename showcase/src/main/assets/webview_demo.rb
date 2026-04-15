@@ -77,51 +77,45 @@ class WebViewDemoActivity < Mrboto::Activity
     Mrboto._set_layout_height(@wv._registry_id, wv_h)
     log("7. _set_layout_height done")
 
-    # 设置 WebViewClient 来处理页面加载生命周期
-    @wv.set_webview_client
-    log("7.5. set_webview_client done")
+    # 设置软件渲染层类型，避免 Mali GPU EGL 上下文创建失败
+    @wv.set_layer_type(:software)
+    log("7.5. set_layer_type(software) done")
 
-    # 第一次延迟：等窗口 attach
-    # 第二次延迟：等 EGL 上下文初始化完成
+    # 延迟加载 HTML — 等 WebView attach 到窗口
     run_on_ui_thread do
-      p "First UI thread pass: WebView attached, waiting for EGL init..."
+      p "UI thread: WebView attached, loading HTML..."
 
-      # 二次延迟确保 EGL 上下文完全初始化
-      run_on_ui_thread do
-        p "Second UI thread pass: EGL should be ready, loading HTML..."
+      html = '<html><body style="background:#f5f5f5;font-family:sans-serif;padding:16px">
+        <h1>WebView Test</h1>
+        <p>Loaded via <b>load_data</b></p>
+      </body></html>'
+      @wv.load_data(html)
+      log("8. load_data: OK")
 
-        html = '<html><body style="background:#f5f5f5;font-family:sans-serif;padding:16px">
-          <h1>WebView Test</h1>
-          <p>Loaded via <b>load_data</b></p>
-        </body></html>'
-        @wv.load_data(html)
-        log("8. load_data: OK")
+      html2 = '<html><body style="background:#e8f5e9;padding:16px">
+        <h2>load_data_with_base_url</h2>
+        <p>Base URL test passed</p>
+      </body></html>'
+      @wv.load_data_with_base_url(html2, "https://example.com/")
+      log("9. load_data_with_base_url: OK")
 
-        html2 = '<html><body style="background:#e8f5e9;padding:16px">
-          <h2>load_data_with_base_url</h2>
-          <p>Base URL test passed</p>
-        </body></html>'
-        @wv.load_data_with_base_url(html2, "https://example.com/")
-        log("9. load_data_with_base_url: OK")
+      back = @wv.can_go_back
+      forward = @wv.can_go_forward
+      log("10. can_go_back: #{back}")
+      log("11. can_go_forward: #{forward}")
 
-        back = @wv.can_go_back
-        forward = @wv.can_go_forward
-        log("10. can_go_back: #{back}")
-        log("11. can_go_forward: #{forward}")
+      @wv.reload
+      log("12. reload: OK")
 
-        @wv.reload
-        log("12. reload: OK")
+      @wv.stop_loading
+      log("13. stop_loading: OK")
 
-        @wv.stop_loading
-        log("13. stop_loading: OK")
+      @wv.go_back
+      log("14. go_back: OK")
+      @wv.go_forward
+      log("15. go_forward: OK")
 
-        @wv.go_back
-        log("14. go_back: OK")
-        @wv.go_forward
-        log("15. go_forward: OK")
-
-        log("=== WebView Demo: ALL 15 tests passed ===")
-      end
+      log("=== WebView Demo: ALL 15 tests passed ===")
     end
   end
 

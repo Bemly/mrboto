@@ -254,6 +254,23 @@ abstract class MrbotoActivityBase : Activity() {
     }
 
     /**
+     * Set the rendering layer type on a View (e.g., WebView).
+     * Layer types: "none"=LAYER_TYPE_NONE, "software"=LAYER_TYPE_SOFTWARE, "hardware"=LAYER_TYPE_HARDWARE
+     * Called from Ruby via call_java_method("setLayerType", viewRegistryId, layerTypeString).
+     */
+    fun setLayerType(viewRegistryId: Int, layerTypeString: String) {
+        val view = mruby.lookupJavaObject<View>(viewRegistryId)
+            ?: return
+        val layerType = when (layerTypeString) {
+            "none" -> View.LAYER_TYPE_NONE
+            "software" -> View.LAYER_TYPE_SOFTWARE
+            "hardware" -> View.LAYER_TYPE_HARDWARE
+            else -> View.LAYER_TYPE_NONE
+        }
+        view.setLayerType(layerType, null)
+    }
+
+    /**
      * Set a ViewPagerAdapter on a ViewPager2. Called from Ruby via
      * call_java_method("setViewPager2Adapter", vpRegistryId, json_of_view_ids).
      * json_of_view_ids: JSON array of view registry IDs, e.g. "[10,11,12]".
