@@ -497,6 +497,10 @@ module Mrboto
         mime_type.to_s, encoding.to_s, history_url.to_s)
     end
 
+    def set_webview_client
+      call_java_method('setWebViewClient', @_registry_id)
+    end
+
     def javascript_enabled=(val)
       settings = call_java_method('getSettings')
       return unless settings

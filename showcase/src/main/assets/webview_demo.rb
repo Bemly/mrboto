@@ -71,51 +71,67 @@ class WebViewDemoActivity < Mrboto::Activity
       end
     end
 
-    # WebView 在 LinearLayout 中需要固定高度
+    # 设置固定高度（LinearLayout.LayoutParams）
     wv_h = dp(400)
     log("6. Setting WebView height: id=#{@wv._registry_id} h=#{wv_h}px")
     Mrboto._set_layout_height(@wv._registry_id, wv_h)
     log("7. _set_layout_height done")
 
-    # 延迟加载 HTML — 等 WebView attach 到窗口并完成初始化
+    # 设置 WebViewClient 来处理页面加载生命周期
+    @wv.set_webview_client
+    log("7.5. set_webview_client done")
+
+    # 第一次延迟：等窗口 attach
+    # 第二次延迟：等 EGL 上下文初始化完成
     run_on_ui_thread do
-      html = '<html><body style="background:#f5f5f5;font-family:sans-serif;padding:16px">
-        <h1>WebView Test</h1>
-        <p>Loaded via <b>load_data</b></p>
-      </body></html>'
-      @wv.load_data(html)
-      log("8. load_data: OK")
+      p "First UI thread pass: WebView attached, waiting for EGL init..."
 
-      html2 = '<html><body style="background:#e8f5e9;padding:16px">
-        <h2>load_data_with_base_url</h2>
-        <p>Base URL test passed</p>
-      </body></html>'
-      @wv.load_data_with_base_url(html2, "https://example.com/")
-      log("9. load_data_with_base_url: OK")
+      # 二次延迟确保 EGL 上下文完全初始化
+      run_on_ui_thread do
+        p "Second UI thread pass: EGL should be ready, loading HTML..."
 
-      back = @wv.can_go_back
-      forward = @wv.can_go_forward
-      log("10. can_go_back: #{back}")
-      log("11. can_go_forward: #{forward}")
+        html = '<html><body style="background:#f5f5f5;font-family:sans-serif;padding:16px">
+          <h1>WebView Test</h1>
+          <p>Loaded via <b>load_data</b></p>
+        </body></html>'
+        @wv.load_data(html)
+        log("8. load_data: OK")
 
-      @wv.reload
-      log("12. reload: OK")
+        html2 = '<html><body style="background:#e8f5e9;padding:16px">
+          <h2>load_data_with_base_url</h2>
+          <p>Base URL test passed</p>
+        </body></html>'
+        @wv.load_data_with_base_url(html2, "https://example.com/")
+        log("9. load_data_with_base_url: OK")
 
-      @wv.stop_loading
-      log("13. stop_loading: OK")
+        back = @wv.can_go_back
+        forward = @wv.can_go_forward
+        log("10. can_go_back: #{back}")
+        log("11. can_go_forward: #{forward}")
 
-      @wv.go_back
-      log("14. go_back: OK")
-      @wv.go_forward
-      log("15. go_forward: OK")
+        @wv.reload
+        log("12. reload: OK")
 
-      log("=== WebView Demo: ALL 15 tests passed ===")
+        @wv.stop_loading
+        log("13. stop_loading: OK")
+
+        @wv.go_back
+        log("14. go_back: OK")
+        @wv.go_forward
+        log("15. go_forward: OK")
+
+        log("=== WebView Demo: ALL 15 tests passed ===")
+      end
     end
   end
 
   def log(msg)
-    toast(msg)
-    p msg
+    # 只在关键步骤显示 toast，减少主线程阻塞
+    if msg.include?("ALL")
+      toast(msg)
+    else
+      p msg
+    end
   end
 end
 

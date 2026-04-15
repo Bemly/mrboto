@@ -244,6 +244,16 @@ abstract class MrbotoActivityBase : Activity() {
     }
 
     /**
+     * Set a WebViewClient on a WebView to handle page loading callbacks.
+     * Called from Ruby via call_java_method("setWebViewClient", viewRegistryId).
+     */
+    fun setWebViewClient(viewRegistryId: Int) {
+        val webView = mruby.lookupJavaObject<android.webkit.WebView>(viewRegistryId)
+            ?: return
+        webView.webViewClient = android.webkit.WebViewClient()
+    }
+
+    /**
      * Set a ViewPagerAdapter on a ViewPager2. Called from Ruby via
      * call_java_method("setViewPager2Adapter", vpRegistryId, json_of_view_ids).
      * json_of_view_ids: JSON array of view registry IDs, e.g. "[10,11,12]".

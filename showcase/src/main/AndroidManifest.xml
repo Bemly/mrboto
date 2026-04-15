@@ -4,7 +4,8 @@
         android:name="moe.bemly.mrboto.MrbotoApplication"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-        android:theme="@style/Theme.MrbotoDemo">
+        android:theme="@style/Theme.MrbotoDemo"
+        android:hardwareAccelerated="true">
         <activity
             android:name="moe.bemly.mrboto.RubyActivity"
             android:exported="true">
