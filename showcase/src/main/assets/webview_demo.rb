@@ -14,6 +14,11 @@ class WebViewDemoActivity < Mrboto::Activity
     @wv = web_view(padding: 8)
     log("1. WebView created: #{@wv.class}")
 
+    # ── 关键：在 WebView attach 到父容器之前设置软件渲染 ────
+    # 这样 WebView 从一开始就使用软件渲染，避免尝试创建硬件加速的 EGL 上下文
+    @wv.set_layer_type(:software)
+    log("1.5. set_layer_type(software) done (before addView)")
+
     # ── Settings 测试（不需要延迟）────────────────────────────
     @wv.javascript_enabled = true
     log("2. javascript_enabled = true: OK")
@@ -76,10 +81,6 @@ class WebViewDemoActivity < Mrboto::Activity
     log("6. Setting WebView height: id=#{@wv._registry_id} h=#{wv_h}px")
     Mrboto._set_layout_height(@wv._registry_id, wv_h)
     log("7. _set_layout_height done")
-
-    # 设置软件渲染层类型，避免 Mali GPU EGL 上下文创建失败
-    @wv.set_layer_type(:software)
-    log("7.5. set_layer_type(software) done")
 
     # 延迟加载 HTML — 等 WebView attach 到窗口
     run_on_ui_thread do
