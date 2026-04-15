@@ -186,7 +186,11 @@ module Mrboto
     end
 
     def set_layer_type(type)
-      call_java_method('setLayerType', @_registry_id, type.to_s)
+      # Call Activity.setLayerType(viewRegistryId, layerTypeString) helper
+      activity = Mrboto.current_activity
+      if activity
+        activity.call_java_method('setLayerType', @_registry_id, type.to_s)
+      end
     end
 
     def id=(val)
