@@ -19,6 +19,7 @@
 #include <mruby/array.h>
 #include <mruby/string.h>
 #include <mruby/variable.h>
+#include <mruby/proc.h>
 
 #include "android-jni-bridge.h"
 
@@ -716,7 +717,21 @@ mrb_value mrb_mrboto_run_on_ui_thread(mrb_state *mrb, mrb_value self) {
     jmethodID mid = (*env)->GetMethodID(env, cls, "runOnUiThreadFromNative", "(I)V");
     if (mid == NULL) {
         (*env)->ExceptionClear(env);
-        LOGE("run_on_ui_thread: runOnUiThreadFromNative method not found");
+        (*env)->DeleteLocalRef(env, cls);
+
+        /* Fallback: in tests (Any() object), directly call dispatch_callback
+         * synchronously (no UI thread required) */
+        LOGW("run_on_ui_thread: runOnUiThreadFromNative method not found, executing directly");
+
+        /* Get Mrboto module and call dispatch_callback(callbackId, 0)
+         * Use mrb->object_class to get the VM's object class, which can lookup
+         * global constants like Module */
+        mrb_value mrboto_module = mrb_const_get(mrb, mrb_obj_value(mrb->object_class),
+                                                 mrb_intern_lit(mrb, "Mrboto"));
+        mrb_value args[] = { mrb_fixnum_value((mrb_int)callback_id), mrb_fixnum_value(0) };
+        mrb_funcall_with_block(mrb, mrboto_module, mrb_intern_lit(mrb, "dispatch_callback"),
+            2, args, mrb_nil_value());
+
         return mrb_nil_value();
     }
 
@@ -724,6 +739,7 @@ mrb_value mrb_mrboto_run_on_ui_thread(mrb_state *mrb, mrb_value self) {
     if ((*env)->ExceptionCheck(env)) {
         (*env)->ExceptionClear(env);
     }
+    (*env)->DeleteLocalRef(env, cls);
 
     (void)mrb;
     (void)self;
