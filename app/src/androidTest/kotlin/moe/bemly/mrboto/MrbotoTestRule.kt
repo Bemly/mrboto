@@ -23,15 +23,20 @@ class MrbotoTestRule : TestRule {
     val context: Context
         get() = ApplicationProvider.getApplicationContext()
 
-    /** Create a TestMrbotoActivity instance without launching it via Intent. */
+    /** Create a TestMrbotoActivity instance on the main thread (Activity constructor requires Looper). */
     fun createTestActivity(): TestMrbotoActivity {
-        val instrumentation = InstrumentationRegistry.getInstrumentation()
-        val component = ComponentName(context, TestMrbotoActivity::class.java)
-        return instrumentation.newActivity(
-            TestMrbotoActivity::class.java.classLoader!!,
-            TestMrbotoActivity::class.java.name,
-            null
-        ) as TestMrbotoActivity
+        var result: TestMrbotoActivity? = null
+        val latch = java.util.concurrent.CountDownLatch(1)
+        Handler(Looper.getMainLooper()).post {
+            result = InstrumentationRegistry.getInstrumentation().newActivity(
+                TestMrbotoActivity::class.java.classLoader!!,
+                TestMrbotoActivity::class.java.name,
+                null
+            ) as TestMrbotoActivity
+            latch.countDown()
+        }
+        latch.await(5, java.util.concurrent.TimeUnit.SECONDS)
+        return result ?: throw RuntimeException("Failed to create TestMrbotoActivity on main thread")
     }
 
     override fun apply(base: Statement, description: Description): Statement {
