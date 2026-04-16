@@ -846,16 +846,41 @@ abstract class MrbotoActivityBase : Activity() {
     // ── Clipboard ────────────────────────────────────────────────────────
     private var _clipboardText: String = ""
 
+    private fun getClipboardManager(): android.content.ClipboardManager? =
+        getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+
     fun clipboardCopy(text: CharSequence): Boolean {
         _clipboardText = text.toString()
+        try {
+            getClipboardManager()?.setPrimaryClip(
+                android.content.ClipData.newPlainText("text", text)
+            )
+        } catch (_: Exception) {}
         return true
     }
 
     fun clipboardPaste(): String {
+        try {
+            val cm = getClipboardManager()
+            if (cm != null && cm.hasPrimaryClip()) {
+                val clip = cm.primaryClip
+                if (clip != null && clip.itemCount > 0) {
+                    val t = clip.getItemAt(0).coerceToText(this)?.toString()
+                    if (!t.isNullOrEmpty()) return t
+                }
+            }
+        } catch (_: Exception) {}
         return _clipboardText
     }
 
     fun clipboardHasText(): Boolean {
+        try {
+            val cm = getClipboardManager()
+            if (cm != null && cm.hasPrimaryClip()) {
+                val clip = cm.primaryClip
+                if (clip != null && clip.itemCount > 0) return true
+            }
+        } catch (_: Exception) {}
         return _clipboardText.isNotEmpty()
     }
 
