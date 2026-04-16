@@ -567,4 +567,85 @@ abstract class MrbotoActivityBase : Activity() {
         sqliteDbs.remove(dbId)?.close()
     }
 
+    // ── Permission ──────────────────────────────────────────────────────
+    fun checkPermissionGranted(permission: CharSequence): Boolean {
+        return try {
+            checkSelfPermission(permission.toString()) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        } catch (e: Exception) {
+            Log.w(TAG, "checkPermissionGranted failed: ${e.message}")
+            false
+        }
+    }
+
+    // ── Notification ─────────────────────────────────────────────────────
+    private fun ensureNotificationChannel(channelId: String, channelName: String = channelId) {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            val mgr = getSystemService(android.app.NotificationManager::class.java) ?: return
+            if (mgr.getNotificationChannel(channelId) == null) {
+                val channel = android.app.NotificationChannel(
+                    channelId, channelName, android.app.NotificationManager.IMPORTANCE_DEFAULT)
+                mgr.createNotificationChannel(channel)
+            }
+        }
+    }
+
+    fun notifyShow(id: Int, title: CharSequence, message: CharSequence, channel: CharSequence) {
+        try {
+            val channelId = channel.toString()
+            ensureNotificationChannel(channelId)
+            val builder = androidx.core.app.NotificationCompat.Builder(this, channelId)
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setContentTitle(title.toString())
+                .setContentText(message.toString())
+                .setPriority(androidx.core.app.NotificationCompat.PRIORITY_DEFAULT)
+            val mgr = getSystemService(android.app.NotificationManager::class.java) ?: return
+            mgr.notify(id, builder.build())
+        } catch (e: Exception) {
+            Log.w(TAG, "notifyShow failed: ${e.message}")
+        }
+    }
+
+    fun notifyCancel(id: Int) {
+        try {
+            val mgr = getSystemService(android.app.NotificationManager::class.java) ?: return
+            mgr.cancel(id)
+        } catch (e: Exception) {
+            Log.w(TAG, "notifyCancel failed: ${e.message}")
+        }
+    }
+
+    fun notifyBig(id: Int, title: CharSequence, bigText: CharSequence, channel: CharSequence) {
+        try {
+            val channelId = channel.toString()
+            ensureNotificationChannel(channelId)
+            val builder = androidx.core.app.NotificationCompat.Builder(this, channelId)
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setContentTitle(title.toString())
+                .setStyle(androidx.core.app.NotificationCompat.BigTextStyle().bigText(bigText.toString()))
+                .setPriority(androidx.core.app.NotificationCompat.PRIORITY_DEFAULT)
+            val mgr = getSystemService(android.app.NotificationManager::class.java) ?: return
+            mgr.notify(id, builder.build())
+        } catch (e: Exception) {
+            Log.w(TAG, "notifyBig failed: ${e.message}")
+        }
+    }
+
+    fun notifyProgress(id: Int, title: CharSequence, message: CharSequence,
+                       progress: Int, max: Int, channel: CharSequence) {
+        try {
+            val channelId = channel.toString()
+            ensureNotificationChannel(channelId)
+            val builder = androidx.core.app.NotificationCompat.Builder(this, channelId)
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setContentTitle(title.toString())
+                .setContentText(message.toString())
+                .setProgress(max, progress, false)
+                .setPriority(androidx.core.app.NotificationCompat.PRIORITY_DEFAULT)
+            val mgr = getSystemService(android.app.NotificationManager::class.java) ?: return
+            mgr.notify(id, builder.build())
+        } catch (e: Exception) {
+            Log.w(TAG, "notifyProgress failed: ${e.message}")
+        }
+    }
+
 }
