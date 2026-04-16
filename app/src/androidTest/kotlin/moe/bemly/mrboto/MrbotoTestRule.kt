@@ -1,7 +1,5 @@
 package moe.bemly.mrboto
 
-import android.app.Activity
-import android.content.ComponentName
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
@@ -23,16 +21,22 @@ class MrbotoTestRule : TestRule {
     val context: Context
         get() = ApplicationProvider.getApplicationContext()
 
-    /** Create a TestMrbotoActivity instance on the main thread (Activity constructor requires Looper). */
+    /** Create a TestMrbotoActivity attached to the test context on the main thread. */
     fun createTestActivity(): TestMrbotoActivity {
         var result: TestMrbotoActivity? = null
         val latch = java.util.concurrent.CountDownLatch(1)
+        val appCtx = context
         Handler(Looper.getMainLooper()).post {
-            result = InstrumentationRegistry.getInstrumentation().newActivity(
+            val instrumentation = InstrumentationRegistry.getInstrumentation()
+            val activity = instrumentation.newActivity(
                 TestMrbotoActivity::class.java.classLoader!!,
                 TestMrbotoActivity::class.java.name,
                 null
             ) as TestMrbotoActivity
+            // attachBaseContext gives the Activity a real base Context
+            // so methods like openOrCreateDatabase / getSystemService work.
+            activity.attachBaseContext(appCtx)
+            result = activity
             latch.countDown()
         }
         latch.await(5, java.util.concurrent.TimeUnit.SECONDS)
