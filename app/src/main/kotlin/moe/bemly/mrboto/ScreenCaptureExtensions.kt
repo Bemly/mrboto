@@ -60,7 +60,7 @@ fun MrbotoActivityBase.captureScreen(outPath: CharSequence): Boolean {
             bmp.recycle()
         }
         image?.close()
-        vd.release()
+        vd?.release()
         reader.close()
         true
     } catch (e: Exception) {

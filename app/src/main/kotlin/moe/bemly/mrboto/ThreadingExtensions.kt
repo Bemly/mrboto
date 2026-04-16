@@ -9,8 +9,9 @@ private val atomicCounters = ConcurrentHashMap<Int, AtomicInteger>()
 
 fun MrbotoActivityBase.threadStart(callbackId: Int): Int {
     val id = threadIdGen.getAndIncrement()
+    val mrubyRef = mruby
     val thread = Thread {
-        Mrboto.dispatch_callback(callbackId)
+        mrubyRef.eval("Mrboto.dispatch_callback($callbackId)")
     }
     thread.start()
     activeThreads[id] = thread

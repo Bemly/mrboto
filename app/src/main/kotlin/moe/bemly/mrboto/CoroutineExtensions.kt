@@ -14,23 +14,26 @@ private val activeTimers = ConcurrentHashMap<Int, Timer>()
 private val timerIdGen = AtomicInteger(1)
 
 fun MrbotoActivityBase.runAsync(callbackId: Int) {
+    val mrubyRef = mruby
     bgExecutor.execute {
-        Mrboto.dispatch_callback(callbackId)
+        mrubyRef.eval("Mrboto.dispatch_callback($callbackId)")
     }
 }
 
 fun MrbotoActivityBase.runDelayed(callbackId: Int, delayMs: Int) {
+    val mrubyRef = mruby
     mainHandler.postDelayed({
-        Mrboto.dispatch_callback(callbackId)
+        mrubyRef.eval("Mrboto.dispatch_callback($callbackId)")
     }, delayMs.toLong())
 }
 
 fun MrbotoActivityBase.timerStart(callbackId: Int, intervalMs: Int): Int {
     val id = timerIdGen.getAndIncrement()
+    val mrubyRef = mruby
     val timer = Timer()
     timer.scheduleAtFixedRate(object : TimerTask() {
         override fun run() {
-            mainHandler.post { Mrboto.dispatch_callback(callbackId) }
+            mainHandler.post { mrubyRef.eval("Mrboto.dispatch_callback($callbackId)") }
         }
     }, intervalMs.toLong(), intervalMs.toLong())
     activeTimers[id] = timer
@@ -43,10 +46,11 @@ fun MrbotoActivityBase.timerStop(timerId: Int) {
 
 fun MrbotoActivityBase.timerOnce(callbackId: Int, delayMs: Int): Int {
     val id = timerIdGen.getAndIncrement()
+    val mrubyRef = mruby
     val timer = Timer()
     timer.schedule(object : TimerTask() {
         override fun run() {
-            mainHandler.post { Mrboto.dispatch_callback(callbackId) }
+            mainHandler.post { mrubyRef.eval("Mrboto.dispatch_callback($callbackId)") }
             activeTimers.remove(id)
         }
     }, delayMs.toLong())
