@@ -843,45 +843,42 @@ abstract class MrbotoActivityBase : Activity() {
         }
     }
 
-    // ── Clipboard ────────────────────────────────────────────────────────
+    // ── Clipboard (in-memory) ────────────────────────────────────────────
     private var _clipboardText: String = ""
-
-    private fun getClipboardManager(): android.content.ClipboardManager? =
-        getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
 
     fun clipboardCopy(text: CharSequence): Boolean {
         _clipboardText = text.toString()
-        try {
-            getClipboardManager()?.setPrimaryClip(
-                android.content.ClipData.newPlainText("text", text)
-            )
-        } catch (_: Exception) {}
         return true
     }
 
-    fun clipboardPaste(): String {
-        try {
-            val cm = getClipboardManager()
-            if (cm != null && cm.hasPrimaryClip()) {
-                val clip = cm.primaryClip
-                if (clip != null && clip.itemCount > 0) {
-                    val t = clip.getItemAt(0).coerceToText(this)?.toString()
-                    if (!t.isNullOrEmpty()) return t
-                }
-            }
-        } catch (_: Exception) {}
-        return _clipboardText
+    fun clipboardPaste(): String = _clipboardText
+
+    fun clipboardHasText(): Boolean = _clipboardText.isNotEmpty()
+
+    // ── Clipboard (system) ──────────────────────────────────────────────
+    fun clipboardSystemCopy(text: CharSequence): Boolean {
+        return try {
+            val cm = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            cm.setPrimaryClip(android.content.ClipData.newPlainText("text", text))
+            true
+        } catch (_: Exception) { false }
     }
 
-    fun clipboardHasText(): Boolean {
-        try {
-            val cm = getClipboardManager()
-            if (cm != null && cm.hasPrimaryClip()) {
-                val clip = cm.primaryClip
-                if (clip != null && clip.itemCount > 0) return true
-            }
-        } catch (_: Exception) {}
-        return _clipboardText.isNotEmpty()
+    fun clipboardSystemPaste(): String {
+        return try {
+            val cm = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            val clip = cm.primaryClip
+            if (clip != null && clip.itemCount > 0)
+                clip.getItemAt(0).coerceToText(this)?.toString() ?: ""
+            else ""
+        } catch (_: Exception) { "" }
+    }
+
+    fun clipboardSystemHasText(): Boolean {
+        return try {
+            val cm = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            cm.hasPrimaryClip() && cm.primaryClip!!.itemCount > 0
+        } catch (_: Exception) { false }
     }
 
 }
