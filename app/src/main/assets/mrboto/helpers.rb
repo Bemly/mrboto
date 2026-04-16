@@ -460,6 +460,507 @@ module Mrboto
       result == true || result.to_s == "true"
     end
 
+    # ── Shell ──────────────────────────────────────────────────────────────
+    def self.shell_exec(cmd, timeout: 10)
+      activity = Mrboto.current_activity
+      return nil unless activity
+      activity.call_java_method("shellExec", cmd.to_s, timeout.to_i).to_s
+    end
+
+    # ── Intent / URL Scheme ────────────────────────────────────────────────
+    def self.intent_view(url)
+      activity = Mrboto.current_activity
+      return false unless activity
+      result = activity.call_java_method("intentView", url.to_s)
+      result == true || result.to_s == "true"
+    end
+
+    def self.intent_send(text, subject: "")
+      activity = Mrboto.current_activity
+      return false unless activity
+      result = activity.call_java_method("intentSend", text.to_s, subject.to_s)
+      result == true || result.to_s == "true"
+    end
+
+    def self.intent_action(action, data: "", type: "")
+      activity = Mrboto.current_activity
+      return false unless activity
+      result = activity.call_java_method("intentAction", action.to_s, data.to_s, type.to_s)
+      result == true || result.to_s == "true"
+    end
+
+    # ── Coroutine / Timer ──────────────────────────────────────────────────
+    def self.run_async(&block)
+      callback_id = Mrboto.register_callback(&block)
+      activity = Mrboto.current_activity
+      return unless activity
+      activity.call_java_method("runAsync", callback_id)
+    end
+
+    def self.run_delayed(ms, &block)
+      callback_id = Mrboto.register_callback(&block)
+      activity = Mrboto.current_activity
+      return unless activity
+      activity.call_java_method("runDelayed", callback_id, ms.to_i)
+    end
+
+    def self.timer_start(interval_ms, &block)
+      callback_id = Mrboto.register_callback(&block)
+      activity = Mrboto.current_activity
+      return -1 unless activity
+      activity.call_java_method("timerStart", callback_id, interval_ms.to_i).to_i
+    end
+
+    def self.timer_stop(timer_id)
+      activity = Mrboto.current_activity
+      return unless activity
+      activity.call_java_method("timerStop", timer_id.to_i)
+    end
+
+    def self.timer_once(delay_ms, &block)
+      callback_id = Mrboto.register_callback(&block)
+      activity = Mrboto.current_activity
+      return -1 unless activity
+      activity.call_java_method("timerOnce", callback_id, delay_ms.to_i).to_i
+    end
+
+    # ── File Encoding ──────────────────────────────────────────────────────
+    def self.file_read_encoding(name, encoding)
+      activity = Mrboto.current_activity
+      return "" unless activity
+      activity.call_java_method("fileReadEncoding", name.to_s, encoding.to_s).to_s
+    end
+
+    def self.file_write_encoding(name, content, encoding)
+      activity = Mrboto.current_activity
+      return false unless activity
+      result = activity.call_java_method("fileWriteEncoding", name.to_s, content.to_s, encoding.to_s)
+      result == true || result.to_s == "true"
+    end
+
+    # ── Directory Operations ───────────────────────────────────────────────
+    def self.file_list_dir(path = "")
+      activity = Mrboto.current_activity
+      return [] unless activity
+      json = activity.call_java_method("fileListDir", path.to_s).to_s
+      parse_json_array(json)
+    end
+
+    def self.file_mkdir(path)
+      activity = Mrboto.current_activity
+      return false unless activity
+      result = activity.call_java_method("fileMkdir", path.to_s)
+      result == true || result.to_s == "true"
+    end
+
+    def self.file_delete_dir(path)
+      activity = Mrboto.current_activity
+      return false unless activity
+      result = activity.call_java_method("fileDeleteDir", path.to_s)
+      result == true || result.to_s == "true"
+    end
+
+    def self.file_exists_path(path)
+      activity = Mrboto.current_activity
+      return false unless activity
+      result = activity.call_java_method("fileExistsPath", path.to_s)
+      result == true || result.to_s == "true"
+    end
+
+    def self.file_is_dir(path)
+      activity = Mrboto.current_activity
+      return false unless activity
+      result = activity.call_java_method("fileIsDir", path.to_s)
+      result == true || result.to_s == "true"
+    end
+
+    # ── Accessibility ──────────────────────────────────────────────────────
+    def self.accessibility_enabled?
+      activity = Mrboto.current_activity
+      return false unless activity
+      result = activity.call_java_method("accessibilityEnabled")
+      result == true || result.to_s == "true"
+    end
+
+    def self.accessibility_touch_exploration?
+      activity = Mrboto.current_activity
+      return false unless activity
+      result = activity.call_java_method("accessibilityTouchExploration")
+      result == true || result.to_s == "true"
+    end
+
+    # ── Screen Capture ─────────────────────────────────────────────────────
+    def self.request_screen_capture(&block)
+      callback_id = Mrboto.register_callback(&block)
+      activity = Mrboto.current_activity
+      return false unless activity
+      result = activity.call_java_method("requestScreenCapture", callback_id)
+      result == true || result.to_s == "true"
+    end
+
+    def self.capture_screen(out_path)
+      activity = Mrboto.current_activity
+      return false unless activity
+      result = activity.call_java_method("captureScreen", out_path.to_s)
+      result == true || result.to_s == "true"
+    end
+
+    def self.start_record_screen(out_path)
+      activity = Mrboto.current_activity
+      return false unless activity
+      result = activity.call_java_method("startRecordScreen", out_path.to_s)
+      result == true || result.to_s == "true"
+    end
+
+    def self.stop_record_screen
+      activity = Mrboto.current_activity
+      return false unless activity
+      result = activity.call_java_method("stopRecordScreen")
+      result == true || result.to_s == "true"
+    end
+
+    # ── Gesture ────────────────────────────────────────────────────────────
+    def self.gesture_click(x, y)
+      activity = Mrboto.current_activity
+      return false unless activity
+      result = activity.call_java_method("gestureClick", x.to_i, y.to_i)
+      result == true || result.to_s == "true"
+    end
+
+    def self.gesture_long_click(x, y)
+      activity = Mrboto.current_activity
+      return false unless activity
+      result = activity.call_java_method("gestureLongClick", x.to_i, y.to_i)
+      result == true || result.to_s == "true"
+    end
+
+    def self.gesture_swipe(x1, y1, x2, y2, duration: 300)
+      activity = Mrboto.current_activity
+      return false unless activity
+      result = activity.call_java_method("gestureSwipe", x1.to_i, y1.to_i, x2.to_i, y2.to_i, duration.to_i)
+      result == true || result.to_s == "true"
+    end
+
+    def self.gesture_scroll(x1, y1, x2, y2, duration: 300)
+      activity = Mrboto.current_activity
+      return false unless activity
+      result = activity.call_java_method("gestureScroll", x1.to_i, y1.to_i, x2.to_i, y2.to_i, duration.to_i)
+      result == true || result.to_s == "true"
+    end
+
+    # ── Overlay ────────────────────────────────────────────────────────────
+    def self.overlay_show(x, y, width: -2, height: -2)
+      activity = Mrboto.current_activity
+      return -1 unless activity
+      activity.call_java_method("overlayShow", 0, x.to_i, y.to_i, width.to_i, height.to_i).to_i
+    end
+
+    def self.overlay_remove(overlay_id)
+      activity = Mrboto.current_activity
+      return false unless activity
+      result = activity.call_java_method("overlayRemove", overlay_id.to_i)
+      result == true || result.to_s == "true"
+    end
+
+    # ── Predictive Back ────────────────────────────────────────────────────
+    def self.predictive_back_enabled?
+      activity = Mrboto.current_activity
+      return false unless activity
+      result = activity.call_java_method("predictiveBackEnabled")
+      result == true || result.to_s == "true"
+    end
+
+    # ── Color / Find Color ─────────────────────────────────────────────────
+    def self.get_color_at(bitmap_path, x, y)
+      activity = Mrboto.current_activity
+      return "" unless activity
+      activity.call_java_method("getColorAt", bitmap_path.to_s, x.to_i, y.to_i).to_s
+    end
+
+    def self.find_color(bitmap_path, color_hex, region: "")
+      activity = Mrboto.current_activity
+      return "[]" unless activity
+      activity.call_java_method("findColor", bitmap_path.to_s, color_hex.to_s, region.to_s).to_s
+    end
+
+    def self.find_color_fuzzy(bitmap_path, color_hex, threshold: 32, region: "")
+      activity = Mrboto.current_activity
+      return "[]" unless activity
+      activity.call_java_method("findColorFuzzy", bitmap_path.to_s, color_hex.to_s, threshold.to_i, region.to_s).to_s
+    end
+
+    # ── Image Processing ───────────────────────────────────────────────────
+    def self.image_crop(path, x, y, w, h, out_path)
+      activity = Mrboto.current_activity
+      return false unless activity
+      result = activity.call_java_method("imageCrop", path.to_s, x.to_i, y.to_i, w.to_i, h.to_i, out_path.to_s)
+      result == true || result.to_s == "true"
+    end
+
+    def self.image_scale(path, new_w, new_h, out_path)
+      activity = Mrboto.current_activity
+      return false unless activity
+      result = activity.call_java_method("imageScale", path.to_s, new_w.to_i, new_h.to_i, out_path.to_s)
+      result == true || result.to_s == "true"
+    end
+
+    def self.image_rotate(path, degrees, out_path)
+      activity = Mrboto.current_activity
+      return false unless activity
+      result = activity.call_java_method("imageRotate", path.to_s, degrees.to_f, out_path.to_s)
+      result == true || result.to_s == "true"
+    end
+
+    def self.image_to_base64(path, format: "png")
+      activity = Mrboto.current_activity
+      return "" unless activity
+      activity.call_java_method("imageToBase64", path.to_s, format.to_s).to_s
+    end
+
+    def self.image_from_base64(base64, out_path)
+      activity = Mrboto.current_activity
+      return false unless activity
+      result = activity.call_java_method("imageFromBase64", base64.to_s, out_path.to_s)
+      result == true || result.to_s == "true"
+    end
+
+    def self.image_pixel_color(path, x, y)
+      activity = Mrboto.current_activity
+      return "" unless activity
+      activity.call_java_method("imagePixelColor", path.to_s, x.to_i, y.to_i).to_s
+    end
+
+    def self.image_width(path)
+      activity = Mrboto.current_activity
+      return -1 unless activity
+      activity.call_java_method("imageWidth", path.to_s).to_i
+    end
+
+    def self.image_height(path)
+      activity = Mrboto.current_activity
+      return -1 unless activity
+      activity.call_java_method("imageHeight", path.to_s).to_i
+    end
+
+    # ── Event Listener ─────────────────────────────────────────────────────
+    def self.observe_battery(&block)
+      callback_id = Mrboto.register_callback(&block)
+      activity = Mrboto.current_activity
+      return false unless activity
+      result = activity.call_java_method("observeBattery", callback_id)
+      result == true || result.to_s == "true"
+    end
+
+    def self.observe_network(&block)
+      callback_id = Mrboto.register_callback(&block)
+      activity = Mrboto.current_activity
+      return false unless activity
+      result = activity.call_java_method("observeNetwork", callback_id)
+      result == true || result.to_s == "true"
+    end
+
+    def self.network_connected?
+      activity = Mrboto.current_activity
+      return false unless activity
+      result = activity.call_java_method("isNetworkConnected")
+      result == true || result.to_s == "true"
+    end
+
+    # ── Device Control ─────────────────────────────────────────────────────
+    def self.set_volume(stream_type, level, show_ui: false)
+      activity = Mrboto.current_activity
+      return false unless activity
+      result = activity.call_java_method("setVolume", stream_type.to_i, level.to_i, show_ui)
+      result == true || result.to_s == "true"
+    end
+
+    def self.get_volume(stream_type)
+      activity = Mrboto.current_activity
+      return -1 unless activity
+      activity.call_java_method("getVolume", stream_type.to_i).to_i
+    end
+
+    def self.set_brightness(level)
+      activity = Mrboto.current_activity
+      return false unless activity
+      result = activity.call_java_method("setBrightness", level.to_i)
+      result == true || result.to_s == "true"
+    end
+
+    def self.get_brightness
+      activity = Mrboto.current_activity
+      return -1 unless activity
+      activity.call_java_method("getBrightness").to_i
+    end
+
+    def self.vibrate(duration: 200)
+      activity = Mrboto.current_activity
+      return false unless activity
+      result = activity.call_java_method("vibrate", duration.to_i)
+      result == true || result.to_s == "true"
+    end
+
+    def self.vibrate_pattern(pattern, repeat: -1)
+      activity = Mrboto.current_activity
+      return false unless activity
+      pattern_json = pattern.is_a?(String) ? pattern : build_json_array(pattern)
+      result = activity.call_java_method("vibratePattern", pattern_json, repeat.to_i)
+      result == true || result.to_s == "true"
+    end
+
+    # ── Sensor ─────────────────────────────────────────────────────────────
+    def self.start_gyroscope(&block)
+      callback_id = Mrboto.register_callback(&block)
+      activity = Mrboto.current_activity
+      return -1 unless activity
+      activity.call_java_method("startGyroscope", callback_id).to_i
+    end
+
+    def self.stop_gyroscope(sensor_id)
+      activity = Mrboto.current_activity
+      return unless activity
+      activity.call_java_method("stopGyroscope", sensor_id.to_i)
+    end
+
+    def self.start_accelerometer(&block)
+      callback_id = Mrboto.register_callback(&block)
+      activity = Mrboto.current_activity
+      return -1 unless activity
+      activity.call_java_method("startAccelerometer", callback_id).to_i
+    end
+
+    def self.stop_accelerometer(sensor_id)
+      activity = Mrboto.current_activity
+      return unless activity
+      activity.call_java_method("stopAccelerometer", sensor_id.to_i)
+    end
+
+    def self.start_proximity(&block)
+      callback_id = Mrboto.register_callback(&block)
+      activity = Mrboto.current_activity
+      return -1 unless activity
+      activity.call_java_method("startProximity", callback_id).to_i
+    end
+
+    def self.stop_proximity(sensor_id)
+      activity = Mrboto.current_activity
+      return unless activity
+      activity.call_java_method("stopProximity", sensor_id.to_i)
+    end
+
+    # ── Camera ─────────────────────────────────────────────────────────────
+    def self.camera_available?
+      activity = Mrboto.current_activity
+      return false unless activity
+      result = activity.call_java_method("cameraAvailable")
+      result == true || result.to_s == "true"
+    end
+
+    def self.camera_info
+      activity = Mrboto.current_activity
+      return "[]" unless activity
+      activity.call_java_method("cameraInfo").to_s
+    end
+
+    def self.camera_take_photo(&block)
+      callback_id = Mrboto.register_callback(&block)
+      activity = Mrboto.current_activity
+      return false unless activity
+      result = activity.call_java_method("cameraTakePhoto", callback_id)
+      result == true || result.to_s == "true"
+    end
+
+    def self.camera_record_video(&block)
+      callback_id = Mrboto.register_callback(&block)
+      activity = Mrboto.current_activity
+      return false unless activity
+      result = activity.call_java_method("cameraRecordVideo", callback_id)
+      result == true || result.to_s == "true"
+    end
+
+    # ── Window Info ────────────────────────────────────────────────────────
+    def self.current_activity_name
+      activity = Mrboto.current_activity
+      return "" unless activity
+      activity.call_java_method("getCurrentActivityName").to_s
+    end
+
+    def self.current_layout_info
+      activity = Mrboto.current_activity
+      return "{}" unless activity
+      activity.call_java_method("getCurrentLayoutInfo").to_s
+    end
+
+    def self.top_activity_package
+      activity = Mrboto.current_activity
+      return "" unless activity
+      activity.call_java_method("getTopActivityPackage").to_s
+    end
+
+    # ── Threading / Atomic ─────────────────────────────────────────────────
+    def self.thread_start(&block)
+      callback_id = Mrboto.register_callback(&block)
+      activity = Mrboto.current_activity
+      return -1 unless activity
+      activity.call_java_method("threadStart", callback_id).to_i
+    end
+
+    def self.thread_join(thread_id)
+      activity = Mrboto.current_activity
+      return unless activity
+      activity.call_java_method("threadJoin", thread_id.to_i)
+    end
+
+    def self.atomic_get(counter_id)
+      activity = Mrboto.current_activity
+      return 0 unless activity
+      activity.call_java_method("atomicGet", counter_id.to_i).to_i
+    end
+
+    def self.atomic_set(counter_id, value)
+      activity = Mrboto.current_activity
+      return unless activity
+      activity.call_java_method("atomicSet", counter_id.to_i, value.to_i)
+    end
+
+    def self.atomic_increment(counter_id)
+      activity = Mrboto.current_activity
+      return 0 unless activity
+      activity.call_java_method("atomicIncrement", counter_id.to_i).to_i
+    end
+
+    # ── Enhanced HTTP ──────────────────────────────────────────────────────
+    def self.http_get_ex(url, headers: nil)
+      activity = Mrboto.current_activity
+      return "" unless activity
+      hdr = headers ? build_json_hash(headers) : nil
+      activity.call_java_method("httpGetEx", url.to_s, hdr).to_s
+    end
+
+    def self.http_post_ex(url, body, headers: nil)
+      activity = Mrboto.current_activity
+      return "" unless activity
+      hdr = headers ? build_json_hash(headers) : nil
+      activity.call_java_method("httpPostEx", url.to_s, body.to_s, hdr).to_s
+    end
+
+    def self.http_upload(url, file_path, field_name: "file")
+      activity = Mrboto.current_activity
+      return "" unless activity
+      activity.call_java_method("httpUpload", url.to_s, file_path.to_s, field_name.to_s).to_s
+    end
+
+    # ── OCR (reserved) ─────────────────────────────────────────────────────
+    def self.ocr_recognize(image_path)
+      activity = Mrboto.current_activity
+      return "" unless activity
+      activity.call_java_method("ocrRecognize", image_path.to_s).to_s
+    end
+
+    def self.ocr_recognize_from_path(image_path)
+      ocr_recognize(image_path)
+    end
+
     # ── JSON helpers (no dependency on JSON gem) ───────────────────────
     def self.build_json_hash(hash)
       pairs = hash.map do |k, v|
@@ -475,6 +976,16 @@ module Mrboto
         "\"#{key}\":#{val}"
       end
       "{#{pairs.join(',')}}"
+    end
+
+    def self.parse_json_array(json)
+      return [] if json.nil? || json.empty?
+      json = json.strip
+      return [] unless json.start_with?("[") && json.end_with?("]")
+      content = json[1..-2]
+      return [] if content.nil? || content.empty?
+      items = split_json_pairs(content)
+      items.map { |item| parse_json_value(item.strip) }
     end
 
     def self.parse_json_object(json)
@@ -759,4 +1270,252 @@ end
 
 def http_download(url, filepath)
   Mrboto::Helpers.http_download(url, filepath)
+end
+
+# ── Top-level convenience: Shell ───────────────────────────────────────
+def shell_exec(cmd, timeout: 10)
+  Mrboto::Helpers.shell_exec(cmd, timeout: timeout)
+end
+
+# ── Top-level convenience: Intent ──────────────────────────────────────
+def intent_view(url)
+  Mrboto::Helpers.intent_view(url)
+end
+
+def intent_send(text, subject: "")
+  Mrboto::Helpers.intent_send(text, subject: subject)
+end
+
+def intent_action(action, data: "", type: "")
+  Mrboto::Helpers.intent_action(action, data: data, type: type)
+end
+
+# ── Top-level convenience: Coroutine / Timer ───────────────────────────
+def run_async(&block)
+  Mrboto::Helpers.run_async(&block)
+end
+
+def run_delayed(ms, &block)
+  Mrboto::Helpers.run_delayed(ms, &block)
+end
+
+def timer_start(interval_ms, &block)
+  Mrboto::Helpers.timer_start(interval_ms, &block)
+end
+
+def timer_stop(timer_id)
+  Mrboto::Helpers.timer_stop(timer_id)
+end
+
+def timer_once(delay_ms, &block)
+  Mrboto::Helpers.timer_once(delay_ms, &block)
+end
+
+# ── Top-level convenience: File Encoding / Directory ───────────────────
+def file_read_encoding(name, encoding)
+  Mrboto::Helpers.file_read_encoding(name, encoding)
+end
+
+def file_write_encoding(name, content, encoding)
+  Mrboto::Helpers.file_write_encoding(name, content, encoding)
+end
+
+def file_list_dir(path = "")
+  Mrboto::Helpers.file_list_dir(path)
+end
+
+def file_mkdir(path)
+  Mrboto::Helpers.file_mkdir(path)
+end
+
+def file_delete_dir(path)
+  Mrboto::Helpers.file_delete_dir(path)
+end
+
+def file_exists_path(path)
+  Mrboto::Helpers.file_exists_path(path)
+end
+
+def file_is_dir(path)
+  Mrboto::Helpers.file_is_dir(path)
+end
+
+# ── Top-level convenience: Accessibility ───────────────────────────────
+def accessibility_enabled?
+  Mrboto::Helpers.accessibility_enabled?
+end
+
+# ── Top-level convenience: Screen Capture ──────────────────────────────
+def capture_screen(out_path)
+  Mrboto::Helpers.capture_screen(out_path)
+end
+
+def start_record_screen(out_path)
+  Mrboto::Helpers.start_record_screen(out_path)
+end
+
+def stop_record_screen
+  Mrboto::Helpers.stop_record_screen
+end
+
+# ── Top-level convenience: Gesture ─────────────────────────────────────
+def gesture_click(x, y)
+  Mrboto::Helpers.gesture_click(x, y)
+end
+
+def gesture_swipe(x1, y1, x2, y2, duration: 300)
+  Mrboto::Helpers.gesture_swipe(x1, y1, x2, y2, duration: duration)
+end
+
+# ── Top-level convenience: Device Control ──────────────────────────────
+def set_volume(stream_type, level, show_ui: false)
+  Mrboto::Helpers.set_volume(stream_type, level, show_ui: show_ui)
+end
+
+def get_volume(stream_type)
+  Mrboto::Helpers.get_volume(stream_type)
+end
+
+def set_brightness(level)
+  Mrboto::Helpers.set_brightness(level)
+end
+
+def get_brightness
+  Mrboto::Helpers.get_brightness
+end
+
+def vibrate(duration: 200)
+  Mrboto::Helpers.vibrate(duration: duration)
+end
+
+def vibrate_pattern(pattern, repeat: -1)
+  Mrboto::Helpers.vibrate_pattern(pattern, repeat: repeat)
+end
+
+# ── Top-level convenience: Sensor ──────────────────────────────────────
+def start_gyroscope(&block)
+  Mrboto::Helpers.start_gyroscope(&block)
+end
+
+def stop_gyroscope(sensor_id)
+  Mrboto::Helpers.stop_gyroscope(sensor_id)
+end
+
+def start_accelerometer(&block)
+  Mrboto::Helpers.start_accelerometer(&block)
+end
+
+def stop_accelerometer(sensor_id)
+  Mrboto::Helpers.stop_accelerometer(sensor_id)
+end
+
+# ── Top-level convenience: Camera ──────────────────────────────────────
+def camera_available?
+  Mrboto::Helpers.camera_available?
+end
+
+def camera_info
+  Mrboto::Helpers.camera_info
+end
+
+def camera_take_photo(&block)
+  Mrboto::Helpers.camera_take_photo(&block)
+end
+
+def camera_record_video(&block)
+  Mrboto::Helpers.camera_record_video(&block)
+end
+
+# ── Top-level convenience: Window Info ─────────────────────────────────
+def current_activity_name
+  Mrboto::Helpers.current_activity_name
+end
+
+def current_layout_info
+  Mrboto::Helpers.current_layout_info
+end
+
+def top_activity_package
+  Mrboto::Helpers.top_activity_package
+end
+
+# ── Top-level convenience: Threading / Atomic ──────────────────────────
+def thread_start(&block)
+  Mrboto::Helpers.thread_start(&block)
+end
+
+def atomic_get(counter_id)
+  Mrboto::Helpers.atomic_get(counter_id)
+end
+
+def atomic_set(counter_id, value)
+  Mrboto::Helpers.atomic_set(counter_id, value)
+end
+
+def atomic_increment(counter_id)
+  Mrboto::Helpers.atomic_increment(counter_id)
+end
+
+# ── Top-level convenience: Enhanced HTTP ───────────────────────────────
+def http_get_ex(url, headers: nil)
+  Mrboto::Helpers.http_get_ex(url, headers: headers)
+end
+
+def http_post_ex(url, body, headers: nil)
+  Mrboto::Helpers.http_post_ex(url, body, headers: headers)
+end
+
+def http_upload(url, file_path, field_name: "file")
+  Mrboto::Helpers.http_upload(url, file_path, field_name: field_name)
+end
+
+# ── Top-level convenience: Color / Image ───────────────────────────────
+def get_color_at(path, x, y)
+  Mrboto::Helpers.get_color_at(path, x, y)
+end
+
+def find_color(path, color, region: "")
+  Mrboto::Helpers.find_color(path, color, region: region)
+end
+
+def find_color_fuzzy(path, color, threshold: 32, region: "")
+  Mrboto::Helpers.find_color_fuzzy(path, color, threshold: threshold, region: region)
+end
+
+def image_crop(path, x, y, w, h, out_path)
+  Mrboto::Helpers.image_crop(path, x, y, w, h, out_path)
+end
+
+def image_scale(path, w, h, out_path)
+  Mrboto::Helpers.image_scale(path, w, h, out_path)
+end
+
+def image_rotate(path, degrees, out_path)
+  Mrboto::Helpers.image_rotate(path, degrees, out_path)
+end
+
+def image_to_base64(path, format: "png")
+  Mrboto::Helpers.image_to_base64(path, format: format)
+end
+
+def image_from_base64(base64, out_path)
+  Mrboto::Helpers.image_from_base64(base64, out_path)
+end
+
+# ── Top-level convenience: Event Listener ──────────────────────────────
+def observe_battery(&block)
+  Mrboto::Helpers.observe_battery(&block)
+end
+
+def observe_network(&block)
+  Mrboto::Helpers.observe_network(&block)
+end
+
+def network_connected?
+  Mrboto::Helpers.network_connected?
+end
+
+# ── Top-level convenience: OCR (reserved) ──────────────────────────────
+def ocr_recognize(image_path)
+  Mrboto::Helpers.ocr_recognize(image_path)
 end
