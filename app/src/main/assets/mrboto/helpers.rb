@@ -486,13 +486,20 @@ module Mrboto
       return {} if content.nil? || content.empty?
       pairs = split_json_pairs(content)
       pairs.each do |pair|
-        colon = find_json_colon(pair)
-        next unless colon
-        key_part = pair[0...colon].strip
-        val_str = pair[colon + 1..].strip
-        next unless key_part.start_with?('"') && key_part.end_with?('"')
-        key = key_part[1..-2]
-        result[key] = parse_json_value(val_str)
+        if pair =~ /\A\s*"([^"]*)"\s*:\s*(.*)\z/
+          key = $1
+          val_str = $2.strip
+          val = case val_str
+                when /\A"(.*)"\z/ then $1
+                when /\A(-?\d+)\z/ then val_str.to_i
+                when /\A(-?\d+\.\d+)\z/ then val_str.to_f
+                when "true" then true
+                when "false" then false
+                when "null" then nil
+                else val_str
+                end
+          result[key] = val
+        end
       end
       result
     end
@@ -504,65 +511,18 @@ module Mrboto
       content = content[1..-2]
       return [] if content.nil? || content.empty?
       items = split_json_pairs(content)
-      items.map { |item| parse_json_value(item.strip) }
-    end
-
-    def self.parse_json_value(str)
-      if str.start_with?('"') && str.end_with?('"')
-        str[1..-2]
-      elsif str == "true"
-        true
-      elsif str == "false"
-        false
-      elsif str == "null"
-        nil
-      elsif json_integer?(str)
-        str.to_i
-      elsif json_float?(str)
-        str.to_f
-      else
-        str
-      end
-    end
-
-    def self.json_integer?(str)
-      return false if str.empty?
-      i = 0
-      i = 1 if str[0] == '-'
-      return false if i >= str.length
-      str[i..].each_char { |c| return false unless c >= '0' && c <= '9' }
-      true
-    end
-
-    def self.json_float?(str)
-      return false if str.empty?
-      i = 0
-      i = 1 if str[0] == '-'
-      seen_dot = false
-      seen_digit = false
-      str[i..].each_char do |c|
-        if c == '.'
-          return false if seen_dot
-          seen_dot = true
-        elsif c >= '0' && c <= '9'
-          seen_digit = true
-        else
-          return false
+      items.map do |item|
+        item = item.strip
+        case item
+        when /\A"(.*)"\z/ then $1
+        when /\A(-?\d+)\z/ then item.to_i
+        when /\A(-?\d+\.\d+)\z/ then item.to_f
+        when "true" then true
+        when "false" then false
+        when "null" then nil
+        else item
         end
       end
-      seen_dot && seen_digit
-    end
-
-    def self.find_json_colon(pair)
-      in_string = false
-      pair.each_char.with_index do |c, i|
-        if c == '"'
-          in_string = !in_string
-        elsif c == ':' && !in_string
-          return i
-        end
-      end
-      nil
     end
 
     def self.parse_json_array_of_objects(json)

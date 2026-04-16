@@ -1,3 +1,6 @@
 [submodule "mruby"]
 	path = mruby
 	url = https://github.com/mruby/mruby.git
+[submodule "app/src/main/assets/mrboto/regexp"]
+	path = app/src/main/assets/mrboto/regexp
+	url = https://github.com/citrus-lemon/mruby-pure-regexp.git

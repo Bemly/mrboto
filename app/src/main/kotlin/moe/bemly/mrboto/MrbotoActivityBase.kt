@@ -196,6 +196,10 @@ abstract class MrbotoActivityBase : Activity() {
      */
     private fun loadMrbotoCore(assets: android.content.res.AssetManager, mruby: MRuby) {
         val coreFiles = listOf(
+            "mrboto/regexp/mrblib/node.rb",
+            "mrboto/regexp/mrblib/parser.rb",
+            "mrboto/regexp/mrblib/regexp.rb",
+            "mrboto/regexp/mrblib/string.rb",
             "mrboto/core.rb",
             "mrboto/layout.rb",
             "mrboto/activity.rb",
