@@ -847,10 +847,12 @@ abstract class MrbotoActivityBase : Activity() {
     fun clipboardCopy(text: CharSequence): Boolean {
         return try {
             val cm = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-            cm.setPrimaryClip(android.content.ClipData.newPlainText("text", text))
+            val clip = android.content.ClipData.newPlainText("text", text)
+            cm.setPrimaryClip(clip)
+            Log.d(TAG, "clipboardCopy: set '${text}', hasClip=${cm.hasPrimaryClip()}, items=${cm.primaryClip?.itemCount}")
             true
         } catch (e: Exception) {
-            Log.w(TAG, "clipboardCopy failed: ${e.message}")
+            Log.w(TAG, "clipboardCopy failed: ${e.message}", e)
             false
         }
     }
@@ -858,9 +860,18 @@ abstract class MrbotoActivityBase : Activity() {
     fun clipboardPaste(): String {
         return try {
             val cm = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-            cm.primaryClip?.getItemAt(0)?.text?.toString() ?: ""
+            val clip = cm.primaryClip
+            if (clip != null && clip.itemCount > 0) {
+                val item = clip.getItemAt(0)
+                val text = item.coerceToText(this)?.toString() ?: ""
+                Log.d(TAG, "clipboardPaste: got '${text}', itemCount=${clip.itemCount}")
+                text
+            } else {
+                Log.d(TAG, "clipboardPaste: no clip, hasClip=${cm.hasPrimaryClip()}")
+                ""
+            }
         } catch (e: Exception) {
-            Log.w(TAG, "clipboardPaste failed: ${e.message}")
+            Log.w(TAG, "clipboardPaste failed: ${e.message}", e)
             ""
         }
     }
@@ -868,9 +879,11 @@ abstract class MrbotoActivityBase : Activity() {
     fun clipboardHasText(): Boolean {
         return try {
             val cm = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-            cm.hasPrimaryClip() && cm.primaryClip!!.itemCount > 0
+            val result = cm.hasPrimaryClip() && cm.primaryClip!!.itemCount > 0
+            Log.d(TAG, "clipboardHasText: $result")
+            result
         } catch (e: Exception) {
-            Log.w(TAG, "clipboardHasText failed: ${e.message}")
+            Log.w(TAG, "clipboardHasText failed: ${e.message}", e)
             false
         }
     }
