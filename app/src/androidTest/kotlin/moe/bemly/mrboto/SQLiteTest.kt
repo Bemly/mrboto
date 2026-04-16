@@ -68,7 +68,7 @@ class SQLiteTest {
             db = sqlite_open("multi_table")
             db.execute("CREATE TABLE a (id INTEGER PRIMARY KEY)")
             db.execute("CREATE TABLE b (id INTEGER PRIMARY KEY)")
-            rows = db.query("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
+            rows = db.query("SELECT name FROM sqlite_master WHERE type='table' AND name != 'android_metadata' ORDER BY name")
             db.close
             rows.length.to_s
         """.trimIndent())

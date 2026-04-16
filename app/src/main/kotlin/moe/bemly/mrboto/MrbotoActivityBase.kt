@@ -449,4 +449,122 @@ abstract class MrbotoActivityBase : Activity() {
         popup.show()
     }
 
+    // ── SQLite ─────────────────────────────────────────────────────────
+
+    private val sqliteDbs = mutableMapOf<Int, android.database.sqlite.SQLiteDatabase>()
+    private var nextSqliteId = 1
+
+    fun sqliteOpen(name: CharSequence): Int {
+        val db = openOrCreateDatabase(name.toString(), MODE_PRIVATE, null)
+        val id = nextSqliteId++
+        sqliteDbs[id] = db
+        return id
+    }
+
+    fun sqliteExecute(dbId: Int, sql: CharSequence): Boolean {
+        val db = sqliteDbs[dbId] ?: return false
+        return try {
+            db.execSQL(sql.toString())
+            true
+        } catch (e: Exception) {
+            Log.w(TAG, "sqliteExecute failed: ${e.message}")
+            false
+        }
+    }
+
+    fun sqliteInsert(dbId: Int, table: CharSequence, valuesJson: CharSequence): Int {
+        val db = sqliteDbs[dbId] ?: return -1
+        return try {
+            val json = org.json.JSONObject(valuesJson.toString())
+            val cv = android.content.ContentValues()
+            val keys = json.keys()
+            while (keys.hasNext()) {
+                val key = keys.next()
+                val value = json.get(key)
+                when (value) {
+                    is Int -> cv.put(key, value)
+                    is Long -> cv.put(key, value)
+                    is Double -> cv.put(key, value)
+                    is Boolean -> cv.put(key, value)
+                    is String -> cv.put(key, value)
+                    org.json.JSONObject.NULL -> cv.putNull(key)
+                    else -> cv.put(key, value.toString())
+                }
+            }
+            db.insert(table.toString(), null, cv).toInt()
+        } catch (e: Exception) {
+            Log.w(TAG, "sqliteInsert failed: ${e.message}")
+            -1
+        }
+    }
+
+    fun sqliteQuery(dbId: Int, sql: CharSequence): String {
+        val db = sqliteDbs[dbId] ?: return "[]"
+        return try {
+            val cursor = db.rawQuery(sql.toString(), null)
+            val jsonArray = org.json.JSONArray()
+            while (cursor.moveToNext()) {
+                val obj = org.json.JSONObject()
+                for (i in 0 until cursor.columnCount) {
+                    val colName = cursor.getColumnName(i)
+                    when (cursor.getType(i)) {
+                        android.database.Cursor.FIELD_TYPE_INTEGER -> obj.put(colName, cursor.getLong(i))
+                        android.database.Cursor.FIELD_TYPE_FLOAT -> obj.put(colName, cursor.getDouble(i))
+                        android.database.Cursor.FIELD_TYPE_STRING -> obj.put(colName, cursor.getString(i))
+                        android.database.Cursor.FIELD_TYPE_NULL -> obj.put(colName, org.json.JSONObject.NULL)
+                        else -> obj.put(colName, cursor.getString(i))
+                    }
+                }
+                jsonArray.put(obj)
+            }
+            cursor.close()
+            jsonArray.toString()
+        } catch (e: Exception) {
+            Log.w(TAG, "sqliteQuery failed: ${e.message}")
+            "[]"
+        }
+    }
+
+    fun sqliteUpdate(dbId: Int, table: CharSequence, valuesJson: CharSequence, whereClause: CharSequence): Int {
+        val db = sqliteDbs[dbId] ?: return -1
+        return try {
+            val json = org.json.JSONObject(valuesJson.toString())
+            val cv = android.content.ContentValues()
+            val keys = json.keys()
+            while (keys.hasNext()) {
+                val key = keys.next()
+                val value = json.get(key)
+                when (value) {
+                    is Int -> cv.put(key, value)
+                    is Long -> cv.put(key, value)
+                    is Double -> cv.put(key, value)
+                    is Boolean -> cv.put(key, value)
+                    is String -> cv.put(key, value)
+                    org.json.JSONObject.NULL -> cv.putNull(key)
+                    else -> cv.put(key, value.toString())
+                }
+            }
+            val where = if (whereClause.isEmpty()) null else whereClause.toString()
+            db.update(table.toString(), cv, where, null)
+        } catch (e: Exception) {
+            Log.w(TAG, "sqliteUpdate failed: ${e.message}")
+            -1
+        }
+    }
+
+    fun sqliteDelete(dbId: Int, table: CharSequence, whereClause: CharSequence): Int {
+        val db = sqliteDbs[dbId] ?: return -1
+        return try {
+            val where = if (whereClause.isEmpty()) null else whereClause.toString()
+            db.delete(table.toString(), where, null)
+        } catch (e: Exception) {
+            Log.w(TAG, "sqliteDelete failed: ${e.message}")
+            -1
+        }
+    }
+
+    fun sqliteClose(dbId: Int) {
+        sqliteDbs.remove(dbId)?.close()
+    }
+
 }

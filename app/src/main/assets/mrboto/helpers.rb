@@ -486,7 +486,7 @@ module Mrboto
       return {} if content.nil? || content.empty?
       pairs = split_json_pairs(content)
       pairs.each do |pair|
-        m = /\A\s*"([^"]*)"\s*:\s*(.*)\z/.match(pair.strip)
+        m = /^\s*"([^"]*)"\s*:\s*(.*)$/.match(pair.strip)
         next unless m
         key = m[1]
         val_str = m[2].strip
@@ -507,10 +507,10 @@ module Mrboto
     end
 
     def self.parse_json_value(val_str)
-      m = /\A"(.*)"\z/.match(val_str)
+      m = /^"(.*)"$/.match(val_str)
       return m[1] if m
-      return val_str.to_i if /\A-?\d+\z/.match(val_str)
-      return val_str.to_f if /\A-?\d+\.\d+\z/.match(val_str)
+      return val_str.to_i if /^-?\d+$/.match(val_str)
+      return val_str.to_f if /^-?\d+\.\d+$/.match(val_str)
       return true if val_str == "true"
       return false if val_str == "false"
       return nil if val_str == "null"
