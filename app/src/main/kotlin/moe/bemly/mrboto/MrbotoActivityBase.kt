@@ -650,4 +650,96 @@ abstract class MrbotoActivityBase : Activity() {
         }
     }
 
+    // ── Network ──────────────────────────────────────────────────────────
+    fun httpGet(url: CharSequence, headersJson: CharSequence?): String {
+        return try {
+            val conn = java.net.URL(url.toString()).openConnection() as java.net.HttpURLConnection
+            conn.requestMethod = "GET"
+            conn.connectTimeout = 10000
+            conn.readTimeout = 10000
+            if (headersJson != null && headersJson.isNotEmpty() && headersJson != "null") {
+                val hdr = org.json.JSONObject(headersJson.toString())
+                val keys = hdr.keys()
+                while (keys.hasNext()) {
+                    val key = keys.next()
+                    conn.setRequestProperty(key, hdr.getString(key))
+                }
+            }
+            val status = conn.responseCode
+            val body = try {
+                conn.inputStream.bufferedReader().readText()
+            } catch (e: Exception) {
+                conn.errorStream?.bufferedReader()?.readText() ?: ""
+            }
+            conn.disconnect()
+            val result = org.json.JSONObject()
+            result.put("status", status)
+            result.put("body", body)
+            result.put("headers", org.json.JSONObject())
+            result.toString()
+        } catch (e: Exception) {
+            Log.w(TAG, "httpGet failed: ${e.message}")
+            "{\"status\":0,\"body\":\"\",\"headers\":{}}"
+        }
+    }
+
+    fun httpPost(url: CharSequence, body: CharSequence, headersJson: CharSequence?): String {
+        return try {
+            val conn = java.net.URL(url.toString()).openConnection() as java.net.HttpURLConnection
+            conn.requestMethod = "POST"
+            conn.connectTimeout = 10000
+            conn.readTimeout = 10000
+            conn.doOutput = true
+            if (headersJson != null && headersJson.isNotEmpty() && headersJson != "null") {
+                val hdr = org.json.JSONObject(headersJson.toString())
+                val keys = hdr.keys()
+                while (keys.hasNext()) {
+                    val key = keys.next()
+                    conn.setRequestProperty(key, hdr.getString(key))
+                }
+            }
+            conn.outputStream.use { it.write(body.toString().toByteArray()) }
+            val status = conn.responseCode
+            val respBody = try {
+                conn.inputStream.bufferedReader().readText()
+            } catch (e: Exception) {
+                conn.errorStream?.bufferedReader()?.readText() ?: ""
+            }
+            conn.disconnect()
+            val result = org.json.JSONObject()
+            result.put("status", status)
+            result.put("body", respBody)
+            result.put("headers", org.json.JSONObject())
+            result.toString()
+        } catch (e: Exception) {
+            Log.w(TAG, "httpPost failed: ${e.message}")
+            "{\"status\":0,\"body\":\"\",\"headers\":{}}"
+        }
+    }
+
+    fun httpDownload(url: CharSequence, filepath: CharSequence): Boolean {
+        return try {
+            val conn = java.net.URL(url.toString()).openConnection() as java.net.HttpURLConnection
+            conn.connectTimeout = 10000
+            conn.readTimeout = 30000
+            conn.connect()
+            if (conn.responseCode != java.net.HttpURLConnection.HTTP_OK) {
+                conn.disconnect()
+                return false
+            }
+            val file = java.io.File(filesDir, filepath.toString())
+            file.parentFile?.mkdirs()
+            conn.inputStream.use { input ->
+                file.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            }
+            conn.disconnect()
+            true
+        } catch (e: Exception) {
+            Log.w(TAG, "httpDownload failed: ${e.message}")
+            false
+        }
+    }
+
 }
