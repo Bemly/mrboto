@@ -486,20 +486,12 @@ module Mrboto
       return {} if content.nil? || content.empty?
       pairs = split_json_pairs(content)
       pairs.each do |pair|
-        if pair =~ /\A\s*"([^"]*)"\s*:\s*(.*)\z/
-          key = $1
-          val_str = $2.strip
-          val = case val_str
-                when /\A"(.*)"\z/ then $1
-                when /\A(-?\d+)\z/ then val_str.to_i
-                when /\A(-?\d+\.\d+)\z/ then val_str.to_f
-                when "true" then true
-                when "false" then false
-                when "null" then nil
-                else val_str
-                end
-          result[key] = val
-        end
+        m = /\A\s*"([^"]*)"\s*:\s*(.*)\z/.match(pair.strip)
+        next unless m
+        key = m[1]
+        val_str = m[2].strip
+        val = parse_json_value(val_str)
+        result[key] = val
       end
       result
     end
@@ -511,18 +503,18 @@ module Mrboto
       content = content[1..-2]
       return [] if content.nil? || content.empty?
       items = split_json_pairs(content)
-      items.map do |item|
-        item = item.strip
-        case item
-        when /\A"(.*)"\z/ then $1
-        when /\A(-?\d+)\z/ then item.to_i
-        when /\A(-?\d+\.\d+)\z/ then item.to_f
-        when "true" then true
-        when "false" then false
-        when "null" then nil
-        else item
-        end
-      end
+      items.map { |item| parse_json_value(item.strip) }
+    end
+
+    def self.parse_json_value(val_str)
+      m = /\A"(.*)"\z/.match(val_str)
+      return m[1] if m
+      return val_str.to_i if /\A-?\d+\z/.match(val_str)
+      return val_str.to_f if /\A-?\d+\.\d+\z/.match(val_str)
+      return true if val_str == "true"
+      return false if val_str == "false"
+      return nil if val_str == "null"
+      val_str
     end
 
     def self.parse_json_array_of_objects(json)

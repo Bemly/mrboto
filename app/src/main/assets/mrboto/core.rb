@@ -135,26 +135,11 @@ module Mrboto
   end
 end
 
-# ── Regexp global variables ($~, $1..$9, $&, $`, $') ────────────────
-# mruby-pure-regexp provides Regexp class but does not set global match
-# variables. This patch adds them so Ruby code can use $1, $2, etc.
-
+# Regexp support: =~ returns MatchData, $~ is set (mruby supports $~ assignment)
+# but $1-$9 are NOT assignable in mruby 3.4.0
 class Regexp
   def _set_match_globals(m)
-    if m
-      $~ = m
-      $& = m.to_s
-      $` = m.pre_match
-      $' = m.post_match
-      $1 = m[1]; $2 = m[2]; $3 = m[3]
-      $4 = m[4]; $5 = m[5]; $6 = m[6]
-      $7 = m[7]; $8 = m[8]; $9 = m[9]
-    else
-      $~ = nil; $& = nil; $` = nil; $' = nil
-      $1 = nil; $2 = nil; $3 = nil
-      $4 = nil; $5 = nil; $6 = nil
-      $7 = nil; $8 = nil; $9 = nil
-    end
+    $~ = m
   end
 end
 
