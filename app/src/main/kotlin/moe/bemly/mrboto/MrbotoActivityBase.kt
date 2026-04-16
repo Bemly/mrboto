@@ -570,7 +570,9 @@ abstract class MrbotoActivityBase : Activity() {
     // ── Permission ──────────────────────────────────────────────────────
     fun checkPermissionGranted(permission: CharSequence): Boolean {
         return try {
-            checkSelfPermission(permission.toString()) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            packageManager.checkPermission(
+                permission.toString(), packageName
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
         } catch (e: Exception) {
             Log.w(TAG, "checkPermissionGranted failed: ${e.message}")
             false
