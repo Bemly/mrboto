@@ -202,17 +202,17 @@ class ClipboardTest {
     // ── System module-level methods exist ─────────────────────────────
 
     @Test
-    fun clipboard_system_module_methods_exist() {
+    fun clipboard_system_methods_exist_on_activity() {
         setupActivity()
-        assertEquals("true", mruby.eval("""
-            Mrboto.current_activity.respond_to?(:clipboardSystemCopy).to_s
-        """.trimIndent()))
-        assertEquals("true", mruby.eval("""
-            Mrboto.current_activity.respond_to?(:clipboardSystemPaste).to_s
-        """.trimIndent()))
-        assertEquals("true", mruby.eval("""
-            Mrboto.current_activity.respond_to?(:clipboardSystemHasText).to_s
-        """.trimIndent()))
+        // System clipboard methods are Java methods on Activity, check via call
+        val result = mruby.eval("""
+            act = Mrboto.current_activity
+            copy_ok = act.call_java_method("clipboardSystemCopy", "test").nil? ? "false" : "true"
+            paste_ok = act.call_java_method("clipboardSystemPaste").nil? ? "false" : "true"
+            has_ok = act.call_java_method("clipboardSystemHasText").nil? ? "false" : "true"
+            [copy_ok, paste_ok, has_ok].all? { |v| v == "true" }.to_s
+        """.trimIndent())
+        assertEquals("true", result)
     }
 
     // ── Cross: system copy then memory paste should not match ─────────
