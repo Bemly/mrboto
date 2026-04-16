@@ -64,11 +64,16 @@ module Mrboto
     end
 
     # Start another Activity
-    def self.start_activity(class_name:, package: nil)
+    def self.start_activity(class_name:, package: nil, extras: nil)
       activity = Mrboto.current_activity
       return unless activity
       cls = package ? "#{package}.#{class_name}" : "#{package_name}.#{class_name}"
-      Mrboto._start_activity(activity._registry_id, cls)
+      if extras.is_a?(Hash) && extras.size > 0
+        json = build_json_hash(extras)
+        activity.call_java_method("startActivityWithExtras", cls, json)
+      else
+        Mrboto._start_activity(activity._registry_id, cls)
+      end
     end
 
     # Start another Ruby Activity (reuse the same RubyActivity class)
@@ -189,6 +194,435 @@ module Mrboto
         scale(view_id, 1.0, 1.0, factor.to_f, factor.to_f, duration)
       end
     end
+
+    # ── Clipboard ──────────────────────────────────────────────────────
+    def self.clipboard_copy(text)
+      activity = Mrboto.current_activity
+      return unless activity
+      activity.call_java_method("clipboardCopy", text.to_s)
+      "ok"
+    end
+
+    def self.clipboard_paste
+      activity = Mrboto.current_activity
+      return nil unless activity
+      activity.call_java_method("clipboardPaste")
+    end
+
+    def self.clipboard_has_text?
+      activity = Mrboto.current_activity
+      return false unless activity
+      result = activity.call_java_method("clipboardHasText")
+      result == true || result.to_s == "true"
+    end
+
+    # ── Intent Extras ──────────────────────────────────────────────────
+    def self.get_extra_int(key)
+      activity = Mrboto.current_activity
+      return 0 unless activity
+      activity.call_java_method("getExtraInt", key.to_s).to_i
+    end
+
+    def self.get_extra_bool(key)
+      activity = Mrboto.current_activity
+      return false unless activity
+      result = activity.call_java_method("getExtraBool", key.to_s)
+      result == true || result.to_s == "true"
+    end
+
+    def self.get_extra_float(key)
+      activity = Mrboto.current_activity
+      return 0.0 unless activity
+      activity.call_java_method("getExtraFloat", key.to_s).to_f
+    end
+
+    def self.get_all_extras
+      activity = Mrboto.current_activity
+      return {} unless activity
+      json = activity.call_java_method("getAllExtras").to_s
+      parse_json_object(json)
+    end
+
+    # ── File Operations ────────────────────────────────────────────────
+    module FileOps
+      def self.write(name, content)
+        activity = Mrboto.current_activity
+        return false unless activity
+        result = activity.call_java_method("fileWrite", name.to_s, content.to_s)
+        result == true || result.to_s == "true"
+      end
+
+      def self.read(name)
+        activity = Mrboto.current_activity
+        return "" unless activity
+        activity.call_java_method("fileRead", name.to_s).to_s
+      end
+
+      def self.exists?(name)
+        activity = Mrboto.current_activity
+        return false unless activity
+        result = activity.call_java_method("fileExists", name.to_s)
+        result == true || result.to_s == "true"
+      end
+
+      def self.delete(name)
+        activity = Mrboto.current_activity
+        return false unless activity
+        result = activity.call_java_method("fileDelete", name.to_s)
+        result == true || result.to_s == "true"
+      end
+
+      def self.list(dir = "")
+        activity = Mrboto.current_activity
+        return [] unless activity
+        json = activity.call_java_method("fileList", dir.to_s).to_s
+        parse_json_array(json)
+      end
+
+      def self.external_write(name, content)
+        activity = Mrboto.current_activity
+        return false unless activity
+        result = activity.call_java_method("externalFileWrite", name.to_s, content.to_s)
+        result == true || result.to_s == "true"
+      end
+
+      def self.external_read(name)
+        activity = Mrboto.current_activity
+        return "" unless activity
+        activity.call_java_method("externalFileRead", name.to_s).to_s
+      end
+
+      def self.cache_write(name, content)
+        activity = Mrboto.current_activity
+        return false unless activity
+        result = activity.call_java_method("cacheWrite", name.to_s, content.to_s)
+        result == true || result.to_s == "true"
+      end
+
+      def self.cache_read(name)
+        activity = Mrboto.current_activity
+        return "" unless activity
+        activity.call_java_method("cacheRead", name.to_s).to_s
+      end
+
+      def self.size(name)
+        activity = Mrboto.current_activity
+        return -1 unless activity
+        activity.call_java_method("fileSize", name.to_s).to_i
+      end
+    end
+
+    # ── Permission Requests ────────────────────────────────────────────
+    def self.permission_granted?(permission)
+      activity = Mrboto.current_activity
+      return false unless activity
+      result = activity.call_java_method("checkPermissionGranted", permission.to_s)
+      result == true || result.to_s == "true"
+    end
+
+    def self.request_permission(permission)
+      activity = Mrboto.current_activity
+      return false unless activity
+      result = activity.call_java_method("requestPermissionSync", permission.to_s)
+      result == true || result.to_s == "true"
+    end
+
+    def self.request_permissions(perms)
+      activity = Mrboto.current_activity
+      return {} unless activity
+      return {} unless perms.is_a?(Array)
+      json_arr = "[" + perms.map { |p| "\"#{p.to_s}\"" }.join(",") + "]"
+      json = activity.call_java_method("requestPermissionsSync", json_arr).to_s
+      parse_json_object(json)
+    end
+
+    # Permission constants
+    PERMISSION_CAMERA = "android.permission.CAMERA"
+    PERMISSION_READ_EXTERNAL_STORAGE = "android.permission.READ_MEDIA_IMAGES"
+    PERMISSION_WRITE_EXTERNAL_STORAGE = "android.permission.WRITE_EXTERNAL_STORAGE"
+    PERMISSION_INTERNET = "android.permission.INTERNET"
+    PERMISSION_RECORD_AUDIO = "android.permission.RECORD_AUDIO"
+    PERMISSION_ACCESS_FINE_LOCATION = "android.permission.ACCESS_FINE_LOCATION"
+    PERMISSION_POST_NOTIFICATIONS = "android.permission.POST_NOTIFICATIONS"
+
+    # ── Notification ───────────────────────────────────────────────────
+    def self.notify(id, title, message, channel: "default")
+      activity = Mrboto.current_activity
+      return unless activity
+      activity.call_java_method("notifyShow", id.to_i, title.to_s, message.to_s, channel.to_s)
+      "ok"
+    end
+
+    def self.notify_cancel(id)
+      activity = Mrboto.current_activity
+      return unless activity
+      activity.call_java_method("notifyCancel", id.to_i)
+      "ok"
+    end
+
+    def self.notify_big(id, title, big_text, channel: "default")
+      activity = Mrboto.current_activity
+      return unless activity
+      activity.call_java_method("notifyBig", id.to_i, title.to_s, big_text.to_s, channel.to_s)
+      "ok"
+    end
+
+    def self.notify_progress(id, title, message, progress, max, channel: "default")
+      activity = Mrboto.current_activity
+      return unless activity
+      activity.call_java_method("notifyProgress", id.to_i, title.to_s, message.to_s,
+        progress.to_i, max.to_i, channel.to_s)
+      "ok"
+    end
+
+    # ── SQLite Database ────────────────────────────────────────────────
+    class SQLiteDB
+      def initialize(name)
+        @name = name
+        @db_id = nil
+      end
+
+      def open
+        act = Mrboto.current_activity
+        return self unless act
+        @db_id = act.call_java_method("sqliteOpen", @name).to_i
+        self
+      end
+
+      def execute(sql)
+        act = Mrboto.current_activity
+        return false unless act && @db_id
+        result = act.call_java_method("sqliteExecute", @db_id, sql.to_s)
+        result == true || result.to_s == "true"
+      end
+
+      def insert(table, values)
+        act = Mrboto.current_activity
+        return -1 unless act && @db_id
+        act.call_java_method("sqliteInsert", @db_id, table.to_s, Mrboto::Helpers.build_json_hash(values)).to_i
+      end
+
+      def query(sql)
+        act = Mrboto.current_activity
+        return [] unless act && @db_id
+        json = act.call_java_method("sqliteQuery", @db_id, sql.to_s).to_s
+        Mrboto::Helpers.parse_json_array_of_objects(json)
+      end
+
+      def raw_query(sql)
+        query(sql)
+      end
+
+      def update(table, values, where_clause = "")
+        act = Mrboto.current_activity
+        return -1 unless act && @db_id
+        act.call_java_method("sqliteUpdate", @db_id, table.to_s,
+          Mrboto::Helpers.build_json_hash(values), where_clause.to_s).to_i
+      end
+
+      def delete(table, where_clause = "")
+        act = Mrboto.current_activity
+        return -1 unless act && @db_id
+        act.call_java_method("sqliteDelete", @db_id, table.to_s, where_clause.to_s).to_i
+      end
+
+      def close
+        act = Mrboto.current_activity
+        act&.call_java_method("sqliteClose", @db_id) if @db_id
+        @db_id = nil
+      end
+    end
+
+    def self.sqlite_open(name)
+      db = SQLiteDB.new(name)
+      db.open
+    end
+
+    # ── Network Requests ───────────────────────────────────────────────
+    def self.http_get(url, headers = {})
+      activity = Mrboto.current_activity
+      return '{"status":0,"body":"","headers":{}}' unless activity
+      hdr = headers.is_a?(Hash) && headers.size > 0 ? build_json_hash(headers) : nil
+      activity.call_java_method("httpGet", url.to_s, hdr).to_s
+    end
+
+    def self.http_post(url, body = "", headers = {})
+      activity = Mrboto.current_activity
+      return '{"status":0,"body":"","headers":{}}' unless activity
+      hdr = headers.is_a?(Hash) && headers.size > 0 ? build_json_hash(headers) : nil
+      activity.call_java_method("httpPost", url.to_s, body.to_s, hdr).to_s
+    end
+
+    def self.http_download(url, filepath)
+      activity = Mrboto.current_activity
+      return false unless activity
+      result = activity.call_java_method("httpDownload", url.to_s, filepath.to_s)
+      result == true || result.to_s == "true"
+    end
+
+    # ── JSON helpers (no dependency on JSON gem) ───────────────────────
+    def self.build_json_hash(hash)
+      pairs = hash.map do |k, v|
+        key = k.to_s.gsub('"', '\\"')
+        val = case v
+              when String then "\"#{v.to_s.gsub('"', '\\"')}\""
+              when Integer, Float then v.to_s
+              when true then "true"
+              when false then "false"
+              when nil then "null"
+              else "\"#{v.to_s.gsub('"', '\\"')}\""
+              end
+        "\"#{key}\":#{val}"
+      end
+      "{#{pairs.join(',')}}"
+    end
+
+    def self.parse_json_object(json)
+      return {} if json.nil? || json.empty? || json == "{}"
+      result = {}
+      content = json.strip
+      return {} unless content.start_with?("{") && content.end_with?("}")
+      content = content[1..-2]
+      return {} if content.nil? || content.empty?
+      pairs = split_json_pairs(content)
+      pairs.each do |pair|
+        colon = find_json_colon(pair)
+        next unless colon
+        key_part = pair[0...colon].strip
+        val_str = pair[colon + 1..].strip
+        next unless key_part.start_with?('"') && key_part.end_with?('"')
+        key = key_part[1..-2]
+        result[key] = parse_json_value(val_str)
+      end
+      result
+    end
+
+    def self.parse_json_array(json)
+      return [] if json.nil? || json.empty? || json == "[]"
+      content = json.strip
+      return [] unless content.start_with?("[") && content.end_with?("]")
+      content = content[1..-2]
+      return [] if content.nil? || content.empty?
+      items = split_json_pairs(content)
+      items.map { |item| parse_json_value(item.strip) }
+    end
+
+    def self.parse_json_value(str)
+      if str.start_with?('"') && str.end_with?('"')
+        str[1..-2]
+      elsif str == "true"
+        true
+      elsif str == "false"
+        false
+      elsif str == "null"
+        nil
+      elsif json_integer?(str)
+        str.to_i
+      elsif json_float?(str)
+        str.to_f
+      else
+        str
+      end
+    end
+
+    def self.json_integer?(str)
+      return false if str.empty?
+      i = 0
+      i = 1 if str[0] == '-'
+      return false if i >= str.length
+      str[i..].each_char { |c| return false unless c >= '0' && c <= '9' }
+      true
+    end
+
+    def self.json_float?(str)
+      return false if str.empty?
+      i = 0
+      i = 1 if str[0] == '-'
+      seen_dot = false
+      seen_digit = false
+      str[i..].each_char do |c|
+        if c == '.'
+          return false if seen_dot
+          seen_dot = true
+        elsif c >= '0' && c <= '9'
+          seen_digit = true
+        else
+          return false
+        end
+      end
+      seen_dot && seen_digit
+    end
+
+    def self.find_json_colon(pair)
+      in_string = false
+      pair.each_char.with_index do |c, i|
+        if c == '"'
+          in_string = !in_string
+        elsif c == ':' && !in_string
+          return i
+        end
+      end
+      nil
+    end
+
+    def self.parse_json_array_of_objects(json)
+      return [] if json.nil? || json.empty? || json == "[]"
+      content = json.strip
+      return [] unless content.start_with?("[") && content.end_with?("]")
+      content = content[1..-2]
+      return [] if content.nil? || content.empty?
+      # Split top-level objects by finding matching braces
+      objects = []
+      depth = 0
+      current = ""
+      content.each_char do |c|
+        if c == '{'
+          depth += 1
+          current += c
+        elsif c == '}'
+          depth -= 1
+          current += c
+          if depth == 0
+            objects << parse_json_object(current)
+            current = ""
+          end
+        elsif c == ',' && depth == 0
+          # skip separator between objects
+        else
+          current += c if depth > 0
+        end
+      end
+      objects
+    end
+
+    def self.split_json_pairs(str)
+      parts = []
+      depth = 0
+      in_string = false
+      current = ""
+      str.each_char do |c|
+        if c == '"' && !in_string
+          in_string = true
+          current += c
+        elsif c == '"' && in_string
+          in_string = false
+          current += c
+        elsif !in_string && (c == '{' || c == '[')
+          depth += 1
+          current += c
+        elsif !in_string && (c == '}' || c == ']')
+          depth -= 1
+          current += c
+        elsif !in_string && c == ',' && depth == 0
+          parts << current
+          current = ""
+        else
+          current += c
+        end
+      end
+      parts << current unless current.empty?
+      parts
+    end
   end
 end
 
@@ -197,8 +631,8 @@ def toast(message, duration = :short)
   Mrboto::Helpers.toast(message, duration)
 end
 
-def start_activity(class_name:, package: nil)
-  Mrboto::Helpers.start_activity(class_name: class_name, package: package)
+def start_activity(class_name:, package: nil, extras: nil)
+  Mrboto::Helpers.start_activity(class_name: class_name, package: package, extras: extras)
 end
 
 def start_ruby_activity(script_path:)
@@ -254,4 +688,123 @@ end
 
 def scale(view_id, from_x, from_y, to_x, to_y, duration = 300)
   Mrboto::Helpers::Animations.scale(view_id, from_x, from_y, to_x, to_y, duration)
+end
+
+# ── Top-level convenience: Intent Extras ──────────────────────────────
+def get_extra_int(key)
+  Mrboto::Helpers.get_extra_int(key)
+end
+
+def get_extra_bool(key)
+  Mrboto::Helpers.get_extra_bool(key)
+end
+
+def get_extra_float(key)
+  Mrboto::Helpers.get_extra_float(key)
+end
+
+def get_all_extras
+  Mrboto::Helpers.get_all_extras
+end
+
+# ── Top-level convenience: Clipboard ──────────────────────────────────
+def clipboard_copy(text)
+  Mrboto::Helpers.clipboard_copy(text)
+end
+
+def clipboard_paste
+  Mrboto::Helpers.clipboard_paste
+end
+
+def clipboard_has_text?
+  Mrboto::Helpers.clipboard_has_text?
+end
+
+# ── Top-level convenience: File Operations ────────────────────────────
+def file_write(name, content)
+  Mrboto::Helpers::FileOps.write(name, content)
+end
+
+def file_read(name)
+  Mrboto::Helpers::FileOps.read(name)
+end
+
+def file_exists?(name)
+  Mrboto::Helpers::FileOps.exists?(name)
+end
+
+def file_delete(name)
+  Mrboto::Helpers::FileOps.delete(name)
+end
+
+def file_list(dir = "")
+  Mrboto::Helpers::FileOps.list(dir)
+end
+
+def external_file_write(name, content)
+  Mrboto::Helpers::FileOps.external_write(name, content)
+end
+
+def external_file_read(name)
+  Mrboto::Helpers::FileOps.external_read(name)
+end
+
+def cache_write(name, content)
+  Mrboto::Helpers::FileOps.cache_write(name, content)
+end
+
+def cache_read(name)
+  Mrboto::Helpers::FileOps.cache_read(name)
+end
+
+def file_size(name)
+  Mrboto::Helpers::FileOps.size(name)
+end
+
+# ── Top-level convenience: Permission ─────────────────────────────────
+def permission_granted?(perm)
+  Mrboto::Helpers.permission_granted?(perm)
+end
+
+def request_permission(perm)
+  Mrboto::Helpers.request_permission(perm)
+end
+
+def request_permissions(perms)
+  Mrboto::Helpers.request_permissions(perms)
+end
+
+# ── Top-level convenience: Notification ───────────────────────────────
+def notify(id, title, message, channel: "default")
+  Mrboto::Helpers.notify(id, title, message, channel: channel)
+end
+
+def notify_cancel(id)
+  Mrboto::Helpers.notify_cancel(id)
+end
+
+def notify_big(id, title, big_text, channel: "default")
+  Mrboto::Helpers.notify_big(id, title, big_text, channel: channel)
+end
+
+def notify_progress(id, title, message, progress, max, channel: "default")
+  Mrboto::Helpers.notify_progress(id, title, message, progress, max, channel: channel)
+end
+
+# ── Top-level convenience: SQLite ─────────────────────────────────────
+def sqlite_open(name)
+  Mrboto::Helpers.sqlite_open(name)
+end
+
+# ── Top-level convenience: Network ────────────────────────────────────
+def http_get(url, headers = {})
+  Mrboto::Helpers.http_get(url, headers)
+end
+
+def http_post(url, body = "", headers = {})
+  Mrboto::Helpers.http_post(url, body, headers)
+end
+
+def http_download(url, filepath)
+  Mrboto::Helpers.http_download(url, filepath)
 end
