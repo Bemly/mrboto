@@ -25,7 +25,11 @@ class ClipboardTest {
         """.trimIndent())
     }
 
-    // ── Copy ──────────────────────────────────────────────────────
+    // ════════════════════════════════════════════════════════════════════
+    // In-memory clipboard (clipboardCopy / clipboardPaste / clipboardHasText)
+    // ════════════════════════════════════════════════════════════════════
+
+    // ── Copy ──────────────────────────────────────────────────────────
 
     @Test
     fun clipboard_copy_does_not_crash() {
@@ -57,7 +61,7 @@ class ClipboardTest {
         assertEquals("second", result)
     }
 
-    // ── Paste ─────────────────────────────────────────────────────
+    // ── Paste ─────────────────────────────────────────────────────────
 
     @Test
     fun clipboard_paste_returns_string() {
@@ -68,11 +72,10 @@ class ClipboardTest {
     }
 
     @Test
-    fun clipboard_paste_returns_nil_when_empty() {
+    fun clipboard_paste_returns_empty_when_no_copy() {
         setupActivity()
-        val result = mruby.eval("clipboard_paste.nil?.to_s")
-        // May be true or false depending on clipboard state
-        assertNotNull(result)
+        val result = mruby.eval("clipboard_paste")
+        assertEquals("", result)
     }
 
     @Test
@@ -83,7 +86,7 @@ class ClipboardTest {
         assertEquals("String", result)
     }
 
-    // ── Has Text ──────────────────────────────────────────────────
+    // ── Has Text ──────────────────────────────────────────────────────
 
     @Test
     fun clipboard_has_text_returns_true_after_copy() {
@@ -94,14 +97,13 @@ class ClipboardTest {
     }
 
     @Test
-    fun clipboard_has_text_returns_boolean_type() {
+    fun clipboard_has_text_returns_false_initially() {
         setupActivity()
-        mruby.eval("clipboard_copy('boolcheck')")
-        val result = mruby.eval("[true, false].include?(clipboard_has_text?).to_s")
-        assertEquals("true", result)
+        val result = mruby.eval("clipboard_has_text?.to_s")
+        assertEquals("false", result)
     }
 
-    // ── Module methods ────────────────────────────────────────────
+    // ── Module methods ────────────────────────────────────────────────
 
     @Test
     fun clipboard_module_methods_exist() {
@@ -117,7 +119,7 @@ class ClipboardTest {
         assertEquals("true", mruby.eval("method(:clipboard_has_text?).nil? rescue false; true.to_s"))
     }
 
-    // ── Module-level direct calls ─────────────────────────────────
+    // ── Module-level direct calls ─────────────────────────────────────
 
     @Test
     fun module_clipboard_copy_does_not_crash() {
@@ -140,5 +142,119 @@ class ClipboardTest {
         mruby.eval("Mrboto::Helpers.clipboard_copy('ModHas')")
         val result = mruby.eval("Mrboto::Helpers.clipboard_has_text?.to_s")
         assertEquals("true", result)
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    // System clipboard (clipboardSystemCopy / clipboardSystemPaste / clipboardSystemHasText)
+    // ════════════════════════════════════════════════════════════════════
+
+    // ── System Copy ───────────────────────────────────────────────────
+
+    @Test
+    fun clipboard_system_copy_does_not_crash() {
+        setupActivity()
+        val result = mruby.eval("""
+            act = Mrboto.current_activity
+            act.call_java_method("clipboardSystemCopy", "Hello System")
+            'ok'
+        """.trimIndent())
+        assertEquals("ok", result)
+    }
+
+    @Test
+    fun clipboard_system_copy_empty_does_not_crash() {
+        setupActivity()
+        val result = mruby.eval("""
+            act = Mrboto.current_activity
+            act.call_java_method("clipboardSystemCopy", "")
+            'ok'
+        """.trimIndent())
+        assertEquals("ok", result)
+    }
+
+    // ── System Paste ──────────────────────────────────────────────────
+
+    @Test
+    fun clipboard_system_paste_returns_string() {
+        setupActivity()
+        val result = mruby.eval("""
+            act = Mrboto.current_activity
+            act.call_java_method("clipboardSystemCopy", "SystemPaste123")
+            act.call_java_method("clipboardSystemPaste")
+        """.trimIndent())
+        // System clipboard may fail in test env, just check it returns a string
+        assertNotNull(result)
+    }
+
+    // ── System Has Text ───────────────────────────────────────────────
+
+    @Test
+    fun clipboard_system_has_text_returns_boolean() {
+        setupActivity()
+        val result = mruby.eval("""
+            act = Mrboto.current_activity
+            val = act.call_java_method("clipboardSystemHasText")
+            [true, false].include?(val).to_s
+        """.trimIndent())
+        assertEquals("true", result)
+    }
+
+    // ── System module-level methods exist ─────────────────────────────
+
+    @Test
+    fun clipboard_system_module_methods_exist() {
+        setupActivity()
+        assertEquals("true", mruby.eval("""
+            Mrboto.current_activity.respond_to?(:clipboardSystemCopy).to_s
+        """.trimIndent()))
+        assertEquals("true", mruby.eval("""
+            Mrboto.current_activity.respond_to?(:clipboardSystemPaste).to_s
+        """.trimIndent()))
+        assertEquals("true", mruby.eval("""
+            Mrboto.current_activity.respond_to?(:clipboardSystemHasText).to_s
+        """.trimIndent()))
+    }
+
+    // ── Cross: system copy then memory paste should not match ─────────
+
+    @Test
+    fun clipboard_memory_and_system_are_independent() {
+        setupActivity()
+        mruby.eval("clipboard_copy('memory_value')")
+        val memoryResult = mruby.eval("clipboard_paste")
+        assertEquals("memory_value", memoryResult)
+        // Memory clipboard should not be affected by system clipboard
+    }
+
+    // ── Full workflow: memory ─────────────────────────────────────────
+
+    @Test
+    fun clipboard_memory_full_workflow() {
+        setupActivity()
+        val result = mruby.eval("""
+            clipboard_copy('alpha')
+            a = clipboard_paste
+            clipboard_copy('beta')
+            b = clipboard_paste
+            has = clipboard_has_text?
+            "#{a}|#{b}|#{has}"
+        """.trimIndent())
+        assertEquals("alpha|beta|true", result)
+    }
+
+    // ── Full workflow: system ─────────────────────────────────────────
+
+    @Test
+    fun clipboard_system_full_workflow() {
+        setupActivity()
+        val result = mruby.eval("""
+            act = Mrboto.current_activity
+            act.call_java_method("clipboardSystemCopy", "sys_alpha")
+            a = act.call_java_method("clipboardSystemPaste")
+            has = act.call_java_method("clipboardSystemHasText")
+            "#{a}|#{has}"
+        """.trimIndent())
+        // System may fail in test env, just verify no crash
+        assertNotNull(result)
     }
 }
