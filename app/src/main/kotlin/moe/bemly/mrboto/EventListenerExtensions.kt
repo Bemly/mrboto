@@ -5,12 +5,15 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.net.ConnectivityManager
+import android.net.Network
 import android.net.NetworkCapabilities
+import android.net.NetworkRequest
 import android.os.BatteryManager
 import android.util.Log
 
 private var batteryReceiver: BroadcastReceiver? = null
 private var batteryCallbackId: Int = -1
+private var networkCallback: ConnectivityManager.NetworkCallback? = null
 
 fun MrbotoActivityBase.observeBattery(callbackId: Int): Boolean {
     return try {
@@ -36,18 +39,21 @@ fun MrbotoActivityBase.observeBattery(callbackId: Int): Boolean {
 fun MrbotoActivityBase.observeNetwork(callbackId: Int): Boolean {
     return try {
         val mrubyRef = mruby
-        val receiver = object : BroadcastReceiver() {
-            override fun onReceive(context: Context?, intent: Intent?) {
-                val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-                val network = cm.activeNetwork
-                val caps = cm.getNetworkCapabilities(network)
-                val connected = caps != null
-                val wifi = caps?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ?: false
-                val mobile = caps?.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ?: false
-                mrubyRef.eval("Mrboto.dispatch_callback($callbackId, $connected, $wifi, $mobile)")
+        val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        networkCallback?.let { cm.unregisterNetworkCallback(it) }
+        val cb = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                mrubyRef.eval("Mrboto.dispatch_callback($callbackId, true)")
+            }
+            override fun onLost(network: Network) {
+                mrubyRef.eval("Mrboto.dispatch_callback($callbackId, false)")
             }
         }
-        registerReceiver(receiver, IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION))
+        networkCallback = cb
+        val request = NetworkRequest.Builder()
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .build()
+        cm.registerNetworkCallback(request, cb)
         true
     } catch (e: Exception) {
         Log.w("Mrboto", "observeNetwork failed: ${e.message}")

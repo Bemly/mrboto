@@ -1,7 +1,6 @@
 package moe.bemly.mrboto
 
 import android.graphics.PixelFormat
-import android.os.Build
 import android.util.Log
 import android.view.Gravity
 import android.view.View
@@ -16,9 +15,7 @@ fun MrbotoActivityBase.overlayShow(viewId: Int, x: Int, y: Int, width: Int = -2,
         val overlayView = View(this)
         val params = WindowManager.LayoutParams(
             width, height,
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-            else WindowManager.LayoutParams.TYPE_PHONE,
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
             PixelFormat.TRANSLUCENT
         )

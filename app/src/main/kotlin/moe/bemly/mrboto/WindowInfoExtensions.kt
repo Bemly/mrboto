@@ -6,9 +6,7 @@ import org.json.JSONObject
 
 fun MrbotoActivityBase.getCurrentActivityName(): String {
     return try {
-        val am = getSystemService(android.content.Context.ACTIVITY_SERVICE) as ActivityManager
-        val tasks = am.getRunningTasks(1)
-        if (tasks.isNotEmpty()) tasks[0].topActivity?.className ?: "" else ""
+        javaClass.name
     } catch (e: Exception) {
         Log.w("Mrboto", "getCurrentActivityName failed: ${e.message}")
         ""
@@ -17,9 +15,7 @@ fun MrbotoActivityBase.getCurrentActivityName(): String {
 
 fun MrbotoActivityBase.getTopActivityPackage(): String {
     return try {
-        val am = getSystemService(android.content.Context.ACTIVITY_SERVICE) as ActivityManager
-        val tasks = am.getRunningTasks(1)
-        if (tasks.isNotEmpty()) tasks[0].topActivity?.packageName ?: "" else ""
+        packageName ?: ""
     } catch (e: Exception) {
         ""
     }

@@ -867,6 +867,7 @@ abstract class MrbotoActivityBase : Activity() {
             val extras = intent?.extras ?: return "{}"
             val map = mutableMapOf<String, Any?>()
             for (key in extras.keySet()) {
+                @Suppress("DEPRECATION")
                 map[key] = extras.get(key)
             }
             org.json.JSONObject(map).toString()
