@@ -742,4 +742,105 @@ abstract class MrbotoActivityBase : Activity() {
         }
     }
 
+    // ── File Operations ──────────────────────────────────────────────────
+    fun fileWrite(name: CharSequence, content: CharSequence): Boolean {
+        return try {
+            openFileOutput(name.toString(), android.content.Context.MODE_PRIVATE).use {
+                it.write(content.toString().toByteArray())
+            }
+            true
+        } catch (e: Exception) {
+            Log.w(TAG, "fileWrite failed: ${e.message}")
+            false
+        }
+    }
+
+    fun fileRead(name: CharSequence): String {
+        return try {
+            openFileInput(name.toString()).bufferedReader().readText()
+        } catch (e: Exception) {
+            Log.w(TAG, "fileRead failed: ${e.message}")
+            ""
+        }
+    }
+
+    fun fileExists(name: CharSequence): Boolean {
+        return getFileStreamPath(name.toString()).exists()
+    }
+
+    fun fileDelete(name: CharSequence): Boolean {
+        return try {
+            deleteFile(name.toString())
+        } catch (e: Exception) {
+            Log.w(TAG, "fileDelete failed: ${e.message}")
+            false
+        }
+    }
+
+    fun fileList(dir: CharSequence): String {
+        return try {
+            val files = if (dir.isEmpty()) {
+                fileList() ?: emptyArray()
+            } else {
+                getDir(dir.toString(), android.content.Context.MODE_PRIVATE).list() ?: emptyArray()
+            }
+            val arr = org.json.JSONArray()
+            for (f in files) arr.put(f)
+            arr.toString()
+        } catch (e: Exception) {
+            Log.w(TAG, "fileList failed: ${e.message}")
+            "[]"
+        }
+    }
+
+    fun fileSize(name: CharSequence): Int {
+        return try {
+            getFileStreamPath(name.toString()).length().toInt()
+        } catch (e: Exception) {
+            -1
+        }
+    }
+
+    fun externalFileWrite(name: CharSequence, content: CharSequence): Boolean {
+        return try {
+            val file = java.io.File(getExternalFilesDir(null), name.toString())
+            file.parentFile?.mkdirs()
+            file.writeText(content.toString())
+            true
+        } catch (e: Exception) {
+            Log.w(TAG, "externalFileWrite failed: ${e.message}")
+            false
+        }
+    }
+
+    fun externalFileRead(name: CharSequence): String {
+        return try {
+            java.io.File(getExternalFilesDir(null), name.toString()).readText()
+        } catch (e: Exception) {
+            Log.w(TAG, "externalFileRead failed: ${e.message}")
+            ""
+        }
+    }
+
+    fun cacheWrite(name: CharSequence, content: CharSequence): Boolean {
+        return try {
+            val file = java.io.File(cacheDir, name.toString())
+            file.parentFile?.mkdirs()
+            file.writeText(content.toString())
+            true
+        } catch (e: Exception) {
+            Log.w(TAG, "cacheWrite failed: ${e.message}")
+            false
+        }
+    }
+
+    fun cacheRead(name: CharSequence): String {
+        return try {
+            java.io.File(cacheDir, name.toString()).readText()
+        } catch (e: Exception) {
+            Log.w(TAG, "cacheRead failed: ${e.message}")
+            ""
+        }
+    }
+
 }

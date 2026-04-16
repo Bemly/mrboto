@@ -276,7 +276,7 @@ module Mrboto
         activity = Mrboto.current_activity
         return [] unless activity
         json = activity.call_java_method("fileList", dir.to_s).to_s
-        parse_json_array(json)
+        Mrboto::Helpers.parse_json_array(json)
       end
 
       def self.external_write(name, content)
