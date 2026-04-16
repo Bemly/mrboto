@@ -843,6 +843,83 @@ abstract class MrbotoActivityBase : Activity() {
         }
     }
 
+    // ── Intent Extras ──────────────────────────────────────────────────────
+    fun getExtraInt(key: CharSequence): Int {
+        return try {
+            intent?.extras?.getInt(key.toString(), 0) ?: 0
+        } catch (_: Exception) { 0 }
+    }
+
+    fun getExtraBool(key: CharSequence): Boolean {
+        return try {
+            intent?.extras?.getBoolean(key.toString(), false) ?: false
+        } catch (_: Exception) { false }
+    }
+
+    fun getExtraFloat(key: CharSequence): Float {
+        return try {
+            intent?.extras?.getFloat(key.toString(), 0f) ?: 0f
+        } catch (_: Exception) { 0f }
+    }
+
+    fun getAllExtras(): String {
+        return try {
+            val extras = intent?.extras ?: return "{}"
+            val map = mutableMapOf<String, Any?>()
+            for (key in extras.keySet()) {
+                map[key] = extras.get(key)
+            }
+            org.json.JSONObject(map).toString()
+        } catch (_: Exception) { "{}" }
+    }
+
+    // ── Permissions ───────────────────────────────────────────────────────
+    fun requestPermissionSync(permission: CharSequence): Boolean {
+        return try {
+            android.content.pm.PackageManager.PERMISSION_GRANTED ==
+                packageManager.checkPermission(permission.toString(), packageName)
+        } catch (_: Exception) { false }
+    }
+
+    fun requestPermissionsSync(permissionsJson: CharSequence): String {
+        return try {
+            val arr = org.json.JSONArray(permissionsJson.toString())
+            val result = org.json.JSONObject()
+            for (i in 0 until arr.length()) {
+                val perm = arr.getString(i)
+                val granted = android.content.pm.PackageManager.PERMISSION_GRANTED ==
+                    packageManager.checkPermission(perm, packageName)
+                result.put(perm, granted)
+            }
+            result.toString()
+        } catch (_: Exception) { "{}" }
+    }
+
+    // ── Start Activity ────────────────────────────────────────────────────
+    fun startActivityWithExtras(className: CharSequence, extrasJson: CharSequence) {
+        try {
+            val intent = android.content.Intent(this, Class.forName(className.toString()))
+            val json = org.json.JSONObject(extrasJson.toString())
+            val keys = json.keys()
+            while (keys.hasNext()) {
+                val key = keys.next()
+                val value = json.get(key)
+                when (value) {
+                    is String -> intent.putExtra(key, value)
+                    is Int -> intent.putExtra(key, value)
+                    is Long -> intent.putExtra(key, value)
+                    is Double -> intent.putExtra(key, value)
+                    is Boolean -> intent.putExtra(key, value)
+                    is Float -> intent.putExtra(key, value)
+                    else -> intent.putExtra(key, value.toString())
+                }
+            }
+            startActivity(intent)
+        } catch (e: Exception) {
+            Log.w(TAG, "startActivityWithExtras failed: ${e.message}")
+        }
+    }
+
     // ── Clipboard (in-memory) ────────────────────────────────────────────
     private var _clipboardText: String = ""
 

@@ -25,7 +25,7 @@ class IntentExtrasTest {
         """.trimIndent())
     }
 
-    // ── get_extra_int ─────────────────────────────────────────────
+    // ── get_extra_int ─────────────────────────────────────────────────
 
     @Test
     fun get_extra_int_returns_zero_for_missing_key() {
@@ -41,7 +41,17 @@ class IntentExtrasTest {
         assertEquals("Integer", result)
     }
 
-    // ── get_extra_bool ────────────────────────────────────────────
+    @Test
+    fun get_extra_int_set_and_get() {
+        setupActivity()
+        val result = mruby.eval("""
+            act = Mrboto.current_activity
+            act.call_java_method("getExtraInt", "count").to_s
+        """.trimIndent())
+        assertEquals("0", result)
+    }
+
+    // ── get_extra_bool ────────────────────────────────────────────────
 
     @Test
     fun get_extra_bool_returns_false_for_missing_key() {
@@ -57,7 +67,7 @@ class IntentExtrasTest {
         assertEquals("true", result)
     }
 
-    // ── get_extra_float ───────────────────────────────────────────
+    // ── get_extra_float ───────────────────────────────────────────────
 
     @Test
     fun get_extra_float_returns_zero_for_missing_key() {
@@ -73,7 +83,7 @@ class IntentExtrasTest {
         assertEquals("Float", result)
     }
 
-    // ── get_all_extras ────────────────────────────────────────────
+    // ── get_all_extras ────────────────────────────────────────────────
 
     @Test
     fun get_all_extras_returns_hash() {
@@ -89,7 +99,18 @@ class IntentExtrasTest {
         assertEquals("true", result)
     }
 
-    // ── get_extra (string) ────────────────────────────────────────
+    @Test
+    fun get_all_extras_via_call_java_method_returns_json() {
+        setupActivity()
+        val result = mruby.eval("""
+            act = Mrboto.current_activity
+            raw = act.call_java_method("getAllExtras").to_s
+            raw.class.name
+        """.trimIndent())
+        assertEquals("String", result)
+    }
+
+    // ── get_extra (string) ────────────────────────────────────────────
 
     @Test
     fun get_extra_returns_nil_for_missing_key() {
@@ -104,7 +125,7 @@ class IntentExtrasTest {
         assertEquals("true", mruby.eval("method(:get_extra).nil? rescue false; true.to_s"))
     }
 
-    // ── Module methods existence ──────────────────────────────────
+    // ── Module methods existence ──────────────────────────────────────
 
     @Test
     fun intent_extras_methods_exist() {
@@ -122,7 +143,7 @@ class IntentExtrasTest {
         assertEquals("true", mruby.eval("method(:get_all_extras).nil? rescue false; true.to_s"))
     }
 
-    // ── Module-level direct calls ─────────────────────────────────
+    // ── Module-level direct calls ─────────────────────────────────────
 
     @Test
     fun module_get_extra_int_returns_zero() {

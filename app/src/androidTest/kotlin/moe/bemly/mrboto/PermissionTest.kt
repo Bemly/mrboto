@@ -25,13 +25,12 @@ class PermissionTest {
         """.trimIndent())
     }
 
-    // ── permission_granted? ───────────────────────────────────────
+    // ── permission_granted? ───────────────────────────────────────────
 
     @Test
     fun permission_granted_returns_boolean_for_internet() {
         setupActivity()
         val result = mruby.eval("permission_granted?(Mrboto::Helpers::PERMISSION_INTERNET).to_s")
-        // INTERNET is a normal permission, always granted
         assertEquals("true", result)
     }
 
@@ -49,7 +48,70 @@ class PermissionTest {
         assertEquals("false", result)
     }
 
-    // ── Permission constants ──────────────────────────────────────
+    // ── request_permission ────────────────────────────────────────────
+
+    @Test
+    fun request_permission_returns_true_for_internet() {
+        setupActivity()
+        val result = mruby.eval("request_permission(Mrboto::Helpers::PERMISSION_INTERNET).to_s")
+        assertEquals("true", result)
+    }
+
+    @Test
+    fun request_permission_returns_false_for_unknown() {
+        setupActivity()
+        val result = mruby.eval("request_permission('com.nonexistent.FAKE').to_s")
+        assertEquals("false", result)
+    }
+
+    @Test
+    fun request_permission_via_call_java_method() {
+        setupActivity()
+        val result = mruby.eval("""
+            act = Mrboto.current_activity
+            act.call_java_method("requestPermissionSync", Mrboto::Helpers::PERMISSION_INTERNET).to_s
+        """.trimIndent())
+        assertEquals("true", result)
+    }
+
+    // ── request_permissions ───────────────────────────────────────────
+
+    @Test
+    fun request_permissions_returns_hash() {
+        setupActivity()
+        val result = mruby.eval("Mrboto::Helpers.request_permissions([Mrboto::Helpers::PERMISSION_INTERNET]).class.name")
+        assertEquals("Hash", result)
+    }
+
+    @Test
+    fun request_permissions_with_empty_array_returns_hash() {
+        setupActivity()
+        val result = mruby.eval("Mrboto::Helpers.request_permissions([]).class.name")
+        assertEquals("Hash", result)
+    }
+
+    @Test
+    fun request_permissions_contains_granted_key() {
+        setupActivity()
+        val result = mruby.eval("""
+            h = Mrboto::Helpers.request_permissions([Mrboto::Helpers::PERMISSION_INTERNET])
+            h[Mrboto::Helpers::PERMISSION_INTERNET].to_s
+        """.trimIndent())
+        assertEquals("true", result)
+    }
+
+    @Test
+    fun request_permissions_via_call_java_method() {
+        setupActivity()
+        val result = mruby.eval("""
+            act = Mrboto.current_activity
+            json = act.call_java_method("requestPermissionsSync", '["android.permission.INTERNET"]').to_s
+            json.class.name
+        """.trimIndent())
+        assertEquals("String", result)
+    }
+
+    // ── Permission constants ──────────────────────────────────────────
 
     @Test
     fun permission_camera_constant_exists() {
@@ -116,7 +178,7 @@ class PermissionTest {
         assertEquals("true", mruby.eval("Mrboto::Helpers.const_defined?(:PERMISSION_WRITE_EXTERNAL_STORAGE).to_s"))
     }
 
-    // ── Module methods existence ──────────────────────────────────
+    // ── Module methods existence ──────────────────────────────────────
 
     @Test
     fun permission_module_methods_exist() {
@@ -132,26 +194,12 @@ class PermissionTest {
         assertEquals("true", mruby.eval("method(:request_permissions).nil? rescue false; true.to_s"))
     }
 
-    // ── Module-level direct calls ─────────────────────────────────
+    // ── Module-level direct calls ─────────────────────────────────────
 
     @Test
     fun module_permission_granted_does_not_crash() {
         setupActivity()
         val result = mruby.eval("Mrboto::Helpers.permission_granted?(Mrboto::Helpers::PERMISSION_INTERNET).to_s")
         assertEquals("true", result)
-    }
-
-    @Test
-    fun request_permissions_returns_hash() {
-        setupActivity()
-        val result = mruby.eval("Mrboto::Helpers.request_permissions([Mrboto::Helpers::PERMISSION_INTERNET]).class.name")
-        assertEquals("Hash", result)
-    }
-
-    @Test
-    fun request_permissions_with_empty_array_returns_hash() {
-        setupActivity()
-        val result = mruby.eval("Mrboto::Helpers.request_permissions([]).class.name")
-        assertEquals("Hash", result)
     }
 }
