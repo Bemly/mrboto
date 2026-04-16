@@ -1,9 +1,12 @@
 package moe.bemly.mrboto
 
+import android.app.Activity
+import android.content.ComponentName
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.rules.TestRule
 import org.junit.runner.Description
 import org.junit.runners.model.Statement
@@ -19,6 +22,17 @@ class MrbotoTestRule : TestRule {
 
     val context: Context
         get() = ApplicationProvider.getApplicationContext()
+
+    /** Create a TestMrbotoActivity instance without launching it via Intent. */
+    fun createTestActivity(): TestMrbotoActivity {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val component = ComponentName(context, TestMrbotoActivity::class.java)
+        return instrumentation.newActivity(
+            TestMrbotoActivity::class.java.classLoader!!,
+            TestMrbotoActivity::class.java.name,
+            null
+        ) as TestMrbotoActivity
+    }
 
     override fun apply(base: Statement, description: Description): Statement {
         return object : Statement() {

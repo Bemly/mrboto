@@ -1,6 +1,5 @@
 package moe.bemly.mrboto
 
-import androidx.test.core.app.ActivityScenario
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
@@ -14,18 +13,16 @@ class NetworkTest {
         get() = mrbotoRule.mruby
 
     private fun setupActivity() {
-        val scenario = ActivityScenario.launch(TestMrbotoActivity::class.java)
-        scenario.onActivity { act ->
-            val actId = mruby.registerJavaObject(act)
-            mruby.eval("Mrboto.current_activity_id = $actId")
-            mruby.eval("""
-                class TestActivity < Mrboto::Activity
-                  def on_create(bundle); super; end
-                end
-                Mrboto.current_activity = TestActivity.new(Mrboto.current_activity_id)
-                Mrboto.current_activity.on_create(nil)
-            """.trimIndent())
-        }
+        val act = mrbotoRule.createTestActivity()
+        val actId = mruby.registerJavaObject(act)
+        mruby.eval("Mrboto.current_activity_id = $actId")
+        mruby.eval("""
+            class TestActivity < Mrboto::Activity
+              def on_create(bundle); super; end
+            end
+            Mrboto.current_activity = TestActivity.new(Mrboto.current_activity_id)
+            Mrboto.current_activity.on_create(nil)
+        """.trimIndent())
     }
 
     // ── http_get ──────────────────────────────────────────────────
