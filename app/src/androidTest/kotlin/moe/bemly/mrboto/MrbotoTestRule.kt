@@ -33,9 +33,12 @@ class MrbotoTestRule : TestRule {
                 TestMrbotoActivity::class.java.name,
                 null
             ) as TestMrbotoActivity
-            // attachBaseContext gives the Activity a real base Context
-            // so methods like openOrCreateDatabase / getSystemService work.
-            activity.attachBaseContext(appCtx)
+            // attachBaseContext is protected, so use reflection to give
+            // the Activity a real base Context for openOrCreateDatabase etc.
+            val method = android.content.ContextWrapper::class.java
+                .getDeclaredMethod("attachBaseContext", Context::class.java)
+            method.isAccessible = true
+            method.invoke(activity, appCtx)
             result = activity
             latch.countDown()
         }

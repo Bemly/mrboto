@@ -1,6 +1,5 @@
 package moe.bemly.mrboto
 
-import android.content.Context
 import android.os.Bundle
 
 /**
@@ -14,6 +13,7 @@ class TestMrbotoActivity : MrbotoActivityBase() {
     override fun onCreate(savedInstanceState: Bundle?) {
         // Skip MrbotoActivityBase.onCreate which tries to load mruby
         // scripts and requires a MrbotoApplication. The base Context is
-        // already set by attachBaseContext() before onCreate runs.
+        // already set by reflection-based attachBaseContext() before
+        // any onCreate runs.
     }
 }
