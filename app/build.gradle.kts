@@ -64,7 +64,7 @@ publishing {
         register<MavenPublication>("release") {
             groupId = "moe.bemly.mrboto"
             artifactId = "mrboto"
-            version = "26.4.13"
+            version = "26.4.17"
 
             pom {
                 name.set("mrboto")

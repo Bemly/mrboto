@@ -192,7 +192,7 @@ All take registry IDs, look up GlobalRefs via `mrboto_lookup_ref()`, use Android
 
 ## Publishing
 
-- Maven coordinates: `moe.bemly.mrboto:mrboto:26.4.13`
+- Maven coordinates: `moe.bemly.mrboto:mrboto:26.4.17`
 - `maven-publish` plugin configured in `app/build.gradle.kts`
 - AGP 9 auto-associates release variant (no explicit component needed)
 
