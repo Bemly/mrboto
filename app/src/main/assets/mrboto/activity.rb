@@ -67,6 +67,11 @@ module Mrboto
       Mrboto._package_name
     end
 
+    # Get the app's internal files directory path
+    def files_dir
+      call_java_method("getFilesDir").call_java_method("getAbsolutePath")
+    end
+
     # Bridge to Kotlin side's MrbotoActivityBase.setViewClickListener
     def setViewClickListener(view_registry_id, callback_id)
       call_java_method("setViewClickListener", view_registry_id, callback_id)

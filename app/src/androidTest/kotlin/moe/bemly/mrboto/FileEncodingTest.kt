@@ -45,20 +45,22 @@ class FileEncodingTest {
     }
 
     @Test fun file_mkdir_creates_dir() {
-        val act = mrbotoRule.createTestActivity()
-        val dir = "${act.filesDir.absolutePath}/mrboto_test_dir"
         setupActivity()
-        mruby.eval("Mrboto::Helpers.file_delete_dir('$dir')") // cleanup from prior run
-        val result = mruby.eval("Mrboto::Helpers.file_mkdir('$dir').to_s")
+        val result = mruby.eval("""
+            dir = Mrboto.current_activity.files_dir + "/mrboto_test_dir"
+            Mrboto::Helpers.file_delete_dir(dir) if Mrboto::Helpers.file_exists_path(dir)
+            Mrboto::Helpers.file_mkdir(dir).to_s
+        """.trimIndent())
         assertEquals("true", result)
     }
 
     @Test fun file_delete_dir_removes_dir() {
-        val act = mrbotoRule.createTestActivity()
-        val dir = "${act.filesDir.absolutePath}/mrboto_test_dir"
         setupActivity()
-        mruby.eval("Mrboto::Helpers.file_mkdir('$dir')") // ensure dir exists
-        val result = mruby.eval("Mrboto::Helpers.file_delete_dir('$dir').to_s")
+        val result = mruby.eval("""
+            dir = Mrboto.current_activity.files_dir + "/mrboto_test_dir"
+            Mrboto::Helpers.file_mkdir(dir) unless Mrboto::Helpers.file_exists_path(dir)
+            Mrboto::Helpers.file_delete_dir(dir).to_s
+        """.trimIndent())
         assertEquals("true", result)
     }
 
