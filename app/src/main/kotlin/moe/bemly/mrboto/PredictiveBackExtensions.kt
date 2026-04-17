@@ -1,2 +1,11 @@
 package moe.bemly.mrboto
-// Methods moved to MrbotoActivityBase
+
+import android.os.Build
+
+interface PredictiveBackMixin {
+    val mruby: MRuby
+
+    fun predictiveBackEnabled(): Boolean {
+        return Build.VERSION.SDK_INT >= 33
+    }
+}
