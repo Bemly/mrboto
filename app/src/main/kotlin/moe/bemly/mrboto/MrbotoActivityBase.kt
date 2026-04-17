@@ -37,7 +37,8 @@ abstract class MrbotoActivityBase : Activity(),
         const val META_DATA_SCRIPT = "mrboto_script"
     }
 
-    internal lateinit var mruby: MRuby
+    override lateinit var mruby: MRuby
+        internal set
     protected var rubyInstanceId: Int = 0
 
     /** Expose mruby to subclasses in other modules */
