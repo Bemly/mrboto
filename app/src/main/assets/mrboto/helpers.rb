@@ -950,7 +950,14 @@ module Mrboto
       activity.call_java_method("httpUpload", url.to_s, file_path.to_s, field_name.to_s).to_s
     end
 
-    # ── OCR (reserved) ─────────────────────────────────────────────────────
+    # ── OCR (PaddleOCR v5 NCNN) ────────────────────────────────────────────
+    def self.ocr_init
+      activity = Mrboto.current_activity
+      return false unless activity
+      result = activity.call_java_method("ocrInit")
+      result == true || result.to_s == "true"
+    end
+
     def self.ocr_recognize(image_path)
       activity = Mrboto.current_activity
       return "" unless activity
@@ -959,6 +966,19 @@ module Mrboto
 
     def self.ocr_recognize_from_path(image_path)
       ocr_recognize(image_path)
+    end
+
+    def self.ocr_detect(image_path)
+      activity = Mrboto.current_activity
+      return "" unless activity
+      activity.call_java_method("ocrDetect", image_path.to_s).to_s
+    end
+
+    def self.ocr_release
+      activity = Mrboto.current_activity
+      return true unless activity
+      result = activity.call_java_method("ocrRelease")
+      result == true || result.to_s == "true"
     end
 
     # ── JSON helpers (no dependency on JSON gem) ───────────────────────
@@ -1515,7 +1535,19 @@ def network_connected?
   Mrboto::Helpers.network_connected?
 end
 
-# ── Top-level convenience: OCR (reserved) ──────────────────────────────
+# ── Top-level convenience: OCR ──────────────────────────────────────
+def ocr_init
+  Mrboto::Helpers.ocr_init
+end
+
 def ocr_recognize(image_path)
   Mrboto::Helpers.ocr_recognize(image_path)
+end
+
+def ocr_detect(image_path)
+  Mrboto::Helpers.ocr_detect(image_path)
+end
+
+def ocr_release
+  Mrboto::Helpers.ocr_release
 end

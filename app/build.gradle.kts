@@ -47,6 +47,7 @@ android {
 }
 
 dependencies {
+    implementation("com.github.equationl.paddleocr4android:ncnnandroidppocr:v1.3.0")
     api("androidx.core:core-ktx:1.18.0")
     api("androidx.appcompat:appcompat:1.7.1")
     api("com.google.android.material:material:1.13.0")
