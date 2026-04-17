@@ -47,7 +47,8 @@ interface FileEncodingMixin {
 
     fun fileMkdir(path: CharSequence): Boolean {
         return try {
-            File(path.toString()).mkdirs()
+            val dir = File(path.toString())
+            if (dir.isDirectory) true else dir.mkdirs()
         } catch (_: Exception) { false }
     }
 
