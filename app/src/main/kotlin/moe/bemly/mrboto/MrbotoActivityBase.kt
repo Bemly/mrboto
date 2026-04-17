@@ -959,4 +959,66 @@ abstract class MrbotoActivityBase : Activity() {
         } catch (_: Exception) { false }
     }
 
+    // ── OCR (PaddleOCR v5 NCNN) ──────────────────────────────────────
+    private var ocrInstance: com.equationl.ncnnandroidppocr.OCR? = null
+
+    fun ocrInit(): Boolean {
+        if (ocrInstance != null) return true
+        return try {
+            val ocr = com.equationl.ncnnandroidppocr.OCR()
+            val ok = ocr.initModelFromAssert(
+                assets,
+                com.equationl.ncnnandroidppocr.bean.ModelType.Mobile,
+                com.equationl.ncnnandroidppocr.bean.ImageSize.Size720,
+                com.equationl.ncnnandroidppocr.bean.Device.CPU
+            )
+            if (ok) ocrInstance = ocr
+            ok
+        } catch (e: Exception) {
+            Log.w("Mrboto", "ocrInit failed: ${e.message}")
+            false
+        }
+    }
+
+    fun ocrRecognize(imagePath: CharSequence): String {
+        val ocr = ocrInstance ?: return ""
+        return try {
+            val result = ocr.detectImagePath(imagePath.toString(), com.equationl.ncnnandroidppocr.bean.DrawModel.None)
+            result?.text ?: ""
+        } catch (e: Exception) {
+            Log.w("Mrboto", "ocrRecognize failed: ${e.message}")
+            ""
+        }
+    }
+
+    fun ocrRecognizeFromPath(imagePath: CharSequence): String {
+        return ocrRecognize(imagePath)
+    }
+
+    fun ocrDetect(imagePath: CharSequence): String {
+        return ocrRecognize(imagePath)
+    }
+
+    fun ocrDetectBitmap(bitmap: android.graphics.Bitmap): String {
+        val ocr = ocrInstance ?: return ""
+        return try {
+            val result = ocr.detectBitmap(bitmap, com.equationl.ncnnandroidppocr.bean.DrawModel.None)
+            result?.text ?: ""
+        } catch (e: Exception) {
+            Log.w("Mrboto", "ocrDetectBitmap failed: ${e.message}")
+            ""
+        }
+    }
+
+    fun ocrRelease(): Boolean {
+        return try {
+            ocrInstance?.release()
+            ocrInstance = null
+            true
+        } catch (e: Exception) {
+            Log.w("Mrboto", "ocrRelease failed: ${e.message}")
+            false
+        }
+    }
+
 }
