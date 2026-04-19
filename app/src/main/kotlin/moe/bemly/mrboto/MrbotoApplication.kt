@@ -37,6 +37,10 @@ class MrbotoApplication : Application() {
      */
     private fun loadCoreLibrary(assets: AssetManager) {
         val coreFiles = listOf(
+            "mrboto/regexp/mrblib/node.rb",
+            "mrboto/regexp/mrblib/parser.rb",
+            "mrboto/regexp/mrblib/regexp.rb",
+            "mrboto/regexp/mrblib/string.rb",
             "mrboto/core.rb",
             "mrboto/layout.rb",
             "mrboto/activity.rb",
