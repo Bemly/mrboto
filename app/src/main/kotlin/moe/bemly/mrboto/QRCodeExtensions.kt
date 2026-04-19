@@ -4,13 +4,11 @@ import android.app.Activity
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.os.Build
 import android.util.Log
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.BinaryBitmap
 import com.google.zxing.DecodeHintType
 import com.google.zxing.LuminanceSource
-import com.google.zxing.Reader
 import com.google.zxing.RGBLuminanceSource
 import com.google.zxing.Result
 import com.google.zxing.common.HybridBinarizer
@@ -33,7 +31,6 @@ interface QRCodeMixin {
      * @return JSON array string containing all detected QR code texts
      */
     fun scanQRCode(imagePath: CharSequence): String {
-        val activity = this as Activity
         return try {
             val file = File(imagePath.toString())
             if (!file.exists()) return "[]"
@@ -114,13 +111,13 @@ interface QRCodeMixin {
             val source: LuminanceSource = RGBLuminanceSource(width, height, pixels)
             val binaryBitmap = BinaryBitmap(HybridBinarizer(source))
 
-            val reader: Reader = QRCodeMultiReader()
+            val reader = QRCodeMultiReader()
             val hints = mapOf<DecodeHintType, Any>(
                 DecodeHintType.POSSIBLE_FORMATS to listOf(BarcodeFormat.QR_CODE),
                 DecodeHintType.TRY_HARDER to true
             )
 
-            val decodeResults: Array<Result> = reader.decodeMultiple(binaryBitmap, hints)
+            val decodeResults = reader.decodeMultiple(binaryBitmap, hints)
             for (result in decodeResults) {
                 results.add(result.text)
             }
