@@ -417,8 +417,19 @@ class MainActivity < Mrboto::Activity
       @overlay_id = -1
       toast("悬浮窗已隐藏")
     else
+      # 检查悬浮窗权限
+      unless Mrboto::Helpers.check_overlay_permission
+        toast("需要悬浮窗权限，请在设置中启用")
+        Mrboto::Helpers.open_overlay_settings
+        return
+      end
+
       @overlay_id = overlay_show(100, 100, width: 150, height: 80)
-      toast("悬浮窗已显示 (ID: #{@overlay_id})")
+      if @overlay_id > 0
+        toast("悬浮窗已显示 (ID: #{@overlay_id})")
+      else
+        toast("无法显示悬浮窗")
+      end
     end
   end
 

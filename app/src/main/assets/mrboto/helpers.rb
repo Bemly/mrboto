@@ -682,6 +682,20 @@ module Mrboto
       result == true || result.to_s == "true"
     end
 
+    def self.check_overlay_permission
+      activity = Mrboto.current_activity
+      return false unless activity
+      result = activity.call_java_method("checkOverlayPermission")
+      result == true || result.to_s == "true"
+    end
+
+    def self.open_overlay_settings
+      activity = Mrboto.current_activity
+      return false unless activity
+      result = activity.call_java_method("openOverlaySettings")
+      result == true || result.to_s == "true"
+    end
+
     # ── Predictive Back ────────────────────────────────────────────────────
     def self.predictive_back_enabled?
       activity = Mrboto.current_activity

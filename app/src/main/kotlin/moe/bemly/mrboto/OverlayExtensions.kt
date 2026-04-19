@@ -14,6 +14,34 @@ private val overlayViews = ConcurrentHashMap<Int, View>()
 interface OverlayMixin {
     val mruby: MRuby
 
+    /**
+     * Check if overlay permission is granted.
+     * Called from Ruby via call_java_method("checkOverlayPermission").
+     */
+    fun checkOverlayPermission(): Boolean {
+        val activity = this as Activity
+        return android.provider.Settings.canDrawOverlays(activity)
+    }
+
+    /**
+     * Open system settings page for overlay permission.
+     * Called from Ruby via call_java_method("openOverlaySettings").
+     */
+    fun openOverlaySettings(): Boolean {
+        val activity = this as Activity
+        return try {
+            val intent = android.content.Intent(
+                android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                android.net.Uri.parse("package:${activity.packageName}")
+            )
+            activity.startActivity(intent)
+            true
+        } catch (e: Exception) {
+            Log.w("Mrboto", "openOverlaySettings failed: ${e.message}")
+            false
+        }
+    }
+
     fun overlayShow(viewId: Int, x: Int, y: Int, width: Int = -2, height: Int = -2): Int {
         val activity = this as Activity
         return try {
