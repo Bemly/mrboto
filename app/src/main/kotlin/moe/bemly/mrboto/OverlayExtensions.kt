@@ -47,6 +47,8 @@ interface OverlayMixin {
         return try {
             val wm = activity.getSystemService(Context.WINDOW_SERVICE) as WindowManager
             val overlayView = View(activity)
+            // Set a background color so the view is visible
+            overlayView.setBackgroundColor(0x80FF0000.toInt()) // Semi-transparent red
             val params = WindowManager.LayoutParams(
                 width, height,
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
