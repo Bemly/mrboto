@@ -78,7 +78,7 @@ abstract class MrbotoActivityBase : ComponentActivity(),
         var scriptPath = _dynamicScriptPath ?: getScriptPath()
         if (scriptPath == null) {
             val info = packageManager.getActivityInfo(componentName, android.content.pm.PackageManager.GET_META_DATA)
-            scriptPath = info?.metaData?.getString(META_DATA_SCRIPT)
+            scriptPath = info.metaData?.getString(META_DATA_SCRIPT)
         }
         if (scriptPath == null) {
             showErrorPage("No Script Path", "No script path was provided.\nOverride getScriptPath() or pass mrboto_script_path via Intent extra.")
@@ -914,12 +914,12 @@ abstract class MrbotoActivityBase : ComponentActivity(),
                 val pending = permsToRequest.toTypedArray()
 
                 _permissionCallback = object : PermissionCallback {
-                    override fun onResult(requestCode: Int, p: Array<String>, grantResults: IntArray) {
+                    override fun onResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
                         if (requestCode == reqCode) {
                             val granted = mutableListOf<String>()
                             val denied = mutableListOf<String>()
-                            for (j in p.indices) {
-                                val name = p[j].substringAfterLast('.')
+                            for (j in permissions.indices) {
+                                val name = permissions[j].substringAfterLast('.')
                                 if (grantResults[j] == android.content.pm.PackageManager.PERMISSION_GRANTED)
                                     granted.add(name) else denied.add(name)
                             }
@@ -950,6 +950,7 @@ abstract class MrbotoActivityBase : ComponentActivity(),
     }
     private var _permissionCallback: PermissionCallback? = null
 
+    @Suppress("DEPRECATION")
     override fun onRequestPermissionsResult(
         requestCode: Int, permissions: Array<String>, grantResults: IntArray
     ) {
@@ -1133,6 +1134,7 @@ abstract class MrbotoActivityBase : ComponentActivity(),
      * - 9003: Gallery image selection (GalleryMixin)
      * - 9100: Screen capture authorization (ScreenCaptureMixin)
      */
+    @Suppress("DEPRECATION")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
 
