@@ -23,7 +23,7 @@
         android:name="moe.bemly.mrboto.MrbotoApplication"
         android:label="QR Demo"
         android:supportsRtl="true"
-        android:theme="@android:style/Theme.Material.NoActionBar">
+        android:theme="@style/Theme.AppCompat.Light.NoActionBar">
 
         <activity
             android:name="moe.bemly.mrboto.RubyActivity"

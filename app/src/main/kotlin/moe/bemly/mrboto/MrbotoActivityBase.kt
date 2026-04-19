@@ -14,7 +14,7 @@ import android.view.View
 import android.widget.PopupMenu
 import android.widget.ScrollView
 import android.widget.TextView
-import androidx.activity.ComponentActivity
+import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.viewpager2.widget.ViewPager2
@@ -30,7 +30,7 @@ import com.google.android.material.snackbar.Snackbar
  * script defines a class inheriting from Mrboto::Activity
  * and overrides the lifecycle methods.
  */
-abstract class MrbotoActivityBase : ComponentActivity(),
+abstract class MrbotoActivityBase : AppCompatActivity(),
     AccessibilityMixin, CameraMixin, ColorFindMixin, CoroutineMixin,
     DeviceControlMixin, EventListenerMixin, FileEncodingMixin, GestureMixin,
     GalleryMixin, ImageMixin, IntentMixin, NetworkMixin, OverlayMixin,
