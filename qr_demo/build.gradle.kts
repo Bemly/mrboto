@@ -30,5 +30,5 @@ android {
 }
 
 dependencies {
-    implementation(project(":app"))
+    implementation(project(":mrboto"))
 }
