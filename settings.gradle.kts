@@ -23,4 +23,5 @@ include(":app")
 include(":demo")
 include(":executor")
 include(":showcase")
+include(":qr_demo")
 project(":app").name = "mrboto"

@@ -1106,6 +1106,33 @@ module Mrboto
       parts << current unless current.empty?
       parts
     end
+    # ── Gallery Picker ───────────────────────────────────────────────────────
+    def self.pick_image_from_gallery(&block)
+      callback_id = Mrboto.register_callback(&block)
+      activity = Mrboto.current_activity
+      return unless activity
+      activity.call_java_method("pickImageFromGallery", callback_id)
+    end
+
+    def self.copy_selected_image(output_path)
+      activity = Mrboto.current_activity
+      return "" unless activity
+      activity.call_java_method("copySelectedImageToCache", output_path).to_s
+    end
+
+    # ── QR Code Scanner ────────────────────────────────────────────────────
+    def self.scan_qr_code(image_path)
+      activity = Mrboto.current_activity
+      return "[]" unless activity
+      activity.call_java_method("scanQRCode", image_path).to_s
+    end
+
+    def self.generate_qr_code(text, output_path, size: 300)
+      activity = Mrboto.current_activity
+      return false unless activity
+      result = activity.call_java_method("generateQRCode", text.to_s, output_path.to_s, size.to_i)
+      result == true || result.to_s == "true"
+    end
   end
 end
 
@@ -1550,4 +1577,22 @@ end
 
 def ocr_release
   Mrboto::Helpers.ocr_release
+end
+
+# ── Top-level convenience: Gallery Picker ────────────────────────────
+def pick_image_from_gallery(&block)
+  Mrboto::Helpers.pick_image_from_gallery(&block)
+end
+
+def copy_selected_image(output_path)
+  Mrboto::Helpers.copy_selected_image(output_path)
+end
+
+# ── Top-level convenience: QR Code ────────────────────────────────────
+def scan_qr_code(image_path)
+  Mrboto::Helpers.scan_qr_code(image_path)
+end
+
+def generate_qr_code(text, output_path, size: 300)
+  Mrboto::Helpers.generate_qr_code(text, output_path, size: size)
 end
