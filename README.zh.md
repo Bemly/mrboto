@@ -101,7 +101,18 @@ Mrboto._ruby_activity_class = MainActivity
 | `run_on_ui_thread { }` | 在 UI 线程执行块 |
 | `dp(值)` | dp 转像素 |
 
-完整 Widget 列表：`linear_layout`、`text_view`、`button`、`edit_text`、`image_view`、`scroll_view`、`relative_layout`、`check_box`、`switch_widget`、`progress_bar`、`spinner`、`radio_group`、`web_view`、`frame_layout`、`table_layout`
+完整 Widget 列表：`linear_layout`、`text_view`、`button`、`edit_text`、`image_view`、`scroll_view`、`relative_layout`、`check_box`、`switch_widget`、`progress_bar`、`spinner`、`radio_group`、`web_view`、`frame_layout`、`table_layout` 等 44 种控件
+
+**常用功能：**
+- **权限**：`permission_granted?`、`request_permission`、`request_permissions`
+- **悬浮窗**：`overlay_show`、`overlay_remove`、`check_overlay_permission`、`open_overlay_settings`
+- **Shell**：`shell_exec`
+- **数据库**：`sqlite_open`（支持 `execute`、`insert`、`query`、`update`、`delete`、`close`）
+- **网络**：`http_get`、`http_post`、`http_download`
+- **OCR**：`ocr_recognize`
+- **二维码**：`scan_qr_code`
+- **手势**：`gesture_click`、`gesture_swipe`
+- **多线程**：`thread_start`、`timer_start`
 
 ## 技术栈
 

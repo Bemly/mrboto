@@ -106,7 +106,7 @@ Mrboto._ruby_activity_class = MainActivity
 
 **Activity Methods:** `show_dialog`, `show_snackbar`, `show_popup_menu`
 
-**Helpers:** `toast`, `dialog`, `snackbar`, `popup_menu`, `start_activity`, `start_ruby_activity`, `get_extra`, `shared_preferences`, `run_on_ui_thread`, `package_name`
+**Helpers:** `toast`, `dialog`, `snackbar`, `popup_menu`, `start_activity`, `start_ruby_activity`, `get_extra`, `shared_preferences`, `run_on_ui_thread`, `package_name`, `permission_granted?`, `request_permission`, `request_permissions`, `overlay_show`, `overlay_remove`, `check_overlay_permission`, `open_overlay_settings`, `shell_exec`, `sqlite_open`, `http_get`, `http_post`, `http_download`, `ocr_recognize`, `scan_qr_code`, `gesture_click`, `gesture_swipe`, `thread_start`, `timer_start`
 
 ## Technical Stack
 
