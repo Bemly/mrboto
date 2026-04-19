@@ -30,16 +30,17 @@ class MainActivity < Mrboto::Activity
     @overlay_id = -1
     @db = nil
 
-    # 申请权限
-    request_all_permissions
-
     # 初始化 OCR
     ocr_init
 
     # 初始化 SQLite
     init_database
 
+    # 先创建 UI，再申请权限（权限按钮和状态显示需要 View 已创建）
     setup_ui
+
+    # 申请权限
+    request_all_permissions
   end
 
   def on_resume
@@ -75,12 +76,10 @@ class MainActivity < Mrboto::Activity
     denied = result.select { |_, v| !v }.keys
     if denied.size > 0
       toast("缺少权限：#{denied.join(', ')}")
+    else
+      toast("所有权限已授予")
     end
-
-    # 悬浮窗权限需要手动设置
-    unless permission_granted?("android.permission.SYSTEM_ALERT_WINDOW")
-      toast("请在设置中授予悬浮窗权限")
-    end
+    update_permission_display
   end
 
   # ── SQLite 初始化 ─────────────────────────────────────────────────
@@ -195,6 +194,11 @@ class MainActivity < Mrboto::Activity
         # 悬浮窗按钮
         button(text: "显示/隐藏 悬浮窗", padding: 12, margin_top: 8) {
           toggle_overlay_window
+        }
+
+        # 请求权限按钮
+        button(text: "请求权限", padding: 12, margin_top: 8) {
+          request_all_permissions
         }
 
         # 权限状态
@@ -418,6 +422,8 @@ class MainActivity < Mrboto::Activity
 
   # ── 10. 权限申请 ─────────────────────────────────────────────────────
   def update_permission_display
+    return unless @permission_view
+
     perms = {
       "相机" => Mrboto::Helpers::PERMISSION_CAMERA,
       "存储" => Mrboto::Helpers::PERMISSION_READ_EXTERNAL_STORAGE,
