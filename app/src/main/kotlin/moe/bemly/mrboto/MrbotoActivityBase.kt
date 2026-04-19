@@ -1166,7 +1166,8 @@ abstract class MrbotoActivityBase : ComponentActivity(),
                     val callbackId = callbackIdField.getInt(null)
 
                     if (callbackId > 0) {
-                        mruby.eval("Mrboto.dispatch_callback($callbackId, true, '${uri?.toString() ?: ''}')")
+                        val safeUri = uri?.toString() ?: ""
+                        mruby.eval("Mrboto.dispatch_callback($callbackId, true, '$safeUri')")
                     }
                 } catch (e: Exception) {
                     Log.w(TAG, "Gallery callback failed: ${e.message}")
@@ -1175,12 +1176,11 @@ abstract class MrbotoActivityBase : ComponentActivity(),
             REQUEST_CODE_SCREEN_CAPTURE -> {
                 // Screen capture authorization - handled by ScreenCaptureMixin
                 val resultCodeData = data?.getIntExtra("resultCode", -1) ?: -1
-                val permissionData = data?.getParcelableExtra<android.media.projection.MediaProjection>("projection")
                 try {
                     val clazz = Class.forName("moe.bemly.mrboto.ScreenCaptureExtensions\$Companion")
                     val projectionField = clazz.getDeclaredField("mediaProjection")
                     projectionField.isAccessible = true
-                    projectionField.set(null, permissionData)
+                    // Don't get from extras - ScreenCaptureMixin handles its own projection
                 } catch (e: Exception) {
                     Log.w(TAG, "Screen capture callback failed: ${e.message}")
                 }

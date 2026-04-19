@@ -1,5 +1,7 @@
 package moe.bemly.mrboto
 
+import android.app.Activity
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Build
@@ -10,6 +12,7 @@ import com.google.zxing.DecodeHintType
 import com.google.zxing.LuminanceSource
 import com.google.zxing.Reader
 import com.google.zxing.RGBLuminanceSource
+import com.google.zxing.Result
 import com.google.zxing.common.HybridBinarizer
 import com.google.zxing.multi.qrcode.QRCodeMultiReader
 import com.google.zxing.qrcode.QRCodeWriter
@@ -35,14 +38,10 @@ interface QRCodeMixin {
             val file = File(imagePath.toString())
             if (!file.exists()) return "[]"
 
-            val bitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                val options = BitmapFactory.Options().apply {
-                    inPreferredConfig = Bitmap.Config.RGB_565
-                }
-                BitmapFactory.decodeFile(file.absolutePath, options)
-            } else {
-                BitmapFactory.decodeFile(file.absolutePath)
+            val options = BitmapFactory.Options().apply {
+                inPreferredConfig = Bitmap.Config.RGB_565
             }
+            val bitmap = BitmapFactory.decodeFile(file.absolutePath, options)
 
             if (bitmap == null) return "[]"
 
@@ -121,7 +120,7 @@ interface QRCodeMixin {
                 DecodeHintType.TRY_HARDER to true
             )
 
-            val decodeResults = reader.decodeMultiple(binaryBitmap, hints)
+            val decodeResults: Array<Result> = reader.decodeMultiple(binaryBitmap, hints)
             for (result in decodeResults) {
                 results.add(result.text)
             }
