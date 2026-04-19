@@ -3,11 +3,16 @@ package moe.bemly.mrboto
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
+import android.view.DragEvent
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Adapter
+import android.widget.AdapterView
 import android.widget.CompoundButton
 import android.widget.FrameLayout
+import android.widget.RatingBar
+import android.widget.SeekBar
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
@@ -82,6 +87,172 @@ class MrbotoTouchListener(
         val result = activity.mruby.eval(
             "Mrboto.dispatch_touch($callbackId, $viewId, ${event.action}, $x, $y)"
         )
+        return result == "true"
+    }
+}
+
+/**
+ * OnLongClickListener that delegates to mruby.
+ */
+class MrbotoLongClickListener(
+    private val activity: MrbotoActivityBase,
+    private val callbackId: Int
+) : View.OnLongClickListener {
+    override fun onLongClick(v: View?): Boolean {
+        v ?: return false
+        val viewId = activity.mruby.registerJavaObject(v)
+        val result = activity.mruby.eval("Mrboto.dispatch_callback($callbackId, $viewId)")
+        return result == "true"
+    }
+}
+
+/**
+ * OnScrollChangeListener that delegates to mruby.
+ */
+class MrbotoScrollChangeListener(
+    private val activity: MrbotoActivityBase,
+    private val callbackId: Int
+) : View.OnScrollChangeListener {
+    override fun onScrollChange(v: View?, scrollX: Int, scrollY: Int, oldScrollX: Int, oldScrollY: Int) {
+        v ?: return
+        val viewId = activity.mruby.registerJavaObject(v)
+        activity.mruby.eval("Mrboto.dispatch_callback($callbackId, $viewId, $scrollX, $scrollY, $oldScrollX, $oldScrollY)")
+    }
+}
+
+/**
+ * OnFocusChangeListener that delegates to mruby.
+ */
+class MrbotoFocusChangeListener(
+    private val activity: MrbotoActivityBase,
+    private val callbackId: Int
+) : View.OnFocusChangeListener {
+    override fun onFocusChange(v: View?, hasFocus: Boolean) {
+        v ?: return
+        val viewId = activity.mruby.registerJavaObject(v)
+        activity.mruby.eval("Mrboto.dispatch_callback($callbackId, $viewId, $hasFocus)")
+    }
+}
+
+/**
+ * OnKeyListener that delegates to mruby.
+ */
+class MrbotoKeyListener(
+    private val activity: MrbotoActivityBase,
+    private val callbackId: Int
+) : View.OnKeyListener {
+    override fun onKey(v: View?, keyCode: Int, event: android.view.KeyEvent?): Boolean {
+        v ?: return false
+        val viewId = activity.mruby.registerJavaObject(v)
+        val action = event?.action ?: -1
+        val result = activity.mruby.eval("Mrboto.dispatch_callback($callbackId, $viewId, $keyCode, $action)")
+        return result == "true"
+    }
+}
+
+/**
+ * OnDragListener that delegates to mruby.
+ */
+class MrbotoDragListener(
+    private val activity: MrbotoActivityBase,
+    private val callbackId: Int
+) : View.OnDragListener {
+    override fun onDrag(v: View?, event: DragEvent?): Boolean {
+        v ?: return false
+        event ?: return false
+        val viewId = activity.mruby.registerJavaObject(v)
+        val eventType = event.action
+        val x = event.x.toInt()
+        val y = event.y.toInt()
+        val result = activity.mruby.eval("Mrboto.dispatch_callback($callbackId, $viewId, $eventType, $x, $y)")
+        return result == "true"
+    }
+}
+
+/**
+ * OnItemClickListener that delegates to mruby.
+ */
+class MrbotoItemClickListener(
+    private val activity: MrbotoActivityBase,
+    private val callbackId: Int
+) : AdapterView.OnItemClickListener {
+    override fun onItemClick(parent: AdapterView<*>?, v: View?, position: Int, id: Long) {
+        parent ?: return
+        val parentId = activity.mruby.registerJavaObject(parent)
+        val viewId = if (v != null) activity.mruby.registerJavaObject(v) else 0
+        activity.mruby.eval("Mrboto.dispatch_callback($callbackId, $parentId, $position, $viewId)")
+    }
+}
+
+/**
+ * OnItemLongClickListener that delegates to mruby.
+ */
+class MrbotoItemLongClickListener(
+    private val activity: MrbotoActivityBase,
+    private val callbackId: Int
+) : AdapterView.OnItemLongClickListener {
+    override fun onItemLongClick(parent: AdapterView<*>?, v: View?, position: Int, id: Long): Boolean {
+        parent ?: return false
+        val parentId = activity.mruby.registerJavaObject(parent)
+        val viewId = if (v != null) activity.mruby.registerJavaObject(v) else 0
+        val result = activity.mruby.eval("Mrboto.dispatch_callback($callbackId, $parentId, $position, $viewId)")
+        return result == "true"
+    }
+}
+
+/**
+ * ViewPager2 page change callback that delegates to mruby.
+ */
+class MrbotoPageChangeCallback(
+    private val activity: MrbotoActivityBase,
+    private val callbackId: Int
+) : androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
+    override fun onPageSelected(position: Int) {
+        activity.mruby.eval("Mrboto.dispatch_callback($callbackId, $position)")
+    }
+}
+
+/**
+ * SeekBar change listener that delegates to mruby.
+ */
+class MrbotoSeekBarChangeListener(
+    private val activity: MrbotoActivityBase,
+    private val callbackId: Int
+) : SeekBar.OnSeekBarChangeListener {
+    override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+        seekBar ?: return
+        val viewId = activity.mruby.registerJavaObject(seekBar)
+        activity.mruby.eval("Mrboto.dispatch_callback($callbackId, $viewId, $progress, $fromUser)")
+    }
+    override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+    override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+}
+
+/**
+ * RatingBar change listener that delegates to mruby.
+ */
+class MrbotoRatingBarChangeListener(
+    private val activity: MrbotoActivityBase,
+    private val callbackId: Int
+) : RatingBar.OnRatingBarChangeListener {
+    override fun onRatingChanged(ratingBar: RatingBar?, rating: Float, fromUser: Boolean) {
+        ratingBar ?: return
+        val viewId = activity.mruby.registerJavaObject(ratingBar)
+        activity.mruby.eval("Mrboto.dispatch_callback($callbackId, $viewId, $rating, $fromUser)")
+    }
+}
+
+/**
+ * NavigationView item selected listener that delegates to mruby.
+ */
+class MrbotoNavigationViewListener(
+    private val activity: MrbotoActivityBase,
+    private val callbackId: Int
+) : com.google.android.material.navigation.NavigationView.OnNavigationItemSelectedListener {
+    override fun onNavigationItemSelected(item: android.view.MenuItem): Boolean {
+        val itemId = item.itemId
+        val title = (item.title?.toString() ?: "").replace("'", "\\'").replace("\\", "\\\\")
+        val result = activity.mruby.eval("Mrboto.dispatch_callback($callbackId, $itemId, '$title')")
         return result == "true"
     }
 }

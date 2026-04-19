@@ -265,6 +265,31 @@ module Mrboto
       Mrboto.current_activity.setViewTouchListener(@_registry_id, cid)
     end
 
+    def on_long_click(&block)
+      cid = Mrboto.register_callback(&block)
+      Mrboto.current_activity.setViewLongClickListener(@_registry_id, cid)
+    end
+
+    def on_scroll_change(&block)
+      cid = Mrboto.register_callback(&block)
+      Mrboto.current_activity.setViewScrollChangeListener(@_registry_id, cid)
+    end
+
+    def on_focus_change(&block)
+      cid = Mrboto.register_callback(&block)
+      Mrboto.current_activity.setViewFocusChangeListener(@_registry_id, cid)
+    end
+
+    def on_key(&block)
+      cid = Mrboto.register_callback(&block)
+      Mrboto.current_activity.setViewKeyListener(@_registry_id, cid)
+    end
+
+    def on_drag(&block)
+      cid = Mrboto.register_callback(&block)
+      Mrboto.current_activity.setViewDragListener(@_registry_id, cid)
+    end
+
     # ── Animation helpers ──────────────────────────────────────────
     # These call the C bridge functions directly (not call_java_method),
     # avoiding Java reflection type mismatch issues with Float/Double.
@@ -579,6 +604,11 @@ module Mrboto
     def max=(val)
       call_java_method('setMax', val.to_i)
     end
+
+    def on_progress_change(&block)
+      cid = Mrboto.register_callback(&block)
+      Mrboto.current_activity.setSeekBarChangeListener(@_registry_id, cid)
+    end
   end
 
   class RatingBar < View
@@ -592,6 +622,11 @@ module Mrboto
 
     def max=(val)
       call_java_method('setMax', val.to_i)
+    end
+
+    def on_rating_change(&block)
+      cid = Mrboto.register_callback(&block)
+      Mrboto.current_activity.setRatingBarChangeListener(@_registry_id, cid)
     end
   end
 
@@ -705,7 +740,17 @@ module Mrboto
     end
   end
 
-  class ListView < ViewGroup; end
+  class ListView < ViewGroup
+    def on_item_click(&block)
+      cid = Mrboto.register_callback(&block)
+      Mrboto.current_activity.setItemClickListener(@_registry_id, cid)
+    end
+
+    def on_item_long_click(&block)
+      cid = Mrboto.register_callback(&block)
+      Mrboto.current_activity.setItemLongClickListener(@_registry_id, cid)
+    end
+  end
 
   class NestedScrollView < ViewGroup; end
 
@@ -743,6 +788,11 @@ module Mrboto
       return unless view_ids.is_a?(Array)
       json = "[" + view_ids.map { |v| v.to_i.to_s }.join(",") + "]"
       Mrboto.current_activity.call_java_method("setViewPager2Adapter", @_registry_id, json)
+    end
+
+    def on_page_change(&block)
+      cid = Mrboto.register_callback(&block)
+      Mrboto.current_activity.setPageChangeListener(@_registry_id, cid)
     end
   end
 
@@ -1009,7 +1059,7 @@ module Mrboto
 
     def set_item_listener(&block)
       cid = Mrboto.register_callback(&block)
-      call_java_method('setNavigationItemSelectedListener', cid)
+      Mrboto.current_activity.setNavigationViewListener(@_registry_id, cid)
     end
 
     def header_text(index, text)

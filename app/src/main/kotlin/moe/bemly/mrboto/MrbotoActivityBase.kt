@@ -51,8 +51,13 @@ abstract class MrbotoActivityBase : AppCompatActivity(),
     internal val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { results: Map<String, Boolean> ->
-        _permissionCallback?.onResult(results)
-        _permissionCallback = null
+        val cbId = _permissionCallbackId
+        if (cbId > 0) {
+            val json = org.json.JSONObject(results as Map<String, Any?>).toString()
+            val safeJson = json.replace("'", "\\'").replace("\\", "\\\\")
+            mruby.eval("Mrboto.dispatch_callback($cbId, '$safeJson')")
+        }
+        _permissionCallbackId = -1
     }
 
     internal val photoLauncher = registerForActivityResult(
@@ -95,12 +100,18 @@ abstract class MrbotoActivityBase : AppCompatActivity(),
     internal val screenCaptureLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
+        val cbId = _screenCaptureCallbackId
         val resultCode = result.resultCode
         val data = result.data
-        if (resultCode == Activity.RESULT_OK && data != null) {
+        val success = resultCode == Activity.RESULT_OK && data != null
+        if (success) {
             val mpm = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as android.media.projection.MediaProjectionManager
-            _mediaProjection = mpm.getMediaProjection(resultCode, data)
+            _mediaProjection = mpm.getMediaProjection(resultCode, data!!)
         }
+        if (cbId > 0) {
+            mruby.eval("Mrboto.dispatch_callback($cbId, $success)")
+        }
+        _screenCaptureCallbackId = -1
     }
 
     // Callback state variables
@@ -111,6 +122,8 @@ abstract class MrbotoActivityBase : AppCompatActivity(),
     internal var _videoOutputUri: Uri? = null
     internal var _galleryCallbackId: Int = -1
     internal var _selectedImageUri: Uri? = null
+    internal var _permissionCallbackId: Int = -1
+    internal var _screenCaptureCallbackId: Int = -1
     internal var _mediaProjection: android.media.projection.MediaProjection? = null
     internal var _virtualDisplay: android.hardware.display.VirtualDisplay? = null
     internal var _mediaRecorder: android.media.MediaRecorder? = null
@@ -332,6 +345,61 @@ abstract class MrbotoActivityBase : AppCompatActivity(),
         val view = mruby.lookupJavaObject<android.widget.CompoundButton>(viewRegistryId)
             ?: return
         view.setOnCheckedChangeListener(MrbotoCheckChangeListener(this, callbackId))
+    }
+
+    fun setViewLongClickListener(viewRegistryId: Int, callbackId: Int) {
+        val view = mruby.lookupJavaObject<View>(viewRegistryId) ?: return
+        view.setOnLongClickListener(MrbotoLongClickListener(this, callbackId))
+    }
+
+    fun setViewScrollChangeListener(viewRegistryId: Int, callbackId: Int) {
+        val view = mruby.lookupJavaObject<View>(viewRegistryId) ?: return
+        view.setOnScrollChangeListener(MrbotoScrollChangeListener(this, callbackId))
+    }
+
+    fun setViewFocusChangeListener(viewRegistryId: Int, callbackId: Int) {
+        val view = mruby.lookupJavaObject<View>(viewRegistryId) ?: return
+        view.onFocusChangeListener = MrbotoFocusChangeListener(this, callbackId)
+    }
+
+    fun setViewKeyListener(viewRegistryId: Int, callbackId: Int) {
+        val view = mruby.lookupJavaObject<View>(viewRegistryId) ?: return
+        view.setOnKeyListener(MrbotoKeyListener(this, callbackId))
+    }
+
+    fun setViewDragListener(viewRegistryId: Int, callbackId: Int) {
+        val view = mruby.lookupJavaObject<View>(viewRegistryId) ?: return
+        view.setOnDragListener(MrbotoDragListener(this, callbackId))
+    }
+
+    fun setItemClickListener(viewRegistryId: Int, callbackId: Int) {
+        val view = mruby.lookupJavaObject<android.widget.AdapterView<*>>(viewRegistryId) ?: return
+        view.onItemClickListener = MrbotoItemClickListener(this, callbackId)
+    }
+
+    fun setItemLongClickListener(viewRegistryId: Int, callbackId: Int) {
+        val view = mruby.lookupJavaObject<android.widget.AdapterView<*>>(viewRegistryId) ?: return
+        view.onItemLongClickListener = MrbotoItemLongClickListener(this, callbackId)
+    }
+
+    fun setPageChangeListener(viewRegistryId: Int, callbackId: Int) {
+        val vp = mruby.lookupJavaObject<androidx.viewpager2.widget.ViewPager2>(viewRegistryId) ?: return
+        vp.registerOnPageChangeCallback(MrbotoPageChangeCallback(this, callbackId))
+    }
+
+    fun setSeekBarChangeListener(viewRegistryId: Int, callbackId: Int) {
+        val view = mruby.lookupJavaObject<android.widget.SeekBar>(viewRegistryId) ?: return
+        view.setOnSeekBarChangeListener(MrbotoSeekBarChangeListener(this, callbackId))
+    }
+
+    fun setRatingBarChangeListener(viewRegistryId: Int, callbackId: Int) {
+        val view = mruby.lookupJavaObject<android.widget.RatingBar>(viewRegistryId) ?: return
+        view.onRatingBarChangeListener = MrbotoRatingBarChangeListener(this, callbackId)
+    }
+
+    fun setNavigationViewListener(viewRegistryId: Int, callbackId: Int) {
+        val view = mruby.lookupJavaObject<com.google.android.material.navigation.NavigationView>(viewRegistryId) ?: return
+        view.setNavigationItemSelectedListener(MrbotoNavigationViewListener(this, callbackId))
     }
 
     /**
@@ -693,16 +761,6 @@ abstract class MrbotoActivityBase : AppCompatActivity(),
             }
 
             if (permsToRequest.isNotEmpty()) {
-                _permissionCallback = object : PermissionCallback {
-                    override fun onResult(results: Map<String, Boolean>) {
-                        val granted = results.filter { it.value }.keys.map { it.substringAfterLast('.') }
-                        val denied = results.filter { !it.value }.keys.map { it.substringAfterLast('.') }
-                        val parts = mutableListOf<String>()
-                        if (granted.isNotEmpty()) parts.add("已授权: ${granted.joinToString()}")
-                        if (denied.isNotEmpty()) parts.add("已拒绝: ${denied.joinToString()}")
-                        android.widget.Toast.makeText(this@MrbotoActivityBase, parts.joinToString("\n"), android.widget.Toast.LENGTH_LONG).show()
-                    }
-                }
                 permissionLauncher.launch(permsToRequest.toTypedArray())
             }
 
@@ -710,11 +768,16 @@ abstract class MrbotoActivityBase : AppCompatActivity(),
         } catch (_: Exception) { "{}" }
     }
 
-    // Permission callback interface and holder
-    interface PermissionCallback {
-        fun onResult(results: Map<String, Boolean>)
+    fun requestPermissions(callbackId: Int, permissionsJson: CharSequence) {
+        _permissionCallbackId = callbackId
+        requestPermissionsSync(permissionsJson)
     }
-    private var _permissionCallback: PermissionCallback? = null
+
+    fun requestScreenCapture(callbackId: Int) {
+        _screenCaptureCallbackId = callbackId
+        val mpm = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as android.media.projection.MediaProjectionManager
+        screenCaptureLauncher.launch(mpm.createScreenCaptureIntent())
+    }
 
     /**
      * Get the absolute file path of the last photo taken via cameraTakePhoto.

@@ -347,13 +347,19 @@ module Mrboto
       result == true || result.to_s == "true"
     end
 
-    def self.request_permissions(perms)
+    def self.request_permissions(perms, &block)
       activity = Mrboto.current_activity
       return {} unless activity
       return {} unless perms.is_a?(Array)
       json_arr = "[" + perms.map { |p| "\"#{p.to_s}\"" }.join(",") + "]"
-      json = activity.call_java_method("requestPermissionsSync", json_arr).to_s
-      parse_json_object(json)
+      if block
+        cid = Mrboto.register_callback(&block)
+        activity.call_java_method("requestPermissions", cid, json_arr)
+        nil
+      else
+        json = activity.call_java_method("requestPermissionsSync", json_arr).to_s
+        parse_json_object(json)
+      end
     end
 
     # Permission constants
@@ -1348,8 +1354,8 @@ def request_permission(perm)
   Mrboto::Helpers.request_permission(perm)
 end
 
-def request_permissions(perms)
-  Mrboto::Helpers.request_permissions(perms)
+def request_permissions(perms, &block)
+  Mrboto::Helpers.request_permissions(perms, &block)
 end
 
 # ── Top-level convenience: Notification ───────────────────────────────
