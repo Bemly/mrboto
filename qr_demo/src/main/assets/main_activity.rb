@@ -424,7 +424,27 @@ class MainActivity < Mrboto::Activity
         return
       end
 
-      @overlay_id = overlay_show(100, 100, width: 150, height: 80)
+      # 创建自定义悬浮窗 UI
+      overlay_view = linear_layout(
+        orientation: :vertical,
+        background_color: "80FF0000",  # 半透明红色
+        padding: 8
+      ) do
+        text_view(
+          text: "悬浮窗",
+          text_size: 14,
+          text_color: "FFFFFF",
+          gravity: :center
+        )
+        text_view(
+          text: "时间: #{Time.now.strftime('%H:%M:%S')}",
+          text_size: 12,
+          text_color: "FFFFFF",
+          gravity: :center
+        )
+      end
+
+      @overlay_id = overlay_show(100, 100, width: 150, height: 80, view_id: overlay_view._registry_id)
       if @overlay_id > 0
         toast("悬浮窗已显示 (ID: #{@overlay_id})")
       else

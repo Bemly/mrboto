@@ -669,10 +669,18 @@ module Mrboto
     end
 
     # ── Overlay ────────────────────────────────────────────────────────────
-    def self.overlay_show(x, y, width: -2, height: -2)
+    def self.overlay_show(x, y, width: -2, height: -2, view_id: nil)
       activity = Mrboto.current_activity
       return -1 unless activity
-      activity.call_java_method("overlayShow", 0, x.to_i, y.to_i, width.to_i, height.to_i).to_i
+
+      # If no view_id provided, create a default view
+      if view_id.nil?
+        # Create a simple text view for the overlay
+        view = text_view(text: "Overlay", text_size: 16, background_color: "80FF0000")
+        view_id = view._registry_id
+      end
+
+      activity.call_java_method("overlayShow", view_id.to_i, x.to_i, y.to_i, width.to_i, height.to_i).to_i
     end
 
     def self.overlay_remove(overlay_id)

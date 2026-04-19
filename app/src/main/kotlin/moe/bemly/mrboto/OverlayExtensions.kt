@@ -42,13 +42,14 @@ interface OverlayMixin {
         }
     }
 
-    fun overlayShow(viewId: Int, x: Int, y: Int, width: Int = -2, height: Int = -2): Int {
+    fun overlayShow(viewRegistryId: Int, x: Int, y: Int, width: Int = -2, height: Int = -2): Int {
         val activity = this as Activity
         return try {
+            // Look up the View from the registry
+            val overlayView = mruby.lookupJavaObject<View>(viewRegistryId)
+                ?: return -1
+
             val wm = activity.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-            val overlayView = View(activity)
-            // Set a background color so the view is visible
-            overlayView.setBackgroundColor(0x80FF0000.toInt()) // Semi-transparent red
             val params = WindowManager.LayoutParams(
                 width, height,
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
