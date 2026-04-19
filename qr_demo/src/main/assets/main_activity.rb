@@ -437,7 +437,7 @@ class MainActivity < Mrboto::Activity
           gravity: :center
         )
         text_view(
-          text: "时间: #{Time.now.hour.to_s.rjust(2,'0')}:#{Time.now.min.to_s.rjust(2,'0')}:#{Time.now.sec.to_s.rjust(2,'0')}",
+          text: "时间: #{Time.now.strftime('%H:%M:%S')}",
           text_size: 12,
           text_color: "FFFFFF",
           gravity: :center

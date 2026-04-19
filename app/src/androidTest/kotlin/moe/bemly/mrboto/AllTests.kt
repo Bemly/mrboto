@@ -77,6 +77,9 @@ import org.junit.runners.Suite
     CameraTest::class,
 
     // OCR
-    OcrTest::class
+    OcrTest::class,
+
+    // Time
+    TimeStrftimeTest::class
 )
 class AllTests

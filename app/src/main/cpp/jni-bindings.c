@@ -12,6 +12,7 @@
 #include <android/log.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <mruby.h>
 #include <mruby/data.h>
 #include <mruby/hash.h>
@@ -739,6 +740,33 @@ mrb_value mrb_mrboto_eval(mrb_state *mrb, mrb_value self) {
     return out;
 }
 
+/* Time#strftime(format) → String
+   mruby 3.4.0 lacks strftime. Extract time fields via Ruby methods,
+   fill struct tm, call C strftime. */
+static mrb_value mrb_time_strftime(mrb_state *mrb, mrb_value self) {
+    const char *fmt;
+    mrb_get_args(mrb, "z", &fmt);
+
+    struct tm t;
+    memset(&t, 0, sizeof(t));
+    t.tm_year = mrb_int(mrb, mrb_funcall(mrb, self, "year", 0)) - 1900;
+    t.tm_mon  = mrb_int(mrb, mrb_funcall(mrb, self, "month", 0)) - 1;
+    t.tm_mday = mrb_int(mrb, mrb_funcall(mrb, self, "day", 0));
+    t.tm_hour = mrb_int(mrb, mrb_funcall(mrb, self, "hour", 0));
+    t.tm_min  = mrb_int(mrb, mrb_funcall(mrb, self, "min", 0));
+    t.tm_sec  = mrb_int(mrb, mrb_funcall(mrb, self, "sec", 0));
+    t.tm_wday = mrb_int(mrb, mrb_funcall(mrb, self, "wday", 0));
+    t.tm_yday = mrb_int(mrb, mrb_funcall(mrb, self, "yday", 0));
+    t.tm_isdst = -1;
+
+    char buf[256];
+    size_t n = strftime(buf, sizeof(buf), fmt, &t);
+    if (n == 0) {
+        mrb_raise(mrb, E_ARGUMENT_ERROR, "strftime result too large");
+    }
+    return mrb_str_new_cstr(mrb, buf);
+}
+
 static void mrb_mrboto_define_methods(mrb_state *mrb, struct RClass *mrboto) {
     mrb_define_module_function(mrb, mrboto, "_set_content_view", mrb_mrboto_set_content_view, MRB_ARGS_REQ(2));
     mrb_define_module_function(mrb, mrboto, "_toast", mrb_mrboto_toast, MRB_ARGS_REQ(3));
@@ -795,6 +823,10 @@ Java_moe_bemly_mrboto_MRuby_nativeRegisterAndroidClasses(JNIEnv *env, jobject th
 
     /* Bind native methods to Mrboto module */
     mrb_mrboto_define_methods(mrb, mrboto);
+
+    /* Extend Time class with strftime (mruby 3.4.0 lacks it) */
+    struct RClass *tc = mrb_class_get(mrb, "Time");
+    mrb_define_method(mrb, tc, "strftime", mrb_time_strftime, MRB_ARGS_REQ(1));
 
     LOGI("Android classes registered in mruby");
 }
