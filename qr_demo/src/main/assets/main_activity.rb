@@ -197,7 +197,7 @@ class MainActivity < Mrboto::Activity
         # 悬浮窗按钮
         button(text: "显示/隐藏 悬浮窗", padding: 12, margin_top: 8) {
           toggle_overlay_window
-        end
+        }
 
         # 权限状态
         @permission_view = text_view(
