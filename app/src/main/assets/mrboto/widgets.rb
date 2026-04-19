@@ -260,6 +260,11 @@ module Mrboto
       Mrboto.current_activity.setViewClickListener(@_registry_id, cid)
     end
 
+    def on_touch(&block)
+      cid = Mrboto.register_callback(&block)
+      Mrboto.current_activity.setViewTouchListener(@_registry_id, cid)
+    end
+
     # ── Animation helpers ──────────────────────────────────────────
     # These call the C bridge functions directly (not call_java_method),
     # avoiding Java reflection type mismatch issues with Float/Double.

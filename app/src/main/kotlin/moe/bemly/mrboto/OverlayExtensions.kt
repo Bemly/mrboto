@@ -5,7 +5,6 @@ import android.content.Context
 import android.graphics.PixelFormat
 import android.util.Log
 import android.view.Gravity
-import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
 import java.util.concurrent.ConcurrentHashMap
@@ -62,30 +61,6 @@ interface OverlayMixin {
             params.y = y
             wm.addView(overlayView, params)
             val id = overlayView.hashCode()
-
-            // Enable drag: track touch deltas to update layout position
-            var startX = 0f
-            var startY = 0f
-            var startParamsX = 0
-            var startParamsY = 0
-            overlayView.setOnTouchListener { _, event ->
-                when (event.action) {
-                    MotionEvent.ACTION_DOWN -> {
-                        startX = event.rawX
-                        startY = event.rawY
-                        startParamsX = params.x
-                        startParamsY = params.y
-                        false
-                    }
-                    MotionEvent.ACTION_MOVE -> {
-                        params.x = startParamsX + (event.rawX - startX).toInt()
-                        params.y = startParamsY + (event.rawY - startY).toInt()
-                        wm.updateViewLayout(overlayView, params)
-                        true
-                    }
-                    else -> false
-                }
-            }
             overlayViews[id] = overlayView
             id
         } catch (e: Exception) {
@@ -100,6 +75,19 @@ interface OverlayMixin {
             val view = overlayViews.remove(overlayId) ?: return false
             val wm = activity.getSystemService(Context.WINDOW_SERVICE) as WindowManager
             wm.removeView(view)
+            true
+        } catch (_: Exception) { false }
+    }
+
+    fun overlayUpdatePosition(overlayId: Int, x: Int, y: Int): Boolean {
+        return try {
+            val view = overlayViews[overlayId] ?: return false
+            val activity = this as Activity
+            val wm = activity.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+            val params = view.layoutParams as WindowManager.LayoutParams
+            params.x = x
+            params.y = y
+            wm.updateViewLayout(view, params)
             true
         } catch (_: Exception) { false }
     }

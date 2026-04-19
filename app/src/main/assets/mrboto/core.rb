@@ -50,6 +50,16 @@ module Mrboto
       cb = @@callbacks[id]
       cb.call(is_checked) if cb
     end
+
+    def dispatch_touch(id, view_id, action, x, y)
+      cb = @@callbacks[id]
+      if cb
+        result = cb.call(view_id, action, x, y)
+        result == true ? "true" : "false"
+      else
+        "false"
+      end
+    end
   end
 
   # ── Script Loading & Evaluation ────────────────────────────────

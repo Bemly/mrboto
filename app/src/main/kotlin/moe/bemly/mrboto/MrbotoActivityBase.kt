@@ -302,6 +302,16 @@ abstract class MrbotoActivityBase : AppCompatActivity(),
     }
 
     /**
+     * Set a touch listener on a View that dispatches to mruby.
+     * The callback receives (viewId, action, x, y) and should return true to consume.
+     */
+    fun setViewTouchListener(viewRegistryId: Int, callbackId: Int) {
+        val view = mruby.lookupJavaObject<View>(viewRegistryId)
+            ?: return
+        view.setOnTouchListener(MrbotoTouchListener(this, callbackId))
+    }
+
+    /**
      * Set a text watcher on an EditText that dispatches to mruby.
      * Called from JNI (nativeSetTextWatcher) after the callback ID
      * has been stored in the View's tag.

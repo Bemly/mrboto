@@ -3,6 +3,7 @@ package moe.bemly.mrboto
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.Log
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.CompoundButton
@@ -61,6 +62,27 @@ class MrbotoCheckChangeListener(
 ) : CompoundButton.OnCheckedChangeListener {
     override fun onCheckedChanged(button: CompoundButton, isChecked: Boolean) {
         activity.mruby.eval("Mrboto.dispatch_checked($callbackId, $isChecked)")
+    }
+}
+
+/**
+ * OnTouchListener that delegates to mruby.
+ * Dispatches Mrboto.dispatch_touch(callbackId, viewId, action, rawX, rawY).
+ */
+class MrbotoTouchListener(
+    private val activity: MrbotoActivityBase,
+    private val callbackId: Int
+) : View.OnTouchListener {
+    override fun onTouch(v: View?, event: MotionEvent?): Boolean {
+        v ?: return false
+        event ?: return false
+        val viewId = activity.mruby.registerJavaObject(v)
+        val x = event.rawX.toInt()
+        val y = event.rawY.toInt()
+        val result = activity.mruby.eval(
+            "Mrboto.dispatch_touch($callbackId, $viewId, ${event.action}, $x, $y)"
+        )
+        return result == "true"
     }
 }
 

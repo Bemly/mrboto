@@ -446,6 +446,28 @@ class MainActivity < Mrboto::Activity
 
       @overlay_id = overlay_show(100, 100, width: 150, height: 80, view_id: overlay_view._registry_id)
       if @overlay_id > 0
+        @overlay_drag_start_x = 0
+        @overlay_drag_start_y = 0
+        @overlay_drag_touch_x = 0
+        @overlay_drag_touch_y = 0
+
+        overlay_view.on_touch do |view_id, action, raw_x, raw_y|
+          case action
+          when 0  # ACTION_DOWN
+            @overlay_drag_touch_x = raw_x
+            @overlay_drag_touch_y = raw_y
+            @overlay_drag_start_x = 100
+            @overlay_drag_start_y = 100
+            false
+          when 2  # ACTION_MOVE
+            dx = raw_x - @overlay_drag_touch_x
+            dy = raw_y - @overlay_drag_touch_y
+            overlay_update_position(@overlay_id, @overlay_drag_start_x + dx, @overlay_drag_start_y + dy)
+            true
+          else
+            false
+          end
+        end
         toast("悬浮窗已显示 (ID: #{@overlay_id})")
       else
         toast("无法显示悬浮窗")

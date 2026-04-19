@@ -697,6 +697,13 @@ module Mrboto
       result == true || result.to_s == "true"
     end
 
+    def self.overlay_update_position(overlay_id, x, y)
+      activity = Mrboto.current_activity
+      return false unless activity
+      result = activity.call_java_method("overlayUpdatePosition", overlay_id.to_i, x.to_i, y.to_i)
+      result == true || result.to_s == "true"
+    end
+
     def self.check_overlay_permission
       activity = Mrboto.current_activity
       return false unless activity
@@ -1426,6 +1433,10 @@ end
 
 def overlay_remove(overlay_id)
   Mrboto::Helpers.overlay_remove(overlay_id)
+end
+
+def overlay_update_position(overlay_id, x, y)
+  Mrboto::Helpers.overlay_update_position(overlay_id, x, y)
 end
 
 # ── Top-level convenience: File Encoding / Directory ───────────────────
