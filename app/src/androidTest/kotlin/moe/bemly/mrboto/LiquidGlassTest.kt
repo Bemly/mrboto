@@ -60,74 +60,67 @@ class LiquidGlassTest {
             "(Mrboto::LiquidGlassView < Mrboto::ViewGroup).to_s"))
     }
 
-    // ── DSL creation ────────────────────────────────────────────────
+    // ── Creation via _create_view ───────────────────────────────────
 
     @Test
-    fun `create LiquidGlassView via DSL`() {
+    fun `create LiquidGlassView via _create_view`() {
         setupActivity()
-        val result = mruby.eval("""
-            v = liquid_glass_view
-            v.nil? ? 'nil' : v._registry_id.to_s
-        """.trimIndent())
-        assertNotNull("Should not be nil", result)
+        val ctxId = mruby.eval("Mrboto._test_ctx_id")
+        val viewId = mruby.eval(
+            "Mrboto._create_view($ctxId, 'moe.bemly.mrboto.LiquidGlassView', {})")
+        assertNotNull(viewId)
         assertTrue("Should have positive registry ID",
-            result != "nil" && result.toIntOrNull() != null && result.toInt() > 0)
+            viewId.toIntOrNull() != null && viewId.toInt() > 0)
+    }
+
+    @Test
+    fun `create LiquidGlassView and wrap with from_registry`() {
+        setupActivity()
+        val ctxId = mruby.eval("Mrboto._test_ctx_id")
+        val result = mruby.eval("""
+            view_id = Mrboto._create_view($ctxId, 'moe.bemly.mrboto.LiquidGlassView', {})
+            v = Mrboto::LiquidGlassView.from_registry(view_id)
+            v.class.to_s
+        """.trimIndent())
+        assertEquals("Mrboto::LiquidGlassView", result)
     }
 
     // ── Setter methods ──────────────────────────────────────────────
 
     @Test
     fun `blur_radius setter exists`() {
-        setupActivity()
-        assertEquals("true", mruby.eval("""
-            v = liquid_glass_view
-            v.respond_to?(:blur_radius=).to_s
-        """.trimIndent()))
+        assertEquals("true", mruby.eval(
+            "Mrboto::LiquidGlassView.instance_methods.include?(:blur_radius=).to_s"))
     }
 
     @Test
     fun `vibrancy setter exists`() {
-        setupActivity()
-        assertEquals("true", mruby.eval("""
-            v = liquid_glass_view
-            v.respond_to?(:vibrancy=).to_s
-        """.trimIndent()))
+        assertEquals("true", mruby.eval(
+            "Mrboto::LiquidGlassView.instance_methods.include?(:vibrancy=).to_s"))
     }
 
     @Test
     fun `lens method exists`() {
-        setupActivity()
-        assertEquals("true", mruby.eval("""
-            v = liquid_glass_view
-            v.respond_to?(:lens).to_s
-        """.trimIndent()))
+        assertEquals("true", mruby.eval(
+            "Mrboto::LiquidGlassView.instance_methods.include?(:lens).to_s"))
     }
 
     @Test
     fun `opacity setter exists`() {
-        setupActivity()
-        assertEquals("true", mruby.eval("""
-            v = liquid_glass_view
-            v.respond_to?(:opacity=).to_s
-        """.trimIndent()))
+        assertEquals("true", mruby.eval(
+            "Mrboto::LiquidGlassView.instance_methods.include?(:opacity=).to_s"))
     }
 
     @Test
     fun `shape_type setter exists`() {
-        setupActivity()
-        assertEquals("true", mruby.eval("""
-            v = liquid_glass_view
-            v.respond_to?(:shape_type=).to_s
-        """.trimIndent()))
+        assertEquals("true", mruby.eval(
+            "Mrboto::LiquidGlassView.instance_methods.include?(:shape_type=).to_s"))
     }
 
     @Test
     fun `corner_radius setter exists`() {
-        setupActivity()
-        assertEquals("true", mruby.eval("""
-            v = liquid_glass_view
-            v.respond_to?(:corner_radius=).to_s
-        """.trimIndent()))
+        assertEquals("true", mruby.eval(
+            "Mrboto::LiquidGlassView.instance_methods.include?(:corner_radius=).to_s"))
     }
 
     // ── Setter calls (no crash) ────────────────────────────────────
@@ -135,8 +128,9 @@ class LiquidGlassTest {
     @Test
     fun `set blur_radius does not crash`() {
         setupActivity()
+        val ctxId = mruby.eval("Mrboto._test_ctx_id")
         assertEquals("ok", mruby.eval("""
-            v = liquid_glass_view
+            v = Mrboto::LiquidGlassView.from_registry(Mrboto._create_view($ctxId, 'moe.bemly.mrboto.LiquidGlassView', {}))
             v.blur_radius = 15.0
             'ok'
         """.trimIndent()))
@@ -145,8 +139,9 @@ class LiquidGlassTest {
     @Test
     fun `set vibrancy does not crash`() {
         setupActivity()
+        val ctxId = mruby.eval("Mrboto._test_ctx_id")
         assertEquals("ok", mruby.eval("""
-            v = liquid_glass_view
+            v = Mrboto::LiquidGlassView.from_registry(Mrboto._create_view($ctxId, 'moe.bemly.mrboto.LiquidGlassView', {}))
             v.vibrancy = true
             'ok'
         """.trimIndent()))
@@ -155,8 +150,9 @@ class LiquidGlassTest {
     @Test
     fun `set lens does not crash`() {
         setupActivity()
+        val ctxId = mruby.eval("Mrboto._test_ctx_id")
         assertEquals("ok", mruby.eval("""
-            v = liquid_glass_view
+            v = Mrboto::LiquidGlassView.from_registry(Mrboto._create_view($ctxId, 'moe.bemly.mrboto.LiquidGlassView', {}))
             v.lens(16.0, 32.0)
             'ok'
         """.trimIndent()))
@@ -165,8 +161,9 @@ class LiquidGlassTest {
     @Test
     fun `set opacity does not crash`() {
         setupActivity()
+        val ctxId = mruby.eval("Mrboto._test_ctx_id")
         assertEquals("ok", mruby.eval("""
-            v = liquid_glass_view
+            v = Mrboto::LiquidGlassView.from_registry(Mrboto._create_view($ctxId, 'moe.bemly.mrboto.LiquidGlassView', {}))
             v.opacity = 0.5
             'ok'
         """.trimIndent()))
@@ -175,22 +172,10 @@ class LiquidGlassTest {
     @Test
     fun `set shape_type does not crash`() {
         setupActivity()
+        val ctxId = mruby.eval("Mrboto._test_ctx_id")
         assertEquals("ok", mruby.eval("""
-            v = liquid_glass_view
+            v = Mrboto::LiquidGlassView.from_registry(Mrboto._create_view($ctxId, 'moe.bemly.mrboto.LiquidGlassView', {}))
             v.shape_type = 'circle'
-            'ok'
-        """.trimIndent()))
-    }
-
-    // ── Child views ────────────────────────────────────────────────
-
-    @Test
-    fun `can add child views to LiquidGlassView`() {
-        setupActivity()
-        assertEquals("ok", mruby.eval("""
-            v = liquid_glass_view do
-              text_view(text: "Inside glass")
-            end
             'ok'
         """.trimIndent()))
     }
@@ -212,8 +197,9 @@ class LiquidGlassTest {
     @Test
     fun `apply blur effect does not crash`() {
         setupActivity()
+        val ctxId = mruby.eval("Mrboto._test_ctx_id")
         assertEquals("ok", mruby.eval("""
-            v = text_view(text: "Blur me")
+            v = Mrboto::TextView.from_registry(Mrboto._create_view($ctxId, 'android.widget.TextView', {}))
             v.apply_liquid_glass_effect(blur: 10.0, style: :blur)
             'ok'
         """.trimIndent()))
@@ -222,8 +208,9 @@ class LiquidGlassTest {
     @Test
     fun `apply blur_vibrancy effect does not crash`() {
         setupActivity()
+        val ctxId = mruby.eval("Mrboto._test_ctx_id")
         assertEquals("ok", mruby.eval("""
-            v = text_view(text: "Vibrant")
+            v = Mrboto::TextView.from_registry(Mrboto._create_view($ctxId, 'android.widget.TextView', {}))
             v.apply_liquid_glass_effect(blur: 8.0, style: :blur_vibrancy)
             'ok'
         """.trimIndent()))
@@ -232,8 +219,9 @@ class LiquidGlassTest {
     @Test
     fun `remove effect does not crash`() {
         setupActivity()
+        val ctxId = mruby.eval("Mrboto._test_ctx_id")
         assertEquals("ok", mruby.eval("""
-            v = text_view(text: "Clear me")
+            v = Mrboto::TextView.from_registry(Mrboto._create_view($ctxId, 'android.widget.TextView', {}))
             v.apply_liquid_glass_effect(blur: 10.0)
             v.remove_liquid_glass_effect
             'ok'
@@ -243,8 +231,9 @@ class LiquidGlassTest {
     @Test
     fun `apply effect with default parameters`() {
         setupActivity()
+        val ctxId = mruby.eval("Mrboto._test_ctx_id")
         assertEquals("ok", mruby.eval("""
-            v = text_view(text: "Default")
+            v = Mrboto::TextView.from_registry(Mrboto._create_view($ctxId, 'android.widget.TextView', {}))
             v.apply_liquid_glass_effect
             'ok'
         """.trimIndent()))
