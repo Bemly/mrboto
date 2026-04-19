@@ -60,10 +60,11 @@ abstract class MrbotoActivityBase : ComponentActivity(),
     ) { success: Boolean ->
         val cbId = _photoCallbackId
         if (cbId > 0) {
-            val path = if (success) _photoUri?.path ?: "" else ""
+            val path = if (success) _photoFilePath ?: "" else ""
             mruby.eval("Mrboto.dispatch_callback($cbId, $success, '$path')")
         }
         _photoCallbackId = -1
+        _photoFilePath = null
     }
 
     internal val videoLauncher = registerForActivityResult(
@@ -103,6 +104,7 @@ abstract class MrbotoActivityBase : ComponentActivity(),
     // Callback state variables
     internal var _photoCallbackId: Int = -1
     internal var _photoUri: Uri? = null
+    internal var _photoFilePath: String? = null
     internal var _videoCallbackId: Int = -1
     internal var _videoOutputUri: Uri? = null
     internal var _galleryCallbackId: Int = -1
@@ -701,6 +703,14 @@ abstract class MrbotoActivityBase : ComponentActivity(),
         fun onResult(results: Map<String, Boolean>)
     }
     private var _permissionCallback: PermissionCallback? = null
+
+    /**
+     * Get the absolute file path of the last photo taken via cameraTakePhoto.
+     * Called from Ruby via call_java_method("getLastPhotoPath").
+     */
+    fun getLastPhotoPath(): String {
+        return _photoFilePath ?: ""
+    }
 
     // ── Notification ─────────────────────────────────────────────────────
     private fun ensureNotificationChannel(channelId: String, channelName: String = channelId) {

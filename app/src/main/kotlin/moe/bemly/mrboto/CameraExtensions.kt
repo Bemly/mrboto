@@ -49,6 +49,8 @@ interface CameraMixin {
             if (activity is MrbotoActivityBase) {
                 activity._photoCallbackId = callbackId
                 activity._photoUri = uri
+                // Store the absolute file path for OCR access
+                activity._photoFilePath = file.absolutePath
                 activity.photoLauncher.launch(uri)
                 true
             } else {
