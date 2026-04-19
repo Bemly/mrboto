@@ -1420,8 +1420,8 @@ def timer_once(delay_ms, &block)
 end
 
 # ── Top-level convenience: Overlay ────────────────────────────────────
-def overlay_show(x, y, width: -2, height: -2)
-  Mrboto::Helpers.overlay_show(x, y, width: width, height: height)
+def overlay_show(x, y, width: -2, height: -2, view_id: nil)
+  Mrboto::Helpers.overlay_show(x, y, width: width, height: height, view_id: view_id)
 end
 
 def overlay_remove(overlay_id)
