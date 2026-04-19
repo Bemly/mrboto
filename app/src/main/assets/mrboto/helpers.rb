@@ -677,6 +677,7 @@ module Mrboto
       if view_id.nil?
         # Create a simple text view for the overlay
         view = text_view(text: "Overlay", text_size: 16, background_color: "80FF0000")
+        return -1 unless view
         view_id = view._registry_id
       end
 
