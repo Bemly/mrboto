@@ -216,6 +216,26 @@ module Mrboto
       result == true || result.to_s == "true"
     end
 
+    def self.clipboard_system_copy(text)
+      activity = Mrboto.current_activity
+      return false unless activity
+      activity.call_java_method("clipboardSystemCopy", text.to_s)
+      true
+    end
+
+    def self.clipboard_system_paste
+      activity = Mrboto.current_activity
+      return "" unless activity
+      activity.call_java_method("clipboardSystemPaste").to_s
+    end
+
+    def self.clipboard_system_has_text?
+      activity = Mrboto.current_activity
+      return false unless activity
+      result = activity.call_java_method("clipboardSystemHasText")
+      result == true || result.to_s == "true"
+    end
+
     # ── Intent Extras ──────────────────────────────────────────────────
     def self.get_extra_int(key)
       activity = Mrboto.current_activity
@@ -1230,6 +1250,18 @@ def clipboard_has_text?
   Mrboto::Helpers.clipboard_has_text?
 end
 
+def clipboard_system_copy(text)
+  Mrboto::Helpers.clipboard_system_copy(text)
+end
+
+def clipboard_system_paste
+  Mrboto::Helpers.clipboard_system_paste
+end
+
+def clipboard_system_has_text?
+  Mrboto::Helpers.clipboard_system_has_text?
+end
+
 # ── Top-level convenience: File Operations ────────────────────────────
 def file_write(name, content)
   Mrboto::Helpers::FileOps.write(name, content)
@@ -1356,6 +1388,15 @@ end
 
 def timer_once(delay_ms, &block)
   Mrboto::Helpers.timer_once(delay_ms, &block)
+end
+
+# ── Top-level convenience: Overlay ────────────────────────────────────
+def overlay_show(x, y, width: -2, height: -2)
+  Mrboto::Helpers.overlay_show(x, y, width: width, height: height)
+end
+
+def overlay_remove(overlay_id)
+  Mrboto::Helpers.overlay_remove(overlay_id)
 end
 
 # ── Top-level convenience: File Encoding / Directory ───────────────────

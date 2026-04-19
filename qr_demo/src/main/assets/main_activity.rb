@@ -13,8 +13,6 @@
 # 10. 申请权限
 # 11. Shell 命令执行
 
-require 'mrboto/regexp/mrblib/regexp'
-
 class MainActivity < Mrboto::Activity
   STATE_IDLE = 0
   STATE_GALLERY_SELECTED = 1
@@ -337,7 +335,7 @@ class MainActivity < Mrboto::Activity
           text_below = lines.first(3).join(" ")[0..50]
 
           # 复制到剪贴板
-          Mrboto::Helpers.clipboard_system_copy(text_below)
+          clipboard_system_copy(text_below)
           toast("已复制到剪贴板：#{text_below}")
 
           update_status("OCR识别：#{text_below}")
