@@ -914,7 +914,7 @@ abstract class MrbotoActivityBase : ComponentActivity(),
                 val pending = permsToRequest.toTypedArray()
 
                 _permissionCallback = object : PermissionCallback {
-                    override fun onResult(requestCode: Int, p: Array<out String>, grantResults: IntArray) {
+                    override fun onResult(requestCode: Int, p: Array<String>, grantResults: IntArray) {
                         if (requestCode == reqCode) {
                             val granted = mutableListOf<String>()
                             val denied = mutableListOf<String>()
@@ -946,12 +946,12 @@ abstract class MrbotoActivityBase : ComponentActivity(),
 
     // Permission callback interface and holder
     interface PermissionCallback {
-        fun onResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray)
+        fun onResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray)
     }
     private var _permissionCallback: PermissionCallback? = null
 
     override fun onRequestPermissionsResult(
-        requestCode: Int, permissions: Array<out String>, grantResults: IntArray
+        requestCode: Int, permissions: Array<String>, grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         _permissionCallback?.onResult(requestCode, permissions, grantResults)
