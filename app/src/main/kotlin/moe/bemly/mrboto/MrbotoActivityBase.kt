@@ -6,6 +6,7 @@ import android.content.Intent
 import android.graphics.Color
 import android.graphics.RenderEffect
 import android.graphics.Shader
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.view.Gravity
@@ -14,6 +15,7 @@ import android.widget.PopupMenu
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.activity.ComponentActivity
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.snackbar.Snackbar
@@ -39,15 +41,75 @@ abstract class MrbotoActivityBase : ComponentActivity(),
         private const val TAG = "MrbotoActivity"
         const val EXTRA_SCRIPT_PATH = "mrboto_script_path"
         const val META_DATA_SCRIPT = "mrboto_script"
-        private const val REQUEST_CODE_PHOTO = 9001
-        private const val REQUEST_CODE_VIDEO = 9002
-        private const val REQUEST_CODE_GALLERY = 9003
-        private const val REQUEST_CODE_SCREEN_CAPTURE = 9100
     }
 
     override lateinit var mruby: MRuby
         internal set
     protected var rubyInstanceId: Int = 0
+
+    // Activity Result Launchers
+    internal val permissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { results: Map<String, Boolean> ->
+        _permissionCallback?.onResult(results)
+        _permissionCallback = null
+    }
+
+    internal val photoLauncher = registerForActivityResult(
+        ActivityResultContracts.TakePicture()
+    ) { success: Boolean ->
+        val cbId = _photoCallbackId
+        if (cbId > 0) {
+            val path = if (success) _photoUri?.path ?: "" else ""
+            mruby.eval("Mrboto.dispatch_callback($cbId, $success, '$path')")
+        }
+        _photoCallbackId = -1
+    }
+
+    internal val videoLauncher = registerForActivityResult(
+        ActivityResultContracts.CaptureVideo()
+    ) { success: Boolean ->
+        val cbId = _videoCallbackId
+        if (cbId > 0) {
+            val path = if (success) _videoOutputUri?.toString() ?: "" else ""
+            mruby.eval("Mrboto.dispatch_callback($cbId, $success, '$path')")
+        }
+        _videoCallbackId = -1
+    }
+
+    internal val galleryLauncher = registerForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        val cbId = _galleryCallbackId
+        if (cbId > 0) {
+            _selectedImageUri = uri
+            val safeUri = uri?.toString() ?: ""
+            mruby.eval("Mrboto.dispatch_callback($cbId, ${uri != null}, '$safeUri')")
+        }
+        _galleryCallbackId = -1
+    }
+
+    internal val screenCaptureLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val resultCode = result.resultCode
+        val data = result.data
+        if (resultCode == Activity.RESULT_OK && data != null) {
+            val mpm = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as android.media.projection.MediaProjectionManager
+            _mediaProjection = mpm.getMediaProjection(resultCode, data)
+        }
+    }
+
+    // Callback state variables
+    internal var _photoCallbackId: Int = -1
+    internal var _photoUri: Uri? = null
+    internal var _videoCallbackId: Int = -1
+    internal var _videoOutputUri: Uri? = null
+    internal var _galleryCallbackId: Int = -1
+    internal var _selectedImageUri: Uri? = null
+    internal var _mediaProjection: android.media.projection.MediaProjection? = null
+    internal var _virtualDisplay: android.hardware.display.VirtualDisplay? = null
+    internal var _mediaRecorder: android.media.MediaRecorder? = null
 
     /** Expose mruby to subclasses in other modules */
     protected fun getMRuby(): MRuby = mruby
@@ -590,6 +652,56 @@ abstract class MrbotoActivityBase : ComponentActivity(),
         }
     }
 
+    fun requestPermissionSync(permission: CharSequence): Boolean {
+        return try {
+            val perm = permission.toString()
+            val granted = packageManager.checkPermission(perm, packageName) ==
+                android.content.pm.PackageManager.PERMISSION_GRANTED
+            if (!granted) {
+                permissionLauncher.launch(arrayOf(perm))
+            }
+            granted
+        } catch (_: Exception) { false }
+    }
+
+    fun requestPermissionsSync(permissionsJson: CharSequence): String {
+        return try {
+            val arr = org.json.JSONArray(permissionsJson.toString())
+            val result = org.json.JSONObject()
+            val permsToRequest = mutableListOf<String>()
+
+            for (i in 0 until arr.length()) {
+                val perm = arr.getString(i)
+                val granted = packageManager.checkPermission(perm, packageName) ==
+                    android.content.pm.PackageManager.PERMISSION_GRANTED
+                result.put(perm, granted)
+                if (!granted) permsToRequest.add(perm)
+            }
+
+            if (permsToRequest.isNotEmpty()) {
+                _permissionCallback = object : PermissionCallback {
+                    override fun onResult(results: Map<String, Boolean>) {
+                        val granted = results.filter { it.value }.keys.map { it.substringAfterLast('.') }
+                        val denied = results.filter { !it.value }.keys.map { it.substringAfterLast('.') }
+                        val parts = mutableListOf<String>()
+                        if (granted.isNotEmpty()) parts.add("已授权: ${granted.joinToString()}")
+                        if (denied.isNotEmpty()) parts.add("已拒绝: ${denied.joinToString()}")
+                        android.widget.Toast.makeText(this@MrbotoActivityBase, parts.joinToString("\n"), android.widget.Toast.LENGTH_LONG).show()
+                    }
+                }
+                permissionLauncher.launch(permsToRequest.toTypedArray())
+            }
+
+            result.toString()
+        } catch (_: Exception) { "{}" }
+    }
+
+    // Permission callback interface and holder
+    interface PermissionCallback {
+        fun onResult(results: Map<String, Boolean>)
+    }
+    private var _permissionCallback: PermissionCallback? = null
+
     // ── Notification ─────────────────────────────────────────────────────
     private fun ensureNotificationChannel(channelId: String, channelName: String = channelId) {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
@@ -885,78 +997,6 @@ abstract class MrbotoActivityBase : ComponentActivity(),
         } catch (_: Exception) { "{}" }
     }
 
-    // ── Permissions ───────────────────────────────────────────────────────
-    fun requestPermissionSync(permission: CharSequence): Boolean {
-        return try {
-            android.content.pm.PackageManager.PERMISSION_GRANTED ==
-                packageManager.checkPermission(permission.toString(), packageName)
-        } catch (_: Exception) { false }
-    }
-
-    fun requestPermissionsSync(permissionsJson: CharSequence): String {
-        return try {
-            val arr = org.json.JSONArray(permissionsJson.toString())
-            val result = org.json.JSONObject()
-            val permsToRequest = mutableListOf<String>()
-
-            // Check which permissions are already granted
-            for (i in 0 until arr.length()) {
-                val perm = arr.getString(i)
-                val granted = packageManager.checkPermission(perm, packageName) ==
-                    android.content.pm.PackageManager.PERMISSION_GRANTED
-                result.put(perm, granted)
-                if (!granted) permsToRequest.add(perm)
-            }
-
-            // Show system permission dialog for denied permissions
-            if (permsToRequest.isNotEmpty()) {
-                val reqCode = 9000
-                val pending = permsToRequest.toTypedArray()
-
-                _permissionCallback = object : PermissionCallback {
-                    override fun onResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
-                        if (requestCode == reqCode) {
-                            val granted = mutableListOf<String>()
-                            val denied = mutableListOf<String>()
-                            for (j in permissions.indices) {
-                                val name = permissions[j].substringAfterLast('.')
-                                if (grantResults[j] == android.content.pm.PackageManager.PERMISSION_GRANTED)
-                                    granted.add(name) else denied.add(name)
-                            }
-                            val parts = mutableListOf<String>()
-                            if (granted.isNotEmpty()) parts.add("已授权: ${granted.joinToString()}")
-                            if (denied.isNotEmpty()) parts.add("已拒绝: ${denied.joinToString()}")
-                            android.widget.Toast.makeText(
-                                this@MrbotoActivityBase,
-                                parts.joinToString("\n"),
-                                android.widget.Toast.LENGTH_LONG
-                            ).show()
-                        }
-                        _permissionCallback = null
-                    }
-                }
-
-                // Must be on UI thread; mruby JNI calls are on UI thread
-                androidx.core.app.ActivityCompat.requestPermissions(this, pending, reqCode)
-            }
-
-            result.toString()
-        } catch (_: Exception) { "{}" }
-    }
-
-    // Permission callback interface and holder
-    interface PermissionCallback {
-        fun onResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray)
-    }
-    private var _permissionCallback: PermissionCallback? = null
-
-    @Suppress("DEPRECATION")
-    override fun onRequestPermissionsResult(
-        requestCode: Int, permissions: Array<String>, grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        _permissionCallback?.onResult(requestCode, permissions, grantResults)
-    }
 
     // ── Start Activity ────────────────────────────────────────────────────
     fun startActivityWithExtras(className: CharSequence, extrasJson: CharSequence) {
@@ -1122,123 +1162,6 @@ abstract class MrbotoActivityBase : ComponentActivity(),
         }
     }
 
-    // ── Activity Result Handling ──────────────────────────────────────
-
-    /**
-     * Handle activity results from camera, gallery, and screen capture.
-     * This is critical for callbacks to work correctly.
-     *
-     * Request codes:
-     * - 9001: Camera photo capture (CameraExtensions)
-     * - 9002: Camera video recording (CameraExtensions)
-     * - 9003: Gallery image selection (GalleryMixin)
-     * - 9100: Screen capture authorization (ScreenCaptureMixin)
-     */
-    @Suppress("DEPRECATION")
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-
-        if (resultCode != Activity.RESULT_OK) {
-            // Handle failure callbacks
-            when (requestCode) {
-                REQUEST_CODE_PHOTO, REQUEST_CODE_VIDEO, REQUEST_CODE_GALLERY -> {
-                    val callbackId = when (requestCode) {
-                        REQUEST_CODE_PHOTO -> {
-                            // Get from CameraExtensions companion
-                            try {
-                                val clazz = Class.forName("moe.bemly.mrboto.CameraExtensions\$Companion")
-                                clazz.getDeclaredField("photoCallbackId").getInt(null)
-                            } catch (e: Exception) { -1 }
-                        }
-                        REQUEST_CODE_VIDEO -> {
-                            try {
-                                val clazz = Class.forName("moe.bemly.mrboto.CameraExtensions\$Companion")
-                                clazz.getDeclaredField("videoCallbackId").getInt(null)
-                            } catch (e: Exception) { -1 }
-                        }
-                        REQUEST_CODE_GALLERY -> {
-                            try {
-                                val clazz = Class.forName("moe.bemly.mrboto.GalleryExtensions\$Companion")
-                                clazz.getDeclaredField("galleryCallbackId").getInt(null)
-                            } catch (e: Exception) { -1 }
-                        }
-                        else -> -1
-                    }
-                    if (callbackId > 0) {
-                        mruby.eval("Mrboto.dispatch_callback($callbackId, false, '')")
-                    }
-                }
-            }
-            return
-        }
-
-        when (requestCode) {
-            REQUEST_CODE_PHOTO -> {
-                // Photo capture success
-                val path = try {
-                    val clazz = Class.forName("moe.bemly.mrboto.CameraExtensions\$Companion")
-                    val uriField = clazz.getDeclaredField("photoUri")
-                    uriField.isAccessible = true
-                    val uri = uriField.get(null) as? android.net.Uri
-                    uri?.path ?: ""
-                } catch (e: Exception) {
-                    ""
-                }
-                val callbackId = try {
-                    val clazz = Class.forName("moe.bemly.mrboto.CameraExtensions\$Companion")
-                    clazz.getDeclaredField("photoCallbackId").getInt(null)
-                } catch (e: Exception) { -1 }
-                if (callbackId > 0) {
-                    mruby.eval("Mrboto.dispatch_callback($callbackId, true, '$path')")
-                }
-            }
-            REQUEST_CODE_VIDEO -> {
-                // Video recording success
-                val uri = data?.data
-                val path = uri?.toString() ?: ""
-                val callbackId = try {
-                    val clazz = Class.forName("moe.bemly.mrboto.CameraExtensions\$Companion")
-                    clazz.getDeclaredField("videoCallbackId").getInt(null)
-                } catch (e: Exception) { -1 }
-                if (callbackId > 0) {
-                    mruby.eval("Mrboto.dispatch_callback($callbackId, true, '$path')")
-                }
-            }
-            REQUEST_CODE_GALLERY -> {
-                // Gallery selection success
-                val uri = data?.data
-                try {
-                    val clazz = Class.forName("moe.bemly.mrboto.GalleryExtensions\$Companion")
-                    val uriField = clazz.getDeclaredField("selectedImageUri")
-                    uriField.isAccessible = true
-                    uriField.set(null, uri)
-
-                    val callbackIdField = clazz.getDeclaredField("galleryCallbackId")
-                    callbackIdField.isAccessible = true
-                    val callbackId = callbackIdField.getInt(null)
-
-                    if (callbackId > 0) {
-                        val safeUri = uri?.toString() ?: ""
-                        mruby.eval("Mrboto.dispatch_callback($callbackId, true, '$safeUri')")
-                    }
-                } catch (e: Exception) {
-                    Log.w(TAG, "Gallery callback failed: ${e.message}")
-                }
-            }
-            REQUEST_CODE_SCREEN_CAPTURE -> {
-                // Screen capture authorization - handled by ScreenCaptureMixin
-                val resultCodeData = data?.getIntExtra("resultCode", -1) ?: -1
-                try {
-                    val clazz = Class.forName("moe.bemly.mrboto.ScreenCaptureExtensions\$Companion")
-                    val projectionField = clazz.getDeclaredField("mediaProjection")
-                    projectionField.isAccessible = true
-                    // Don't get from extras - ScreenCaptureMixin handles its own projection
-                } catch (e: Exception) {
-                    Log.w(TAG, "Screen capture callback failed: ${e.message}")
-                }
-            }
-        }
-    }
 
     // Mixin methods are provided by interfaces: AccessibilityMixin, CameraMixin, etc.
     // See individual *Extensions.kt files for implementations.

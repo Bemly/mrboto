@@ -2,6 +2,7 @@ package moe.bemly.mrboto
 
 import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.graphics.Bitmap
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
@@ -15,21 +16,20 @@ import android.util.Log
 import android.view.WindowManager
 import java.io.File
 
-private var mediaProjection: MediaProjection? = null
-private var virtualDisplay: VirtualDisplay? = null
-private var imageReader: ImageReader? = null
-private var mediaRecorder: MediaRecorder? = null
-
 interface ScreenCaptureMixin {
     val mruby: MRuby
 
     fun requestScreenCapture(callbackId: Int): Boolean {
         val activity = this as Activity
         return try {
-            val mpm = activity.getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-            val intent = mpm.createScreenCaptureIntent()
-            activity.startActivityForResult(intent, 9100)
-            true
+            if (activity is MrbotoActivityBase) {
+                val mpm = activity.getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+                val intent = mpm.createScreenCaptureIntent()
+                activity.screenCaptureLauncher.launch(intent)
+                true
+            } else {
+                false
+            }
         } catch (e: Exception) {
             Log.w("Mrboto", "requestScreenCapture failed: ${e.message}")
             false
@@ -39,7 +39,8 @@ interface ScreenCaptureMixin {
     fun captureScreen(outPath: CharSequence): Boolean {
         val activity = this as Activity
         return try {
-            val mp = mediaProjection ?: return false
+            val mp = if (activity is MrbotoActivityBase) activity._mediaProjection else null
+            if (mp == null) return false
             val wm = activity.getSystemService(Context.WINDOW_SERVICE) as WindowManager
             val metrics = DisplayMetrics()
             @Suppress("DEPRECATION")
@@ -76,7 +77,8 @@ interface ScreenCaptureMixin {
     fun startRecordScreen(outPath: CharSequence): Boolean {
         val activity = this as Activity
         return try {
-            val mp = mediaProjection ?: return false
+            val mp = if (activity is MrbotoActivityBase) activity._mediaProjection else null
+            if (mp == null) return false
             val wm = activity.getSystemService(Context.WINDOW_SERVICE) as WindowManager
             val metrics = DisplayMetrics()
             @Suppress("DEPRECATION")
@@ -96,8 +98,10 @@ interface ScreenCaptureMixin {
                 DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, recorder.surface, null, null
             )
             recorder.start()
-            mediaRecorder = recorder
-            virtualDisplay = vd
+            if (activity is MrbotoActivityBase) {
+                activity._mediaRecorder = recorder
+                activity._virtualDisplay = vd
+            }
             true
         } catch (e: Exception) {
             Log.w("Mrboto", "startRecordScreen failed: ${e.message}")
@@ -106,12 +110,15 @@ interface ScreenCaptureMixin {
     }
 
     fun stopRecordScreen(): Boolean {
+        val activity = this as Activity
         return try {
-            mediaRecorder?.stop()
-            mediaRecorder?.release()
-            mediaRecorder = null
-            virtualDisplay?.release()
-            virtualDisplay = null
+            if (activity is MrbotoActivityBase) {
+                activity._mediaRecorder?.stop()
+                activity._mediaRecorder?.release()
+                activity._mediaRecorder = null
+                activity._virtualDisplay?.release()
+                activity._virtualDisplay = null
+            }
             true
         } catch (_: Exception) { false }
     }

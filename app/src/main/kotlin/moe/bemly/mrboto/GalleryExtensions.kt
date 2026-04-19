@@ -6,9 +6,6 @@ import android.net.Uri
 import android.util.Log
 import java.io.File
 
-private var galleryCallbackId: Int = -1
-private var selectedImageUri: Uri? = null
-
 /**
  * Gallery image picking functionality.
  *
@@ -26,12 +23,13 @@ interface GalleryMixin {
     fun pickImageFromGallery(callbackId: Int): Boolean {
         val activity = this as Activity
         return try {
-            galleryCallbackId = callbackId
-            val intent = Intent(Intent.ACTION_PICK).apply {
-                type = "image/*"
+            if (activity is MrbotoActivityBase) {
+                activity._galleryCallbackId = callbackId
+                activity.galleryLauncher.launch("image/*")
+                true
+            } else {
+                false
             }
-            activity.startActivityForResult(intent, 9003)
-            true
         } catch (e: Exception) {
             Log.w("Mrboto", "pickImageFromGallery failed: ${e.message}")
             false
@@ -45,8 +43,9 @@ interface GalleryMixin {
      */
     fun copySelectedImageToCache(outputPath: CharSequence): String {
         val activity = this as Activity
-        val uri = selectedImageUri ?: return ""
+        val uri = if (activity is MrbotoActivityBase) activity._selectedImageUri else null
         return try {
+            if (uri == null) return ""
             val inputStream = activity.contentResolver.openInputStream(uri) ?: return ""
             val outputFile = File(activity.cacheDir, outputPath.toString())
             inputStream.use { input ->

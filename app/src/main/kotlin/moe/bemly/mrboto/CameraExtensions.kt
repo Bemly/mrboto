@@ -11,10 +11,6 @@ import android.util.Log
 import androidx.core.content.FileProvider
 import java.io.File
 
-private var photoUri: Uri? = null
-private var photoCallbackId: Int = -1
-private var videoCallbackId: Int = -1
-
 interface CameraMixin {
     val mruby: MRuby
 
@@ -47,15 +43,17 @@ interface CameraMixin {
         val activity = this as Activity
         return try {
             val file = File(activity.cacheDir, "mrboto_photo_${System.currentTimeMillis()}.jpg")
-            photoUri = FileProvider.getUriForFile(
+            val uri = FileProvider.getUriForFile(
                 activity, "${activity.packageName}.mrboto.fileprovider", file
             )
-            photoCallbackId = callbackId
-            val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE).apply {
-                putExtra(MediaStore.EXTRA_OUTPUT, photoUri)
+            if (activity is MrbotoActivityBase) {
+                activity._photoCallbackId = callbackId
+                activity._photoUri = uri
+                activity.photoLauncher.launch(uri)
+                true
+            } else {
+                false
             }
-            activity.startActivityForResult(intent, 9001)
-            true
         } catch (e: Exception) {
             Log.w("Mrboto", "cameraTakePhoto failed: ${e.message}")
             false
@@ -65,10 +63,18 @@ interface CameraMixin {
     fun cameraRecordVideo(callbackId: Int): Boolean {
         val activity = this as Activity
         return try {
-            videoCallbackId = callbackId
-            val intent = Intent(MediaStore.ACTION_VIDEO_CAPTURE)
-            activity.startActivityForResult(intent, 9002)
-            true
+            if (activity is MrbotoActivityBase) {
+                activity._videoCallbackId = callbackId
+                val file = File(activity.cacheDir, "mrboto_video_${System.currentTimeMillis()}.mp4")
+                val uri = FileProvider.getUriForFile(
+                    activity, "${activity.packageName}.mrboto.fileprovider", file
+                )
+                activity._videoOutputUri = uri
+                activity.videoLauncher.launch(uri)
+                true
+            } else {
+                false
+            }
         } catch (e: Exception) {
             Log.w("Mrboto", "cameraRecordVideo failed: ${e.message}")
             false
