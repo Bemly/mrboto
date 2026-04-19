@@ -39,6 +39,10 @@ abstract class MrbotoActivityBase : ComponentActivity(),
         private const val TAG = "MrbotoActivity"
         const val EXTRA_SCRIPT_PATH = "mrboto_script_path"
         const val META_DATA_SCRIPT = "mrboto_script"
+        private const val REQUEST_CODE_PHOTO = 9001
+        private const val REQUEST_CODE_VIDEO = 9002
+        private const val REQUEST_CODE_GALLERY = 9003
+        private const val REQUEST_CODE_SCREEN_CAPTURE = 9100
     }
 
     override lateinit var mruby: MRuby
@@ -1068,13 +1072,6 @@ abstract class MrbotoActivityBase : ComponentActivity(),
     }
 
     // ── Activity Result Handling ──────────────────────────────────────
-    companion object {
-        // Expose callback IDs from companion objects in other files
-        private const val REQUEST_CODE_PHOTO = 9001
-        private const val REQUEST_CODE_VIDEO = 9002
-        private const val REQUEST_CODE_GALLERY = 9003
-        private const val REQUEST_CODE_SCREEN_CAPTURE = 9100
-    }
 
     /**
      * Handle activity results from camera, gallery, and screen capture.
