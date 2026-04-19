@@ -60,6 +60,8 @@ module Mrboto
       drawer_layout:  'androidx.drawerlayout.widget.DrawerLayout',
       coordinator_layout: 'androidx.coordinatorlayout.widget.CoordinatorLayout',
       navigation_view: 'com.google.android.material.navigation.NavigationView',
+      # Liquid Glass (Compose + AndroidLiquidGlass)
+      liquid_glass_view: 'moe.bemly.mrboto.LiquidGlassView',
     }
 
     # Reverse map: java class name → Ruby widget name
@@ -340,6 +342,17 @@ module Mrboto
 
     def perform_click
       call_java_method('performClick')
+    end
+
+    # ── Liquid Glass (RenderEffect) ──────────────────────────────────
+    def apply_liquid_glass_effect(blur: 10.0, style: :blur)
+      Mrboto.current_activity.call_java_method(
+        'applyLiquidGlassEffect', @_registry_id, blur.to_f, style.to_s)
+    end
+
+    def remove_liquid_glass_effect
+      Mrboto.current_activity.call_java_method(
+        'removeLiquidGlassEffect', @_registry_id)
     end
   end
 
@@ -995,6 +1008,33 @@ module Mrboto
     def header_text(index, text)
       header = call_java_method('getHeaderView', index.to_i)
       header&.call_java_method('setText', text.to_s)
+    end
+  end
+
+  # ── LiquidGlassView ─────────────────────────────────────────────────
+  class LiquidGlassView < ViewGroup
+    def blur_radius=(val)
+      call_java_method('setBlurRadius', val.to_f)
+    end
+
+    def vibrancy=(val)
+      call_java_method('setVibrancy', !!val)
+    end
+
+    def lens(height, amount)
+      call_java_method('setLens', height.to_f, amount.to_f)
+    end
+
+    def opacity=(val)
+      call_java_method('setOpacity', val.to_f)
+    end
+
+    def shape_type=(val)
+      call_java_method('setShapeType', val.to_s)
+    end
+
+    def corner_radius=(val)
+      call_java_method('setCornerRadius', val.to_f)
     end
   end
 

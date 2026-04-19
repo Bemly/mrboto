@@ -1,6 +1,7 @@
 plugins {
     id("com.android.library")
     id("maven-publish")
+    id("org.jetbrains.kotlin.plugin.compose")
 }
 
 android {
@@ -38,6 +39,10 @@ android {
         }
     }
 
+    buildFeatures {
+        compose = true
+    }
+
     externalNativeBuild {
         cmake {
             path = file("src/main/cpp/CMakeLists.txt")
@@ -48,12 +53,22 @@ android {
 
 dependencies {
     implementation("com.github.equationl.paddleocr4android:ncnnandroidppocr:v1.3.0")
+    implementation("com.google.zxing:core:3.5.3")
     api("androidx.core:core-ktx:1.18.0")
     api("androidx.appcompat:appcompat:1.7.1")
     api("com.google.android.material:material:1.13.0")
     api("androidx.drawerlayout:drawerlayout:1.2.0")
     api("androidx.coordinatorlayout:coordinatorlayout:1.3.0")
     api("androidx.viewpager2:viewpager2:1.1.0")
+
+    // Compose
+    val composeBom = platform("androidx.compose:compose-bom:2025.04.01")
+    implementation(composeBom)
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.activity:activity-compose:1.10.1")
+    // AndroidLiquidGlass
+    implementation("io.github.kyant0:backdrop:1.0.6")
     androidTestImplementation("androidx.test.ext:junit:1.3.0")
     androidTestImplementation("androidx.test:runner:1.7.0")
     androidTestImplementation("androidx.test:rules:1.7.0")

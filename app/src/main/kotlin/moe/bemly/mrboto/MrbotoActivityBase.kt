@@ -4,6 +4,8 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.RenderEffect
+import android.graphics.Shader
 import android.os.Bundle
 import android.util.Log
 import android.view.Gravity
@@ -11,6 +13,7 @@ import android.view.View
 import android.widget.PopupMenu
 import android.widget.ScrollView
 import android.widget.TextView
+import androidx.activity.ComponentActivity
 import androidx.appcompat.app.AlertDialog
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.snackbar.Snackbar
@@ -25,11 +28,12 @@ import com.google.android.material.snackbar.Snackbar
  * script defines a class inheriting from Mrboto::Activity
  * and overrides the lifecycle methods.
  */
-abstract class MrbotoActivityBase : Activity(),
+abstract class MrbotoActivityBase : ComponentActivity(),
     AccessibilityMixin, CameraMixin, ColorFindMixin, CoroutineMixin,
     DeviceControlMixin, EventListenerMixin, FileEncodingMixin, GestureMixin,
-    ImageMixin, IntentMixin, NetworkMixin, OverlayMixin, PredictiveBackMixin,
-    ScreenCaptureMixin, SensorMixin, ShellMixin, ThreadingMixin, WindowInfoMixin {
+    GalleryMixin, ImageMixin, IntentMixin, NetworkMixin, OverlayMixin,
+    PredictiveBackMixin, QRCodeMixin, ScreenCaptureMixin, SensorMixin,
+    ShellMixin, ThreadingMixin, WindowInfoMixin {
 
     companion object {
         private const val TAG = "MrbotoActivity"
@@ -962,6 +966,45 @@ abstract class MrbotoActivityBase : Activity(),
         } catch (_: Exception) { false }
     }
 
+    // ── Liquid Glass (RenderEffect) ──────────────────────────────────────
+
+    /**
+     * Apply a liquid glass effect to any View using RenderEffect.
+     * Requires API 31+ (safe since minSdk is 33).
+     * Called from Ruby via call_java_method("applyLiquidGlassEffect", viewId, blurRadius, style).
+     */
+    fun applyLiquidGlassEffect(viewRegistryId: Int, blurRadius: Float, style: CharSequence) {
+        val view = mruby.lookupJavaObject<View>(viewRegistryId) ?: return
+        val effect = when (style.toString()) {
+            "blur" -> RenderEffect.createBlurEffect(blurRadius, blurRadius, Shader.TileMode.CLAMP)
+            "blur_vibrancy" -> {
+                val blur = RenderEffect.createBlurEffect(blurRadius, blurRadius, Shader.TileMode.CLAMP)
+                val saturation = RenderEffect.createColorFilterEffect(
+                    android.graphics.ColorMatrixColorFilter(
+                        floatArrayOf(
+                            1.2f, 0f, 0f, 0f, 0f,
+                            0f, 1.2f, 0f, 0f, 0f,
+                            0f, 0f, 1.2f, 0f, 0f,
+                            0f, 0f, 0f, 1f, 0f
+                        )
+                    )
+                )
+                RenderEffect.createChainEffect(blur, saturation)
+            }
+            else -> RenderEffect.createBlurEffect(blurRadius, blurRadius, Shader.TileMode.CLAMP)
+        }
+        view.setRenderEffect(effect)
+    }
+
+    /**
+     * Remove liquid glass effect from a View.
+     * Called from Ruby via call_java_method("removeLiquidGlassEffect", viewId).
+     */
+    fun removeLiquidGlassEffect(viewRegistryId: Int) {
+        val view = mruby.lookupJavaObject<View>(viewRegistryId) ?: return
+        view.setRenderEffect(null)
+    }
+
     // ── OCR (PaddleOCR v5 NCNN) ──────────────────────────────────────
     private var ocrInstance: com.equationl.ncnnandroidppocr.OCR? = null
 
@@ -1021,6 +1064,130 @@ abstract class MrbotoActivityBase : Activity(),
         } catch (e: Exception) {
             Log.w("Mrboto", "ocrRelease failed: ${e.message}")
             false
+        }
+    }
+
+    // ── Activity Result Handling ──────────────────────────────────────
+    companion object {
+        // Expose callback IDs from companion objects in other files
+        private const val REQUEST_CODE_PHOTO = 9001
+        private const val REQUEST_CODE_VIDEO = 9002
+        private const val REQUEST_CODE_GALLERY = 9003
+        private const val REQUEST_CODE_SCREEN_CAPTURE = 9100
+    }
+
+    /**
+     * Handle activity results from camera, gallery, and screen capture.
+     * This is critical for callbacks to work correctly.
+     *
+     * Request codes:
+     * - 9001: Camera photo capture (CameraExtensions)
+     * - 9002: Camera video recording (CameraExtensions)
+     * - 9003: Gallery image selection (GalleryMixin)
+     * - 9100: Screen capture authorization (ScreenCaptureMixin)
+     */
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+
+        if (resultCode != Activity.RESULT_OK) {
+            // Handle failure callbacks
+            when (requestCode) {
+                REQUEST_CODE_PHOTO, REQUEST_CODE_VIDEO, REQUEST_CODE_GALLERY -> {
+                    val callbackId = when (requestCode) {
+                        REQUEST_CODE_PHOTO -> {
+                            // Get from CameraExtensions companion
+                            try {
+                                val clazz = Class.forName("moe.bemly.mrboto.CameraExtensions\$Companion")
+                                clazz.getDeclaredField("photoCallbackId").getInt(null)
+                            } catch (e: Exception) { -1 }
+                        }
+                        REQUEST_CODE_VIDEO -> {
+                            try {
+                                val clazz = Class.forName("moe.bemly.mrboto.CameraExtensions\$Companion")
+                                clazz.getDeclaredField("videoCallbackId").getInt(null)
+                            } catch (e: Exception) { -1 }
+                        }
+                        REQUEST_CODE_GALLERY -> {
+                            try {
+                                val clazz = Class.forName("moe.bemly.mrboto.GalleryExtensions\$Companion")
+                                clazz.getDeclaredField("galleryCallbackId").getInt(null)
+                            } catch (e: Exception) { -1 }
+                        }
+                        else -> -1
+                    }
+                    if (callbackId > 0) {
+                        mruby.eval("Mrboto.dispatch_callback($callbackId, false, '')")
+                    }
+                }
+            }
+            return
+        }
+
+        when (requestCode) {
+            REQUEST_CODE_PHOTO -> {
+                // Photo capture success
+                val path = try {
+                    val clazz = Class.forName("moe.bemly.mrboto.CameraExtensions\$Companion")
+                    val uriField = clazz.getDeclaredField("photoUri")
+                    uriField.isAccessible = true
+                    val uri = uriField.get(null) as? android.net.Uri
+                    uri?.path ?: ""
+                } catch (e: Exception) {
+                    ""
+                }
+                val callbackId = try {
+                    val clazz = Class.forName("moe.bemly.mrboto.CameraExtensions\$Companion")
+                    clazz.getDeclaredField("photoCallbackId").getInt(null)
+                } catch (e: Exception) { -1 }
+                if (callbackId > 0) {
+                    mruby.eval("Mrboto.dispatch_callback($callbackId, true, '$path')")
+                }
+            }
+            REQUEST_CODE_VIDEO -> {
+                // Video recording success
+                val uri = data?.data
+                val path = uri?.toString() ?: ""
+                val callbackId = try {
+                    val clazz = Class.forName("moe.bemly.mrboto.CameraExtensions\$Companion")
+                    clazz.getDeclaredField("videoCallbackId").getInt(null)
+                } catch (e: Exception) { -1 }
+                if (callbackId > 0) {
+                    mruby.eval("Mrboto.dispatch_callback($callbackId, true, '$path')")
+                }
+            }
+            REQUEST_CODE_GALLERY -> {
+                // Gallery selection success
+                val uri = data?.data
+                try {
+                    val clazz = Class.forName("moe.bemly.mrboto.GalleryExtensions\$Companion")
+                    val uriField = clazz.getDeclaredField("selectedImageUri")
+                    uriField.isAccessible = true
+                    uriField.set(null, uri)
+
+                    val callbackIdField = clazz.getDeclaredField("galleryCallbackId")
+                    callbackIdField.isAccessible = true
+                    val callbackId = callbackIdField.getInt(null)
+
+                    if (callbackId > 0) {
+                        mruby.eval("Mrboto.dispatch_callback($callbackId, true, '${uri?.toString() ?: ''}')")
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Gallery callback failed: ${e.message}")
+                }
+            }
+            REQUEST_CODE_SCREEN_CAPTURE -> {
+                // Screen capture authorization - handled by ScreenCaptureMixin
+                val resultCodeData = data?.getIntExtra("resultCode", -1) ?: -1
+                val permissionData = data?.getParcelableExtra<android.media.projection.MediaProjection>("projection")
+                try {
+                    val clazz = Class.forName("moe.bemly.mrboto.ScreenCaptureExtensions\$Companion")
+                    val projectionField = clazz.getDeclaredField("mediaProjection")
+                    projectionField.isAccessible = true
+                    projectionField.set(null, permissionData)
+                } catch (e: Exception) {
+                    Log.w(TAG, "Screen capture callback failed: ${e.message}")
+                }
+            }
         }
     }
 
