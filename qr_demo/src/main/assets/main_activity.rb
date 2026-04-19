@@ -87,7 +87,7 @@ class MainActivity < Mrboto::Activity
 
   # ── SQLite 初始化 ─────────────────────────────────────────────────
   def init_database
-    @db = shared_preferences(" sqlite_open_internal", "qr_scan.db")
+    @db = sqlite_open("qr_scan.db")
     # 使用 execute 创建表
     @db.execute <<-SQL if @db
       CREATE TABLE IF NOT EXISTS scans (
