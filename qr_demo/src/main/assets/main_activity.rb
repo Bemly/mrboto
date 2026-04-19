@@ -45,6 +45,8 @@ class MainActivity < Mrboto::Activity
 
   def on_resume
     super
+    # 刷新权限状态（用户可能从设置页面返回后授权了新权限）
+    update_permission_display
     # 启动加速度传感器
     @sensor_id = start_accelerometer do |x, y, z|
       update_sensor_display(x, y, z)

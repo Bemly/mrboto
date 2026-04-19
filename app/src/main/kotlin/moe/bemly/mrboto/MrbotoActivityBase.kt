@@ -897,14 +897,64 @@ abstract class MrbotoActivityBase : ComponentActivity(),
         return try {
             val arr = org.json.JSONArray(permissionsJson.toString())
             val result = org.json.JSONObject()
+            val permsToRequest = mutableListOf<String>()
+
+            // Check which permissions are already granted
             for (i in 0 until arr.length()) {
                 val perm = arr.getString(i)
-                val granted = android.content.pm.PackageManager.PERMISSION_GRANTED ==
-                    packageManager.checkPermission(perm, packageName)
+                val granted = packageManager.checkPermission(perm, packageName) ==
+                    android.content.pm.PackageManager.PERMISSION_GRANTED
                 result.put(perm, granted)
+                if (!granted) permsToRequest.add(perm)
             }
+
+            // Show system permission dialog for denied permissions
+            if (permsToRequest.isNotEmpty()) {
+                val reqCode = 9000
+                val pending = permsToRequest.toTypedArray()
+
+                _permissionCallback = object : PermissionCallback {
+                    override fun onResult(requestCode: Int, p: Array<out String>, grantResults: IntArray) {
+                        if (requestCode == reqCode) {
+                            val granted = mutableListOf<String>()
+                            val denied = mutableListOf<String>()
+                            for (j in p.indices) {
+                                val name = p[j].substringAfterLast('.')
+                                if (grantResults[j] == android.content.pm.PackageManager.PERMISSION_GRANTED)
+                                    granted.add(name) else denied.add(name)
+                            }
+                            val parts = mutableListOf<String>()
+                            if (granted.isNotEmpty()) parts.add("已授权: ${granted.joinToString()}")
+                            if (denied.isNotEmpty()) parts.add("已拒绝: ${denied.joinToString()}")
+                            android.widget.Toast.makeText(
+                                this@MrbotoActivityBase,
+                                parts.joinToString("\n"),
+                                android.widget.Toast.LENGTH_LONG
+                            ).show()
+                        }
+                        _permissionCallback = null
+                    }
+                }
+
+                // Must be on UI thread; mruby JNI calls are on UI thread
+                androidx.core.app.ActivityCompat.requestPermissions(this, pending, reqCode)
+            }
+
             result.toString()
         } catch (_: Exception) { "{}" }
+    }
+
+    // Permission callback interface and holder
+    interface PermissionCallback {
+        fun onResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray)
+    }
+    private var _permissionCallback: PermissionCallback? = null
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int, permissions: Array<out String>, grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        _permissionCallback?.onResult(requestCode, permissions, grantResults)
     }
 
     // ── Start Activity ────────────────────────────────────────────────────
