@@ -118,6 +118,7 @@ module Mrboto
 
       wrapper
     rescue => e
+      Mrboto._log("[mrboto] create_view #{class_name} failed: #{e.class}: #{e.message}")
       $mrboto_widget_errors ||= []
       bt = e.backtrace ? e.backtrace.first(3).join("; ") : ""
       $mrboto_widget_errors << "#{class_name}: #{e.class}: #{e.message} [#{bt}]"
@@ -457,9 +458,10 @@ module Mrboto
   class ViewGroup < View
     def add_child(child)
       return if child.nil?
-      result = call_java_method('addView',
+      call_java_method('addView',
         Mrboto._java_object_for(child._registry_id))
-      result
+    rescue => e
+      Mrboto._log("[mrboto] add_child failed: #{e.class}: #{e.message}")
     end
   end
 

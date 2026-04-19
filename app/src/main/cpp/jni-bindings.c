@@ -114,6 +114,15 @@ mrb_value mrb_mrboto_register_object(mrb_state *mrb, mrb_value self) {
     return mrb_fixnum_value((mrb_int)data->registry_id);
 }
 
+/* Mrboto._log(msg) — output to Android logcat */
+mrb_value mrb_mrboto_log(mrb_state *mrb, mrb_value self) {
+    const char *msg;
+    mrb_get_args(mrb, "z", &msg);
+    (void)self;
+    if (msg) LOGI("%s", msg);
+    return mrb_nil_value();
+}
+
 /* Mrboto._java_object_for(registry_id) → JavaObject wrapper */
 
 mrb_value mrb_mrboto_java_object_for(mrb_state *mrb, mrb_value self) {
@@ -751,6 +760,7 @@ static void mrb_mrboto_define_methods(mrb_state *mrb, struct RClass *mrboto) {
     mrb_define_module_function(mrb, mrboto, "_set_layout_height", mrb_mrboto_set_layout_height, MRB_ARGS_REQ(2));
     mrb_define_module_function(mrb, mrboto, "_register_object", mrb_mrboto_register_object, MRB_ARGS_REQ(1));
     mrb_define_module_function(mrb, mrboto, "_java_object_for", mrb_mrboto_java_object_for, MRB_ARGS_REQ(1));
+    mrb_define_module_function(mrb, mrboto, "_log", mrb_mrboto_log, MRB_ARGS_REQ(1));
     mrb_define_module_function(mrb, mrboto, "_call_java_method", mrb_mrboto_call_java_method, MRB_ARGS_ANY());
     mrb_define_module_function(mrb, mrboto, "_eval", mrb_mrboto_eval, MRB_ARGS_REQ(1));
     mrb_define_module_function(mrb, mrboto, "_view_text", mrb_mrboto_view_text, MRB_ARGS_REQ(1));
