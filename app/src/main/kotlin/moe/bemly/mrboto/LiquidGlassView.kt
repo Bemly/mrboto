@@ -24,8 +24,12 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.unit.dp
-import com.kyant.backdrop.backdrop
-import com.kyant.backdrop.rememberCanvasBackdrop
+import com.kyant.backdrop.drawBackdrop
+import com.kyant.backdrop.backdrops.rememberCanvasBackdrop
+import com.kyant.backdrop.effects.blur
+import com.kyant.backdrop.effects.lens
+import com.kyant.backdrop.effects.opacity
+import com.kyant.backdrop.effects.vibrancy
 
 /**
  * LiquidGlassView — a FrameLayout that renders a liquid glass effect
@@ -116,7 +120,7 @@ class LiquidGlassView @JvmOverloads constructor(
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(shape)
-                    .backdrop(
+                    .drawBackdrop(
                         backdrop = backdrop,
                         shape = { shape },
                         effects = {
