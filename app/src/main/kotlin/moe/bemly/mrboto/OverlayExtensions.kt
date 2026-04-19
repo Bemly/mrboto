@@ -5,6 +5,7 @@ import android.content.Context
 import android.graphics.PixelFormat
 import android.util.Log
 import android.view.Gravity
+import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
 import java.util.concurrent.ConcurrentHashMap
@@ -61,6 +62,30 @@ interface OverlayMixin {
             params.y = y
             wm.addView(overlayView, params)
             val id = overlayView.hashCode()
+
+            // Enable drag: track touch deltas to update layout position
+            var startX = 0f
+            var startY = 0f
+            var startParamsX = 0
+            var startParamsY = 0
+            overlayView.setOnTouchListener { _, event ->
+                when (event.action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        startX = event.rawX
+                        startY = event.rawY
+                        startParamsX = params.x
+                        startParamsY = params.y
+                        false
+                    }
+                    MotionEvent.ACTION_MOVE -> {
+                        params.x = startParamsX + (event.rawX - startX).toInt()
+                        params.y = startParamsY + (event.rawY - startY).toInt()
+                        wm.updateViewLayout(overlayView, params)
+                        true
+                    }
+                    else -> false
+                }
+            }
             overlayViews[id] = overlayView
             id
         } catch (e: Exception) {
