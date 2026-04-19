@@ -61,7 +61,8 @@ abstract class MrbotoActivityBase : ComponentActivity(),
         val cbId = _photoCallbackId
         if (cbId > 0) {
             val path = if (success) _photoFilePath ?: "" else ""
-            mruby.eval("Mrboto.dispatch_callback($cbId, $success, '$path')")
+            val safePath = path.replace("'", "\\'").replace("\\", "\\\\")
+            mruby.eval("Mrboto.dispatch_callback($cbId, $success, '$safePath')")
         }
         _photoCallbackId = -1
         _photoFilePath = null
@@ -73,7 +74,8 @@ abstract class MrbotoActivityBase : ComponentActivity(),
         val cbId = _videoCallbackId
         if (cbId > 0) {
             val path = if (success) _videoOutputUri?.toString() ?: "" else ""
-            mruby.eval("Mrboto.dispatch_callback($cbId, $success, '$path')")
+            val safePath = path.replace("'", "\\'").replace("\\", "\\\\")
+            mruby.eval("Mrboto.dispatch_callback($cbId, $success, '$safePath')")
         }
         _videoCallbackId = -1
     }
@@ -84,7 +86,7 @@ abstract class MrbotoActivityBase : ComponentActivity(),
         val cbId = _galleryCallbackId
         if (cbId > 0) {
             _selectedImageUri = uri
-            val safeUri = uri?.toString() ?: ""
+            val safeUri = (uri?.toString() ?: "").replace("'", "\\'").replace("\\", "\\\\")
             mruby.eval("Mrboto.dispatch_callback($cbId, ${uri != null}, '$safeUri')")
         }
         _galleryCallbackId = -1
