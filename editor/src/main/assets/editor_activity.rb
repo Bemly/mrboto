@@ -82,7 +82,6 @@ class EditorActivity < Mrboto::ComposeActivity
         )
       }
 
-      # 底部栏按钮
       # 底部栏 — 左侧 nav cells
       glass_cell {
         nav_cell(icon: :ic_menu_code, content: "代码") { run_code }

@@ -458,7 +458,7 @@ class GlassBarTest {
         """.trimIndent())
 
         assertTrue(json.contains("\"type\":\"glass_bar\""))
-        assertTrue(json.contains("\"right_cell\""))
+        assertTrue(json.contains("\"type\":\"right_cell\""))
         assertTrue(json.contains("\"icon\":\"ic_menu_code\""))
         assertTrue(json.contains("\"icon\":\"ic_menu_search\""))
     }

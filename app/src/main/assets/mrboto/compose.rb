@@ -531,17 +531,10 @@ module Mrboto
 
   # ── right_cell: right-side cell in glass_bar (passed as prop) ──
   def right_cell(&block)
-    # Collect nodes and store as prop on the parent glass_bar node
     node = { "type" => "right_cell", "props" => {}, "children" => [] }
+    ComposeBuilder.stack.last["children"] << node
     ComposeBuilder.with_parent(node) { yield nil } if block_given?
-    # Instead of adding to children, store as right_cell prop on root glass_bar
-    root = ComposeBuilder.root
-    if root && root["type"] == "glass_bar"
-      root["props"]["right_cell"] = node
-      nil
-    else
-      node
-    end
+    nil
   end
 
   # ── kyant.backdrop low-level API ──

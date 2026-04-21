@@ -622,8 +622,8 @@ fun RenderComposableNode(
 
             // Separate glass_cell children from content children
             val cellNodes = node.children.filter { it.type == "glass_cell" }
-            val contentNodes = node.children.filter { it.type != "glass_cell" }
-            val rightCellNode = node.props["right_cell"]
+            val contentNodes = node.children.filter { it.type != "glass_cell" && it.type != "right_cell" }
+            val rightCellNode = node.children.find { it.type == "right_cell" }?.children?.firstOrNull { it.type == "glass_cell" }
 
             Box(modifier = Modifier.fillMaxSize()) {
                 Column(modifier = Modifier.fillMaxSize()) {
@@ -661,10 +661,9 @@ fun RenderComposableNode(
                     }
 
                     // Spacer pushes right cell to the end
-                    if (rightCellNode is JSONObject) {
+                    if (rightCellNode != null) {
                         Spacer(modifier = Modifier.weight(1f))
-                        val rightCellParsed = parseComposableTree(rightCellNode)
-                        RenderGlassCell(this, rightCellParsed, backdrop, barShapeType, barCornerRadius,
+                        RenderGlassCell(this, rightCellNode, backdrop, barShapeType, barCornerRadius,
                             barVibrancy, blurPx, barLensHeight, barLensAmount,
                             barSurfaceColor, barSurfaceAlpha, mruby, activity, animationScope)
                     }
