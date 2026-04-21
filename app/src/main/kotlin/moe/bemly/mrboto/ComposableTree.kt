@@ -1,6 +1,7 @@
 package moe.bemly.mrboto
 
 import android.annotation.SuppressLint
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -420,12 +421,7 @@ fun buildModifier(props: Map<String, Any?>): Modifier {
     }
     props["width"]?.let { m = m.width(toDp(it)) }
     props["height"]?.let { m = m.height(toDp(it)) }
-    props["layout_weight"]?.let {
-        val w = (it as? Number)?.toFloat() ?: 1f
-        m = m.weight(w)
-    }
     props["background_color"]?.let { m = m.background(parseColor(it)) }
-    props["align"]?.let { m = m.align(parseContentAlignment(it.toString())) }
     props["aspect_ratio"]?.let {
         m = m.aspectRatio((it as? Number)?.toFloat() ?: 1f)
     }
@@ -449,11 +445,9 @@ fun applyModifierArray(arr: JSONArray, modifier: Modifier): Modifier {
                 val v = if (obj.has("value")) obj.getDouble("value").toFloat() else 1f
                 m = m.fillMaxHeight(v)
             }
-            "weight" -> m = m.weight(obj.optDouble("value", 1.0).toFloat())
             "width" -> m = m.width(toDp(obj.get("value")))
             "height" -> m = m.height(toDp(obj.get("value")))
             "background" -> m = m.background(parseColor(obj.get("value")))
-            "align" -> m = m.align(parseContentAlignment(obj.getString("value")))
             "aspect_ratio" -> m = m.aspectRatio(obj.getDouble("value").toFloat())
             "clip" -> m = m.clip(MaterialTheme.shapes.medium)
         }
