@@ -484,6 +484,60 @@ module Mrboto
     Mrboto._build_compose_node("android_view", nil, props, &block)
   end
 
+  # ── Glass Bar (high-level) — auto backdrop + glass bottom bar ──
+  # Full-screen component: block's first child = content, remaining = bar buttons.
+  # Supports optional top_bar prop for a TopAppBar above the content.
+  def glass_bar(shape_type: :rounded_rect, corner_radius: 24.0, blur_radius: 25.0, vibrancy: true, surface_color: nil, surface_alpha: 0.5, top_bar: nil, **kwargs, &block)
+    props = _extract_props(kwargs)
+    props["shape_type"] = shape_type.to_s
+    props["corner_radius"] = corner_radius.to_f
+    props["blur_radius"] = blur_radius.to_f
+    props["vibrancy"] = !!vibrancy
+    props["surface_color"] = surface_color.to_s if surface_color
+    props["surface_alpha"] = surface_alpha.to_f
+    # top_bar: pass a proc that returns a top_app_bar node
+    if top_bar.respond_to?(:call)
+      props["top_bar"] = _collect_nodes(&top_bar)
+    elsif top_bar.is_a?(Hash)
+      props["top_bar"] = top_bar
+    end
+    # Build children: the block builds content + bar buttons
+    Mrboto._build_compose_node("glass_bar", nil, props, &block)
+  end
+
+  # ── kyant.backdrop low-level API ──
+  # Creates a backdrop reference with a numeric ID for sharing between nodes
+  def remember_layer_backdrop(backdrop_id = 1, &block)
+    node = {
+      "type" => "remember_layer_backdrop",
+      "props" => { "backdrop_id" => backdrop_id.to_i },
+      "children" => [],
+    }
+    ComposeBuilder.with_parent(node) { yield nil } if block_given?
+    ComposeBuilder.add_node(node)
+    node
+  end
+
+  # Wraps content to be captured into a backdrop (content area behind the glass)
+  def layer_backdrop(backdrop_id = nil, **kwargs, &block)
+    props = _extract_props(kwargs)
+    props["backdrop_id"] = backdrop_id.to_i if backdrop_id
+    Mrboto._build_compose_node("layer_backdrop", nil, props, &block)
+  end
+
+  # Draws glass effect over previously captured backdrop content
+  def draw_backdrop_glass(backdrop_id: nil, shape: :rounded_rect, corner_radius: 16.0, blur_radius: 25.0, vibrancy: true, surface_color: nil, surface_alpha: 0.5, **kwargs, &block)
+    props = _extract_props(kwargs)
+    props["backdrop_id"] = backdrop_id.to_i if backdrop_id
+    props["shape_type"] = shape.to_s
+    props["corner_radius"] = corner_radius.to_f
+    props["blur_radius"] = blur_radius.to_f
+    props["vibrancy"] = !!vibrancy
+    props["surface_color"] = surface_color.to_s if surface_color
+    props["surface_alpha"] = surface_alpha.to_f
+    Mrboto._build_compose_node("draw_backdrop_glass", nil, props, &block)
+  end
+
   # ── Internal: collect child nodes from a block ──
   def _collect_nodes(&block)
     ComposeBuilder.collect_nodes(&block)

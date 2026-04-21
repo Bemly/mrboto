@@ -323,6 +323,82 @@ liquid_glass_view(
 
 ---
 
+## 液态玻璃底部栏 / Liquid Glass Bottom Bar
+
+使用 [kyant.backdrop](https://kyant.gitbook.io/backdrop) 库实现 iOS 风格的液态玻璃效果。提供两种使用方式：
+
+### 高阶组件 — `glass_bar`
+
+全屏组件，自动管理 backdrop。第一个子节点为主内容区域，后续子节点为底部栏按钮（每个按钮自动包裹在独立玻璃单元中）：
+
+```ruby
+glass_bar(
+  shape_type: :rounded_rect,
+  corner_radius: 24.0,
+  blur_radius: 25.0,
+  vibrancy: true,
+  top_bar: -> { top_app_bar("标题", actions: [
+    { icon: "settings", on_click: -> { toast("设置") } }
+  ]) }
+) {
+  # 第一个子节点 = 主内容区域
+  column {
+    text("主内容")
+  }
+
+  # 后续子节点 = 底部栏按钮（每个自动玻璃化）
+  text_button("Run", icon: :play_arrow) { run_code }
+  text_button("Save", icon: :save) { save_code }
+  text_button("Clear", icon: :close) { clear_code }
+}
+```
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| shape_type | Symbol | `:rounded_rect`, `:circle` |
+| corner_radius | Float | 圆角半径（dp） |
+| blur_radius | Float | 模糊半径 |
+| vibrancy | Boolean | 是否启用鲜艳度增强 |
+| surface_color | String | 表面颜色（十六进制 hex） |
+| surface_alpha | Float | 表面透明度（0.0-1.0） |
+| top_bar | Proc | 顶部导航栏（返回 top_app_bar 节点） |
+
+### 底层 API — 灵活组合
+
+通过 `remember_layer_backdrop` + `layer_backdrop` + `draw_backdrop_glass` 自由组装：
+
+```ruby
+# 创建 backdrop 引用（用 ID 关联 layer 和 draw）
+remember_layer_backdrop(1) {
+  # 内容区域 — 捕获到 backdrop
+  layer_backdrop(1) {
+    column { text("Main content") }
+  }
+
+  # 独立玻璃面板
+  draw_backdrop_glass(backdrop_id: 1, shape: :rounded_rect, corner_radius: 24.0, blur_radius: 25.0) {
+    row { text_button("Button") }
+  }
+}
+```
+
+| 节点 | 说明 |
+|------|------|
+| `remember_layer_backdrop(id)` | 创建 backdrop 引用，ID 用于关联 layer 和 draw |
+| `layer_backdrop(id)` | 包裹内容区域，捕获到 backdrop（渲染在玻璃后面的内容） |
+| `draw_backdrop_glass(id:, ...)` | 绘制玻璃效果层，参数与 `glass_bar` 相同 |
+
+### 原理
+
+kyant.backdrop 使用 LayerBackdrop 模式：
+1. `rememberLayerBackdrop()` 创建共享 backdrop
+2. `.layerBackdrop(backdrop)` 将内容捕获到 backdrop
+3. `.drawBackdrop(backdrop, shape, effects)` 在捕获的内容上渲染玻璃效果
+
+每个 `glass_bar` 按钮都有独立的 `drawBackdrop` Box，遵循官方教程模式。
+
+---
+
 ## 主题切换 / Theme Toggle
 
 Compose 模式下切换主题需要重建 UI 树：

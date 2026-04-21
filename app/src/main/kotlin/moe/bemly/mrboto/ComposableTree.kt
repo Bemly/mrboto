@@ -79,6 +79,44 @@ fun parseComposableTreeArray(jsonArray: JSONArray): List<ComposableNode> {
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
+/** Backdrop store shared across a single composition tree. Key = Ruby-side backdrop ID. */
+private val LocalBackdropStore =
+    compositionLocalOf<MutableMap<Int, LayerBackdrop>> { mutableStateMapOf() }
+
+/** Collect all backdrop IDs used by layer_backdrop / draw_backdrop_glass nodes in the tree. */
+private fun collectBackdropIds(node: ComposableNode, ids: MutableSet<Int>) {
+    when (node.type) {
+        "layer_backdrop", "draw_backdrop_glass" -> {
+            val id = (node.props["backdrop_id"] as? Number)?.toInt()
+            if (id != null) ids.add(id)
+        }
+    }
+    node.children.forEach { collectBackdropIds(it, ids) }
+}
+
+/** Entry point for rendering a Compose tree. Creates a shared backdrop store so that
+ * [layer_backdrop] and [draw_backdrop_glass] nodes with the same [backdrop_id] share
+ * the same [LayerBackdrop] instance. */
+@Composable
+fun RenderComposableTree(
+    node: ComposableNode,
+    mruby: MRuby,
+    activity: MrbotoActivityBase,
+) {
+    // Pre-collect backdrop IDs so we can remember them at the root level
+    val backdropIds = mutableSetOf<Int>()
+    collectBackdropIds(node, backdropIds)
+
+    // Create a map of backdrop ID → LayerBackdrop, remembered across recompositions
+    val backdropMap = remember(backdropIds) {
+        mutableMapOf<Int, LayerBackdrop>()
+    }
+
+    CompositionLocalProvider(LocalBackdropStore provides backdropMap) {
+        RenderComposableNode(node, mruby, activity)
+    }
+}
+
 @Composable
 fun RenderComposableNode(
     node: ComposableNode,
@@ -526,6 +564,166 @@ fun RenderComposableNode(
                 contentDescription = null,
                 modifier = mod,
             )
+        }
+
+        // ── kyant.backdrop: high-level glass bar ──────────────────────────
+        "glass_bar" -> {
+            val topBarNode = node.props["top_bar"]
+            val blurRadius = (node.props["blur_radius"] as? Number)?.toFloat() ?: 25f
+            val vibrancyEnabled = node.props["vibrancy"] != false
+            val cornerRadius = (node.props["corner_radius"] as? Number)?.toFloat() ?: 24f
+            val shapeType = node.props["shape_type"]?.toString() ?: "rounded_rect"
+            val surfaceColorStr = node.props["surface_color"]?.toString()
+            val surfaceAlpha = (node.props["surface_alpha"] as? Number)?.toFloat() ?: 0.5f
+
+            val shape = when (shapeType.lowercase()) {
+                "circle" -> CircleShape
+                else -> RoundedCornerShape(cornerRadius.dp)
+            }
+
+            val surfaceColor = if (surfaceColorStr != null) {
+                parseColor(surfaceColorStr)
+            } else {
+                val isDark = isSystemInDarkTheme()
+                if (isDark) Color(0xFF1C1C1E) else Color(0xFFF2F2F7)
+            }
+
+            val backdrop = rememberLayerBackdrop()
+
+            Box(modifier = Modifier.fillMaxSize()) {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    if (topBarNode is JSONObject) {
+                        RenderComposableNode(parseComposableTree(topBarNode), mruby, activity)
+                    }
+                    // Content area — first child
+                    val contentNode = node.children.firstOrNull()
+                    if (contentNode != null) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .layerBackdrop(backdrop),
+                        ) {
+                            RenderComposableNode(contentNode, mruby, activity)
+                        }
+                    }
+                }
+
+                // Glass bar at bottom
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .height(64.dp)
+                        .fillMaxWidth()
+                        .safeContentPadding(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    val barChildren = node.children.drop(1)
+                    barChildren.forEach { child ->
+                        Box(
+                            modifier = Modifier
+                                .drawBackdrop(
+                                    backdrop = backdrop,
+                                    shape = { shape },
+                                    effects = {
+                                        if (blurRadius > 0f) blur(blurRadius)
+                                        if (vibrancyEnabled) vibrancy()
+                                    },
+                                    onDrawSurface = {
+                                        drawRect(surfaceColor.copy(alpha = surfaceAlpha))
+                                    },
+                                )
+                                .fillMaxHeight()
+                                .weight(1f),
+                        ) {
+                            RenderComposableNode(child, mruby, activity)
+                        }
+                    }
+                }
+            }
+        }
+
+        // ── kyant.backdrop: low-level API — create backdrop reference ─────
+        "remember_layer_backdrop" -> {
+            val backdropId = (node.props["backdrop_id"] as? Number)?.toInt() ?: 0
+            if (backdropId > 0) {
+                val backdropMap = LocalBackdropStore.current
+                val backdrop = rememberLayerBackdrop()
+                backdropMap[backdropId] = backdrop
+            }
+            // No visual output — state creator only
+            node.children.forEach { child ->
+                RenderComposableNode(child, mruby, activity)
+            }
+        }
+
+        // ── kyant.backdrop: low-level API — capture content into backdrop ─
+        "layer_backdrop" -> {
+            val backdropId = (node.props["backdrop_id"] as? Number)?.toInt()
+            val backdropMap = LocalBackdropStore.current
+            val backdrop = if (backdropId != null && backdropId > 0) {
+                backdropMap.getOrPut(backdropId) { rememberLayerBackdrop() }
+            } else {
+                rememberLayerBackdrop()
+            }
+
+            Box(
+                modifier = Modifier.then(mod).layerBackdrop(backdrop),
+            ) {
+                node.children.forEach { child ->
+                    RenderComposableNode(child, mruby, activity)
+                }
+            }
+        }
+
+        // ── kyant.backdrop: low-level API — draw glass effect ─────────────
+        "draw_backdrop_glass" -> {
+            val backdropId = (node.props["backdrop_id"] as? Number)?.toInt()
+            val blurRadius = (node.props["blur_radius"] as? Number)?.toFloat() ?: 25f
+            val vibrancyEnabled = node.props["vibrancy"] != false
+            val cornerRadius = (node.props["corner_radius"] as? Number)?.toFloat() ?: 16f
+            val shapeType = node.props["shape_type"]?.toString() ?: "rounded_rect"
+            val surfaceColorStr = node.props["surface_color"]?.toString()
+            val surfaceAlpha = (node.props["surface_alpha"] as? Number)?.toFloat() ?: 0.5f
+
+            val shape = when (shapeType.lowercase()) {
+                "circle" -> CircleShape
+                else -> RoundedCornerShape(cornerRadius.dp)
+            }
+
+            val surfaceColor = if (surfaceColorStr != null) {
+                parseColor(surfaceColorStr)
+            } else {
+                val isDark = isSystemInDarkTheme()
+                if (isDark) Color(0xFF1C1C1E) else Color(0xFFF2F2F7)
+            }
+
+            val backdropMap = LocalBackdropStore.current
+            val backdrop = if (backdropId != null && backdropId > 0) {
+                backdropMap.getOrPut(backdropId) { rememberLayerBackdrop() }
+            } else {
+                rememberLayerBackdrop()
+            }
+
+            Box(
+                modifier = Modifier
+                    .drawBackdrop(
+                        backdrop = backdrop,
+                        shape = { shape },
+                        effects = {
+                            if (blurRadius > 0f) blur(blurRadius)
+                            if (vibrancyEnabled) vibrancy()
+                        },
+                        onDrawSurface = {
+                            drawRect(surfaceColor.copy(alpha = surfaceAlpha))
+                        },
+                    )
+                    .then(mod),
+            ) {
+                node.children.forEach { child ->
+                    RenderComposableNode(child, mruby, activity)
+                }
+            }
         }
 
         else -> {

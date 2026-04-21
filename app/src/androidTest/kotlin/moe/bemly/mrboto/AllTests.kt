@@ -80,6 +80,9 @@ import org.junit.runners.Suite
     OcrTest::class,
 
     // Time
-    TimeStrftimeTest::class
+    TimeStrftimeTest::class,
+
+    // Compose & Glass Bar
+    GlassBarTest::class
 )
 class AllTests

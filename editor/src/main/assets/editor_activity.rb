@@ -48,28 +48,17 @@ class EditorActivity < Mrboto::ComposeActivity
     Mrboto::ComposeBuilder.instance_variable_set(:@_compose_root, nil)
     _log("build_ui: stack cleared")
 
-    scaffold(
+    glass_bar(
+      shape_type: :rounded_rect,
+      corner_radius: 24.0,
+      blur_radius: 25.0,
+      vibrancy: true,
       top_bar: -> { top_app_bar("Ruby Editor", actions: [
         { icon: @dark_mode ? "light_mode" : "dark_mode", on_click: -> { toggle_theme } }
-      ]) },
-      bottom_bar: -> {
-        liquid_glass_view(
-          shape_type: "rounded_rect",
-          corner_radius: 24.0,
-          blur_radius: 25.0,
-          vibrancy: true
-        ) {
-          row(horizontal_arrangement: :space_evenly, padding: 8) {
-            text_button("Run", icon: :play_arrow) { run_code }
-            text_button("Save", icon: :save) { save_code }
-            text_button("Load", icon: :content_paste) { load_code }
-            text_button("Clear", icon: :close) { clear_code }
-          }
-        }
-      }
+      ]) }
     ) {
+      # 代码编辑区
       column(fill_max_width: true) {
-        # 代码编辑区
         text("代码", font_size: 13, font_family: :monospace)
 
         outlined_text_field(
@@ -92,6 +81,12 @@ class EditorActivity < Mrboto::ComposeActivity
           modifier: background_color(@dark_mode ? "181825" : "F0F0F5").then(padding(8))
         )
       }
+
+      # 底部栏按钮
+      text_button("Run", icon: :play_arrow) { run_code }
+      text_button("Save", icon: :save) { save_code }
+      text_button("Load", icon: :content_paste) { load_code }
+      text_button("Clear", icon: :close) { clear_code }
     }
     _log("build_ui: tree built, root=#{Mrboto::ComposeBuilder.root ? Mrboto::ComposeBuilder.root["type"] : "nil"}")
 

@@ -44,7 +44,7 @@ abstract class MrbotoComposeActivityBase : MrbotoActivityBase() {
                 Surface {
                     val tree = composeTreeState
                     if (tree != null) {
-                        RenderComposableNode(tree, mruby, this@MrbotoComposeActivityBase)
+                        RenderComposableTree(tree, mruby, this@MrbotoComposeActivityBase)
                     }
                 }
             }
