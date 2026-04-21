@@ -34,6 +34,7 @@ import com.kyant.backdrop.backdrops.LayerBackdrop
 import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.effects.blur
 import com.kyant.backdrop.effects.vibrancy
+import com.kyant.backdrop.effects.lens
 import com.kyant.backdrop.shadow.Shadow
 import androidx.compose.ui.viewinterop.AndroidView
 import org.json.JSONArray
@@ -569,14 +570,17 @@ fun RenderComposableNode(
         }
 
         // ── kyant.backdrop: high-level glass bar ──────────────────────────
+        // Official pattern: each button cell has its own drawBackdrop Box
         "glass_bar" -> {
             val topBarNode = node.props["top_bar"]
-            val blurRadius = (node.props["blur_radius"] as? Number)?.toFloat() ?: 25f
+            val blurPx = (node.props["blur_radius"] as? Number)?.toFloat() ?: 25f
             val vibrancyEnabled = node.props["vibrancy"] != false
             val cornerRadius = (node.props["corner_radius"] as? Number)?.toFloat() ?: 24f
             val shapeType = node.props["shape_type"]?.toString() ?: "rounded_rect"
             val surfaceColorStr = node.props["surface_color"]?.toString()
             val surfaceAlpha = (node.props["surface_alpha"] as? Number)?.toFloat() ?: 0.5f
+            val lensHeightPx = (node.props["lens_height"] as? Number)?.toFloat() ?: 0f
+            val lensAmountPx = (node.props["lens_amount"] as? Number)?.toFloat() ?: 0f
 
             val shape = when (shapeType.lowercase()) {
                 "circle" -> CircleShape
@@ -597,7 +601,7 @@ fun RenderComposableNode(
                     if (topBarNode is JSONObject) {
                         RenderComposableNode(parseComposableTree(topBarNode), mruby, activity)
                     }
-                    // Content area — first child
+                    // Content area — first child captured into backdrop
                     val contentNode = node.children.firstOrNull()
                     if (contentNode != null) {
                         Box(
@@ -610,32 +614,33 @@ fun RenderComposableNode(
                     }
                 }
 
-                // Glass bar at bottom
+                // Glass bar at bottom — each cell has independent drawBackdrop
                 Row(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
+                        .safeContentPadding()
                         .height(64.dp)
-                        .fillMaxWidth()
-                        .safeContentPadding(),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically,
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    val barChildren = node.children.drop(1)
-                    barChildren.forEach { child ->
+                    node.children.drop(1).forEach { child ->
                         Box(
                             modifier = Modifier
                                 .drawBackdrop(
                                     backdrop = backdrop,
                                     shape = { shape },
                                     effects = {
-                                        if (blurRadius > 0f) blur(blurRadius)
                                         if (vibrancyEnabled) vibrancy()
+                                        if (blurPx > 0f) blur(blurPx)
+                                        if (lensHeightPx > 0f && lensAmountPx > 0f) {
+                                            lens(lensHeightPx, lensAmountPx)
+                                        }
                                     },
                                     onDrawSurface = {
                                         drawRect(surfaceColor.copy(alpha = surfaceAlpha))
                                     },
                                 )
-                                .fillMaxHeight()
                                 .weight(1f),
                         ) {
                             RenderComposableNode(child, mruby, activity)
@@ -681,8 +686,10 @@ fun RenderComposableNode(
         // ── kyant.backdrop: low-level API — draw glass effect ─────────────
         "draw_backdrop_glass" -> {
             val backdropId = (node.props["backdrop_id"] as? Number)?.toInt()
-            val blurRadius = (node.props["blur_radius"] as? Number)?.toFloat() ?: 25f
+            val blurPx = (node.props["blur_radius"] as? Number)?.toFloat() ?: 25f
             val vibrancyEnabled = node.props["vibrancy"] != false
+            val lensHeightPx = (node.props["lens_height"] as? Number)?.toFloat() ?: 0f
+            val lensAmountPx = (node.props["lens_amount"] as? Number)?.toFloat() ?: 0f
             val cornerRadius = (node.props["corner_radius"] as? Number)?.toFloat() ?: 16f
             val shapeType = node.props["shape_type"]?.toString() ?: "rounded_rect"
             val surfaceColorStr = node.props["surface_color"]?.toString()
@@ -713,8 +720,11 @@ fun RenderComposableNode(
                         backdrop = backdrop,
                         shape = { shape },
                         effects = {
-                            if (blurRadius > 0f) blur(blurRadius)
                             if (vibrancyEnabled) vibrancy()
+                            if (blurPx > 0f) blur(blurPx)
+                            if (lensHeightPx > 0f && lensAmountPx > 0f) {
+                                lens(lensHeightPx, lensAmountPx)
+                            }
                         },
                         onDrawSurface = {
                             drawRect(surfaceColor.copy(alpha = surfaceAlpha))

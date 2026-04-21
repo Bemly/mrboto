@@ -487,12 +487,14 @@ module Mrboto
   # ── Glass Bar (high-level) — auto backdrop + glass bottom bar ──
   # Full-screen component: block's first child = content, remaining = bar buttons.
   # Supports optional top_bar prop for a TopAppBar above the content.
-  def glass_bar(shape_type: :rounded_rect, corner_radius: 24.0, blur_radius: 25.0, vibrancy: true, surface_color: nil, surface_alpha: 0.5, top_bar: nil, **kwargs, &block)
+  def glass_bar(shape_type: :rounded_rect, corner_radius: 24.0, blur_radius: 25.0, vibrancy: true, lens_height: 0.0, lens_amount: 0.0, surface_color: nil, surface_alpha: 0.5, top_bar: nil, **kwargs, &block)
     props = _extract_props(kwargs)
     props["shape_type"] = shape_type.to_s
     props["corner_radius"] = corner_radius.to_f
     props["blur_radius"] = blur_radius.to_f
     props["vibrancy"] = !!vibrancy
+    props["lens_height"] = lens_height.to_f if lens_height > 0
+    props["lens_amount"] = lens_amount.to_f if lens_amount > 0
     props["surface_color"] = surface_color.to_s if surface_color
     props["surface_alpha"] = surface_alpha.to_f
     # top_bar: pass a proc that returns a top_app_bar node
@@ -526,13 +528,15 @@ module Mrboto
   end
 
   # Draws glass effect over previously captured backdrop content
-  def draw_backdrop_glass(backdrop_id: nil, shape: :rounded_rect, corner_radius: 16.0, blur_radius: 25.0, vibrancy: true, surface_color: nil, surface_alpha: 0.5, **kwargs, &block)
+  def draw_backdrop_glass(backdrop_id: nil, shape: :rounded_rect, corner_radius: 16.0, blur_radius: 25.0, vibrancy: true, lens_height: 0.0, lens_amount: 0.0, surface_color: nil, surface_alpha: 0.5, **kwargs, &block)
     props = _extract_props(kwargs)
     props["backdrop_id"] = backdrop_id.to_i if backdrop_id
     props["shape_type"] = shape.to_s
     props["corner_radius"] = corner_radius.to_f
     props["blur_radius"] = blur_radius.to_f
     props["vibrancy"] = !!vibrancy
+    props["lens_height"] = lens_height.to_f if lens_height > 0
+    props["lens_amount"] = lens_amount.to_f if lens_amount > 0
     props["surface_color"] = surface_color.to_s if surface_color
     props["surface_alpha"] = surface_alpha.to_f
     Mrboto._build_compose_node("draw_backdrop_glass", nil, props, &block)
