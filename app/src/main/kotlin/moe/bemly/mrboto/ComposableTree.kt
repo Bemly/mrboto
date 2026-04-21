@@ -626,15 +626,18 @@ fun RenderComposableNode(
                     }
                 }
 
-                Row(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .safeContentPadding()
-                        .height(64.dp)
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                // Floating bar — 10% margin left/right, 10% from bottom (Apple Liquid Glass spec)
+                BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                    val bottomOffset = maxHeight * 0.1f
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = bottomOffset)
+                            .fillMaxWidth(0.8f)
+                            .height(64.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                     val animationScope = rememberCoroutineScope()
 
                     if (cellNodes.isNotEmpty()) {
@@ -651,6 +654,7 @@ fun RenderComposableNode(
                                 barVibrancy, blurPx, barLensHeight, barLensAmount,
                                 barSurfaceColor, barSurfaceAlpha, mruby, activity, animationScope)
                         }
+                    }
                     }
                 }
             }
