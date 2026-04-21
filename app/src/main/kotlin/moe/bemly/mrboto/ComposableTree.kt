@@ -3,6 +3,7 @@ package moe.bemly.mrboto
 import android.annotation.SuppressLint
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.pointerInput
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
@@ -40,7 +41,8 @@ import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.effects.blur
 import com.kyant.backdrop.effects.vibrancy
 import com.kyant.backdrop.effects.lens
-import com.kyant.shapes.ContinuousCapsule
+import com.kyant.shapes.Capsule
+import com.kyant.backdrop.shadow.Shadow
 import androidx.compose.ui.viewinterop.AndroidView
 import org.json.JSONArray
 import org.json.JSONObject
@@ -590,7 +592,7 @@ fun RenderComposableNode(
 
             val shape = when (shapeType.lowercase()) {
                 "circle" -> CircleShape
-                "continuous_capsule" -> ContinuousCapsule
+                "continuous_capsule" -> Capsule()
                 else -> RoundedCornerShape(cornerRadius.dp)
             }
 
@@ -745,7 +747,7 @@ fun RenderComposableNode(
 
             val shape = when (shapeType.lowercase()) {
                 "circle" -> CircleShape
-                "continuous_capsule" -> ContinuousCapsule
+                "continuous_capsule" -> Capsule()
                 else -> RoundedCornerShape(cornerRadius.dp)
             }
 
