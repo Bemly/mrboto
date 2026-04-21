@@ -316,7 +316,7 @@ class GlassBarTest {
     }
 
     @Test
-    fun `glass_bar without glass_cell still works (backward compat)`() {
+    fun `glass_bar without glass_cell still works`() {
         mruby.eval("""
             Mrboto::ComposeBuilder.instance_variable_set(:@_compose_parent_stack, [])
             Mrboto::ComposeBuilder.instance_variable_set(:@_compose_root, nil)
