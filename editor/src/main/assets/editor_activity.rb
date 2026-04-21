@@ -25,13 +25,28 @@ class EditorActivity < Mrboto::ComposeActivity
     @dark_mode = true
     @code = DEFAULT_CODE
     @output = ""
-    build_ui
+    begin
+      build_ui
+      _log("build_ui completed successfully")
+    rescue => e
+      _log("build_ui ERROR: #{e.class}: #{e.message}")
+      if e.respond_to?(:backtrace) && e.backtrace
+        e.backtrace.first(5).each { |l| _log("  #{l}") }
+      end
+    end
+  end
+
+  def _log(msg)
+    # Use Java Log to print to logcat
+    call_java_method("logDebug", "EditorActivity", msg.to_s) rescue puts(msg)
   end
 
   def build_ui
+    _log("build_ui: starting")
     # ── 清除之前的树栈和根节点 ──
     Mrboto::ComposeBuilder.instance_variable_set(:@_compose_parent_stack, [])
     Mrboto::ComposeBuilder.instance_variable_set(:@_compose_root, nil)
+    _log("build_ui: stack cleared")
 
     scaffold(
       top_bar: -> { top_app_bar("Ruby Editor", actions: [
@@ -78,8 +93,10 @@ class EditorActivity < Mrboto::ComposeActivity
         )
       }
     }
+    _log("build_ui: tree built, root=#{Mrboto::ComposeBuilder.root ? Mrboto::ComposeBuilder.root["type"] : "nil"}")
 
     set_compose_content
+    _log("build_ui: set_compose_content called")
     apply_theme_colors
   end
 

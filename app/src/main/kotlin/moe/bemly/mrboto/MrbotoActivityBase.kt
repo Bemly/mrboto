@@ -37,6 +37,11 @@ abstract class MrbotoActivityBase : AppCompatActivity(),
     PredictiveBackMixin, QRCodeMixin, ScreenCaptureMixin, SensorMixin,
     ShellMixin, ThreadingMixin, WindowInfoMixin {
 
+    // Ruby-callable debug log helper
+    fun logDebug(tag: String, message: String) {
+        Log.d("RubyDebug:$tag", message)
+    }
+
     companion object {
         private const val TAG = "MrbotoActivity"
         const val EXTRA_SCRIPT_PATH = "mrboto_script_path"

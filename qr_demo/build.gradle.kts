@@ -4,13 +4,13 @@ plugins {
 
 android {
     namespace = "moe.bemly.qrdemo"
-    compileSdk = 36
+    compileSdk = 37
     ndkVersion = "29.0.14206865"
 
     defaultConfig {
         applicationId = "moe.bemly.qrdemo"
         minSdk = 33
-        targetSdk = 36
+        targetSdk = 37
 
         ndk {
             abiFilters += listOf("arm64-v8a", "x86_64")

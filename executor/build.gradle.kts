@@ -4,12 +4,12 @@ plugins {
 
 android {
     namespace = "moe.bemly.mrboto.executor"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "moe.bemly.mrboto.executor"
         minSdk = 33
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 260412
         versionName = "26.4.12"
     }

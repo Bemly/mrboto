@@ -32,6 +32,12 @@ MRuby::CrossBuild.new('android-arm64-v8a') do |conf|
   # mruby's internal string I/O (StringIO-like operations). It does NOT require
   # actual file descriptors on Android.
   conf.gembox 'stdlib-io'
+
+  # Extra gems
+  conf.gem :core => "mruby-encoding"
+  conf.gem :core => "mruby-binding"
+  conf.gem :core => "mruby-catch"
+  conf.gem :core => "mruby-enum-chain"
 end
 
 # ── Android x86_64 cross-build ──
@@ -43,4 +49,10 @@ MRuby::CrossBuild.new('android-x86_64') do |conf|
   conf.gembox 'math'
   conf.gembox 'metaprog'
   conf.gembox 'stdlib-io'
+
+  # Extra gems
+  conf.gem :core => "mruby-encoding"
+  conf.gem :core => "mruby-binding"
+  conf.gem :core => "mruby-catch"
+  conf.gem :core => "mruby-enum-chain"
 end

@@ -8,6 +8,15 @@
 #   set_compose_content
 
 module Mrboto
+  # ── Debug logging helper ──
+  def self._log(msg)
+    activity = current_activity
+    return unless activity
+    activity.call_java_method("logDebug", "Compose", msg.to_s)
+  rescue
+    # Silently ignore if logging fails
+  end
+
   # ── ComposeActivity — base class for Compose-backed Ruby Activities ──
   class ComposeActivity < JavaObject
     def on_create(bundle = nil); end
@@ -226,6 +235,7 @@ module Mrboto
     end
 
     ComposeBuilder.add_node(node)
+    Mrboto._log("add_node: type=#{node["type"]}, is_root=#{ComposeBuilder.root == node}")
     node
   end
 
@@ -406,6 +416,7 @@ module Mrboto
     content_block.call if content_block.respond_to?(:call)
 
     ComposeBuilder.add_node(node)
+    Mrboto._log("add_node: type=#{node["type"]}, is_root=#{ComposeBuilder.root == node}")
     node
   end
 
@@ -433,6 +444,7 @@ module Mrboto
       node["props"]["actions"] = actions_arr
     end
     ComposeBuilder.add_node(node)
+    Mrboto._log("add_node: type=#{node["type"]}, is_root=#{ComposeBuilder.root == node}")
     node
   end
 
@@ -509,6 +521,7 @@ module Mrboto
   # ── set_compose_content — trigger rendering ──
   def set_compose_content
     root = ComposeBuilder.root
+    _log("set_compose_content: root=#{root ? root["type"] : "nil"}, children=#{root ? (root["children"] ? root["children"].size : 0) : 0}")
     return unless root && !root["children"].empty?
 
     # If there's a single root node, use it; otherwise wrap in a Column
