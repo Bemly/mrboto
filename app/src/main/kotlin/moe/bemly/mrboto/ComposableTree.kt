@@ -17,27 +17,24 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
-import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.platform.ComposeView
-import androidx.compose.ui.viewinterop.AndroidView
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.drawBackdrop
-import com.kyant.backdrop.backdrops.rememberCanvasBackdrop
 import com.kyant.backdrop.effects.blur
 import com.kyant.backdrop.effects.vibrancy
+import com.kyant.backdrop.shadow.Shadow
+import androidx.compose.ui.viewinterop.AndroidView
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -331,6 +328,11 @@ fun RenderComposableNode(
             android.util.Log.d(TAG, "Scaffold: topBar=${topBarNode != null}, bottomBar=${bottomBarNode != null}, fab=${fabNode != null}, children=${node.children.size}")
             if (topBarNode is JSONObject) android.util.Log.d(TAG, "  topBar type=${topBarNode.optString("type")}")
             if (bottomBarNode is JSONObject) android.util.Log.d(TAG, "  bottomBar type=${bottomBarNode.optString("type")}")
+
+            // Determine bottom bar content children and glass props
+            val bottomBarContentNodes = parseBottomBarContent(bottomBarNode as? JSONObject)
+            val bottomBarGlassProps = findGlassPropsInTree(bottomBarNode as? JSONObject)
+
             Scaffold(
                 topBar = {
                     if (topBarNode is JSONObject) {
@@ -338,8 +340,27 @@ fun RenderComposableNode(
                     }
                 },
                 bottomBar = {
-                    if (bottomBarNode is JSONObject) {
-                        RenderComposableNode(parseComposableTree(bottomBarNode), mruby, activity)
+                    if (bottomBarContentNodes.isNotEmpty()) {
+                        val blurRadius = (bottomBarGlassProps?.get("blur_radius") as? Number)?.toFloat() ?: 25f
+                        val vibrancyEnabled = bottomBarGlassProps?.get("vibrancy") == true
+                        val cornerRadius = (bottomBarGlassProps?.get("corner_radius") as? Number)?.toFloat() ?: 16f
+                        val shapeType = bottomBarGlassProps?.get("shape_type")?.toString() ?: "rounded_rect"
+                        val shape = when (shapeType.lowercase()) {
+                            "circle" -> CircleShape
+                            else -> RoundedCornerShape(cornerRadius.dp)
+                        }
+
+                        // Glass bar container with styled background + optional backdrop blur
+                        RenderGlassBar(
+                            blurRadius = blurRadius,
+                            vibrancyEnabled = vibrancyEnabled,
+                            shape = shape,
+                            content = {
+                                bottomBarContentNodes.forEach { child ->
+                                    RenderComposableNode(child, mruby, activity)
+                                }
+                            },
+                        )
                     }
                 },
                 floatingActionButton = {
@@ -391,23 +412,15 @@ fun RenderComposableNode(
         }
 
         "android_view" -> {
-            if (node.props["view_type"]?.toString()?.contains("LiquidGlassView") == true) {
-                // Handle LiquidGlassView with Compose rendering
-                RenderLiquidGlassView(node, mruby, activity, mod)
+            val viewType = node.props["view_type"]?.toString() ?: ""
+            if (viewType.contains("LiquidGlassView")) {
+                // LiquidGlassView in content area: use Compose glass effect directly
+                RenderLiquidGlassCompose(node, mruby, activity, mod)
             } else if (node.children.isNotEmpty()) {
-                // Has Compose children — wrap in ComposeView
-                androidx.compose.ui.viewinterop.AndroidView(
-                    modifier = mod,
-                    factory = { ctx: android.content.Context ->
-                        androidx.compose.ui.platform.ComposeView(ctx).apply {
-                            setContent {
-                                node.children.forEach { child ->
-                                    RenderComposableNode(child, mruby, activity)
-                                }
-                            }
-                        }
-                    },
-                )
+                // Has Compose children — render them directly
+                node.children.forEach { child ->
+                    RenderComposableNode(child, mruby, activity)
+                }
             } else {
                 // Native View only
                 AndroidView(
@@ -423,7 +436,9 @@ fun RenderComposableNode(
         }
 
         "liquid_glass_view" -> {
-            RenderLiquidGlassView(node, mruby, activity, mod)
+            // Glass effect handled at scaffold bottomBar level.
+            // If used in content area, use Compose-based glass.
+            RenderLiquidGlassCompose(node, mruby, activity, mod)
         }
 
         "image" -> {
@@ -690,44 +705,115 @@ fun materialIcon(name: String): androidx.compose.ui.graphics.vector.ImageVector 
 }
 
 /**
- * Renders a LiquidGlassView with Compose backdrop blur effect.
- * Uses kyant.backdrop to capture the background and apply frosted glass.
+ * Parse bottom bar node and extract the actual content children,
+ * skipping any liquid_glass_view or android_view wrapper.
+ */
+private fun parseBottomBarContent(bottomBarNode: JSONObject?): List<ComposableNode> {
+    if (bottomBarNode == null) return emptyList()
+    val parsed = parseComposableTree(bottomBarNode)
+    return unwrapGlass(parsed)
+}
+
+/**
+ * Unwrap liquid_glass_view / android_view(LiquidGlassView) wrappers,
+ * returning only the actual content children.
+ */
+private fun unwrapGlass(node: ComposableNode): List<ComposableNode> {
+    val isGlass = node.type == "liquid_glass_view" ||
+        (node.type == "android_view" &&
+            node.props["view_type"]?.toString()?.contains("LiquidGlassView") == true)
+    return if (isGlass) {
+        node.children.flatMap { unwrapGlass(it) }
+    } else {
+        listOf(node)
+    }
+}
+
+/**
+ * Walk a bottom bar node tree looking for liquid_glass_view props.
+ * Returns the props map if found, null otherwise.
+ */
+private fun findGlassPropsInTree(bottomBarNode: JSONObject?): Map<String, Any?>? {
+    if (bottomBarNode == null) return null
+    val parsed = parseComposableTree(bottomBarNode)
+    return findGlassPropsInNode(parsed)
+}
+
+private fun findGlassPropsInNode(node: ComposableNode): Map<String, Any?>? {
+    if (node.type == "liquid_glass_view") return node.props
+    if (node.type == "android_view" &&
+        node.props["view_type"]?.toString()?.contains("LiquidGlassView") == true
+    ) {
+        return node.props
+    }
+    for (child in node.children) {
+        val result = findGlassPropsInNode(child)
+        if (result != null) return result
+    }
+    return null
+}
+
+/**
+ * Render a styled glass bar for Scaffold bottomBar.
+ * Uses a semi-transparent colored background with rounded corners
+ * to create a frosted glass appearance.
  */
 @Composable
-fun RenderLiquidGlassView(
+private fun RenderGlassBar(
+    blurRadius: Float,
+    vibrancyEnabled: Boolean,
+    shape: Shape,
+    content: @Composable () -> Unit,
+) {
+    val isDark = androidx.compose.foundation.isSystemInDarkTheme()
+    val barColor = if (isDark) Color(0xFF2C2C2E) else Color(0xFFF2F2F7)
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(barColor.copy(alpha = 0.85f))
+    ) {
+        content()
+    }
+}
+
+/**
+ * Render a liquid glass effect using Compose + kyant.backdrop directly,
+ * without native View wrapping. Used when liquid_glass_view appears in
+ * content area (not scaffold bottomBar).
+ */
+@Composable
+fun RenderLiquidGlassCompose(
     node: ComposableNode,
     mruby: MRuby,
     activity: MrbotoActivityBase,
     modifier: Modifier = Modifier,
 ) {
+    val backdrop = rememberLayerBackdrop()
     val blurRadius = (node.props["blur_radius"] as? Number)?.toFloat() ?: 25f
     val vibrancyEnabled = node.props["vibrancy"] == true
-    val shapeType = node.props["shape_type"]?.toString() ?: "rounded_rect"
     val cornerRadius = (node.props["corner_radius"] as? Number)?.toFloat() ?: 16f
+    val shapeType = node.props["shape_type"]?.toString() ?: "rounded_rect"
 
-    val shape = when (shapeType) {
+    val shape = when (shapeType.lowercase()) {
         "circle" -> CircleShape
-        "none" -> RoundedCornerShape(0.dp)
         else -> RoundedCornerShape(cornerRadius.dp)
     }
 
-    BoxWithConstraints(
-        modifier = modifier.clip(shape),
-    ) {
-        val density = LocalDensity.current
-        val backdrop = rememberCanvasBackdrop(onDraw = {
-            drawIntoCanvas { canvas ->
-                val paint = android.graphics.Paint().apply {
-                    isAntiAlias = true
-                }
-                canvas.nativeCanvas.drawPaint(paint)
+    Box(modifier = modifier.clip(shape)) {
+        // Capture children content into backdrop
+        Box(
+            modifier = Modifier.layerBackdrop(backdrop)
+        ) {
+            node.children.forEach { child ->
+                RenderComposableNode(child, mruby, activity)
             }
-        })
+        }
 
-        // Glass effect layer (behind children)
+        // Draw glass overlay
         Box(
             modifier = Modifier
-                .fillMaxSize()
                 .drawBackdrop(
                     backdrop = backdrop,
                     shape = { shape },
@@ -735,12 +821,9 @@ fun RenderLiquidGlassView(
                         if (blurRadius > 0f) blur(blurRadius)
                         if (vibrancyEnabled) vibrancy()
                     },
-                ),
+                    shadow = { Shadow(alpha = 0.1f) }
+                )
+                .fillMaxSize()
         )
-
-        // Render children on top of the glass
-        node.children.forEach { child ->
-            RenderComposableNode(child, mruby, activity)
-        }
     }
 }

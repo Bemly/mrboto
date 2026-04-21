@@ -487,7 +487,7 @@ mrb_value mrb_mrboto_call_java_method(mrb_state *mrb, mrb_value self) {
                             (*env)->ExceptionClear(env);
                             method = NULL;
                         } else if (method != NULL) {
-                            LOGI("getMethod('%s') succeeded on String fallback", method_name);
+                            LOGD("getMethod('%s') succeeded on String fallback", method_name);
                         }
                         (*env)->DeleteLocalRef(env, fallback_types);
                     }
@@ -517,7 +517,7 @@ mrb_value mrb_mrboto_call_java_method(mrb_state *mrb, mrb_value self) {
         }
 
         if (method != NULL) {
-            LOGI("getMethod('%s') succeeded, invoking...", method_name);
+            LOGD("getMethod('%s') succeeded, invoking...", method_name);
             /* Call Method.invoke(target, javaArgs) */
             jclass method_cls = (*env)->GetObjectClass(env, method);
             jmethodID invoke = (*env)->GetMethodID(env, method_cls, "invoke",
