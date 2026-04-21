@@ -509,6 +509,19 @@ module Mrboto
     Mrboto._build_compose_node("glass_bar", nil, props, &block)
   end
 
+  # glass_cell — per-button glass configuration inside glass_bar
+  # Each button in a glass_bar can be wrapped with glass_cell for independent shape, layout, tint.
+  def glass_cell(shape: nil, layout: nil, surface_color: nil, surface_alpha: nil, blend_mode: nil, press_animation: nil, **kwargs, &block)
+    props = _extract_props(kwargs)
+    props["glass_shape"] = shape.to_s if shape
+    props["glass_layout"] = layout.to_s if layout
+    props["glass_surface_color"] = surface_color.to_s if surface_color
+    props["glass_surface_alpha"] = surface_alpha.to_f if surface_alpha
+    props["glass_blend_mode"] = blend_mode.to_s if blend_mode
+    props["glass_press_animation"] = press_animation unless press_animation.nil?
+    Mrboto._build_compose_node("glass_cell", nil, props, &block)
+  end
+
   # ── kyant.backdrop low-level API ──
   # Creates a backdrop reference with a numeric ID for sharing between nodes
   def remember_layer_backdrop(backdrop_id = 1, &block)

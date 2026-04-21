@@ -577,27 +577,21 @@ fun RenderComposableNode(
         }
 
         // ── kyant.backdrop: high-level glass bar ──────────────────────────
-        // Official pattern: each button cell has its own drawBackdrop Box
+        // Each button cell can have independent config via glass_cell wrapper.
         "glass_bar" -> {
             val topBarNode = node.props["top_bar"]
             val blurPx = (node.props["blur_radius"] as? Number)?.toFloat() ?: 25f
-            val vibrancyEnabled = node.props["vibrancy"] != false
-            val cornerRadius = (node.props["corner_radius"] as? Number)?.toFloat() ?: 24f
-            val shapeType = node.props["shape_type"]?.toString() ?: "rounded_rect"
-            val surfaceColorStr = node.props["surface_color"]?.toString()
-            val surfaceAlpha = (node.props["surface_alpha"] as? Number)?.toFloat() ?: 0.5f
-            val lensHeightPx = (node.props["lens_height"] as? Number)?.toFloat() ?: 0f
-            val lensAmountPx = (node.props["lens_amount"] as? Number)?.toFloat() ?: 0f
+            val barVibrancy = node.props["vibrancy"] != false
+            val barCornerRadius = (node.props["corner_radius"] as? Number)?.toFloat() ?: 24f
+            val barShapeType = node.props["shape_type"]?.toString() ?: "rounded_rect"
+            val barSurfaceColorStr = node.props["surface_color"]?.toString()
+            val barSurfaceAlpha = (node.props["surface_alpha"] as? Number)?.toFloat() ?: 0.5f
+            val barLensHeight = (node.props["lens_height"] as? Number)?.toFloat() ?: 0f
+            val barLensAmount = (node.props["lens_amount"] as? Number)?.toFloat() ?: 0f
             val barBgColorStr = node.props["bar_background_color"]?.toString()
 
-            val shape = when (shapeType.lowercase()) {
-                "circle" -> CircleShape
-                "continuous_capsule" -> Capsule()
-                else -> RoundedCornerShape(cornerRadius.dp)
-            }
-
-            val surfaceColor = if (surfaceColorStr != null) {
-                parseColor(surfaceColorStr)
+            val barSurfaceColor = if (barSurfaceColorStr != null) {
+                parseColor(barSurfaceColorStr)
             } else {
                 val isDark = isSystemInDarkTheme()
                 if (isDark) Color(0xFF1C1C1E) else Color(0xFFF2F2F7)
@@ -614,25 +608,24 @@ fun RenderComposableNode(
                 drawContent()
             }
 
+            // Separate glass_cell children from content children
+            val cellNodes = node.children.filter { it.type == "glass_cell" }
+            val contentNodes = node.children.filter { it.type != "glass_cell" }
+
             Box(modifier = Modifier.fillMaxSize()) {
                 Column(modifier = Modifier.fillMaxSize()) {
                     if (topBarNode is JSONObject) {
                         RenderComposableNode(parseComposableTree(topBarNode), mruby, activity)
                     }
-                    // Content area — first child captured into backdrop
-                    val contentNode = node.children.firstOrNull()
-                    if (contentNode != null) {
+                    contentNodes.forEach { contentNode ->
                         Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .layerBackdrop(backdrop),
+                            modifier = Modifier.weight(1f).layerBackdrop(backdrop),
                         ) {
                             RenderComposableNode(contentNode, mruby, activity)
                         }
                     }
                 }
 
-                // Glass bar at bottom — each cell has independent drawBackdrop
                 Row(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
@@ -643,64 +636,31 @@ fun RenderComposableNode(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val animationScope = rememberCoroutineScope()
-                    node.children.drop(1).forEach { child ->
-                        val pressProgress = remember { androidx.compose.animation.core.Animatable(0f) }
-                        Box(
-                            modifier = Modifier
-                                .drawBackdrop(
-                                    backdrop = backdrop,
-                                    shape = { shape },
-                                    effects = {
-                                        if (vibrancyEnabled) vibrancy()
-                                        if (blurPx > 0f) blur(blurPx)
-                                        if (lensHeightPx > 0f && lensAmountPx > 0f) {
-                                            lens(lensHeightPx, lensAmountPx)
-                                        }
-                                    },
-                                    layerBlock = {
-                                        val progress = pressProgress.value
-                                        val maxScale = (size.width + 16f.dp.toPx()) / size.width
-                                        val scale = 1f + progress * (maxScale - 1f)
-                                        scaleX = scale
-                                        scaleY = scale
-                                    },
-                                    onDrawSurface = {
-                                        drawRect(surfaceColor.copy(alpha = surfaceAlpha))
-                                    },
-                                )
-                                .clickable(
-                                    interactionSource = null,
-                                    indication = null,
-                                    onClick = {
-                                        if (child.callbackId > 0) {
-                                            mruby.eval("Mrboto.dispatch_callback(${child.callbackId})")
-                                        }
-                                    }
-                                )
-                                .pointerInput(child) {
-                                    val animationSpec = androidx.compose.animation.core.spring(
-                                        dampingRatio = 0.5f,
-                                        stiffness = 300f,
-                                        visibilityThreshold = 0.001f
-                                    )
-                                    awaitEachGesture {
-                                        awaitFirstDown()
-                                        animationScope.launch {
-                                            pressProgress.animateTo(1f, animationSpec)
-                                        }
-                                        waitForUpOrCancellation()
-                                        animationScope.launch {
-                                            pressProgress.animateTo(0f, animationSpec)
-                                        }
-                                    }
-                                }
-                                .fillMaxHeight()
-                                .weight(1f),
-                        ) {
-                            RenderComposableNode(child, mruby, activity)
+
+                    if (cellNodes.isNotEmpty()) {
+                        // Use explicit glass_cell nodes
+                        cellNodes.forEach { cell ->
+                            RenderGlassCell(cell, backdrop, barShapeType, barCornerRadius,
+                                barVibrancy, blurPx, barLensHeight, barLensAmount,
+                                barSurfaceColor, barSurfaceAlpha, mruby, activity, animationScope)
+                        }
+                    } else {
+                        // Legacy: no glass_cell wrappers — apply bar defaults to all children
+                        node.children.drop(1).forEach { child ->
+                            RenderGlassCell(child, backdrop, barShapeType, barCornerRadius,
+                                barVibrancy, blurPx, barLensHeight, barLensAmount,
+                                barSurfaceColor, barSurfaceAlpha, mruby, activity, animationScope)
                         }
                     }
                 }
+            }
+        }
+
+        // glass_cell is consumed by glass_bar — no standalone rendering
+        "glass_cell" -> {
+            // Should not appear outside glass_bar; render children as fallback
+            node.children.forEach { child ->
+                RenderComposableNode(child, mruby, activity)
             }
         }
 
@@ -1140,4 +1100,133 @@ fun RenderLiquidGlassCompose(
                 .fillMaxSize()
         )
     }
+}
+
+/**
+ * Render a single glass cell inside a glass_bar. Reads per-cell props from
+ * the node, falling back to bar-level defaults when not specified.
+ */
+@Composable
+private fun RenderGlassCell(
+    cell: ComposableNode,
+    backdrop: LayerBackdrop,
+    barShapeType: String,
+    barCornerRadius: Float,
+    barVibrancy: Boolean,
+    blurPx: Float,
+    barLensHeight: Float,
+    barLensAmount: Float,
+    barSurfaceColor: Color,
+    barSurfaceAlpha: Float,
+    mruby: MRuby,
+    activity: MrbotoActivityBase,
+    animationScope: androidx.lifecycle.LifecycleCoroutineScope,
+) {
+    // Per-cell props with fallback to bar defaults
+    val shapeType = cell.props["glass_shape"]?.toString()?.lowercase() ?: barShapeType.lowercase()
+    val cornerRadius = (cell.props["corner_radius"] as? Number)?.toFloat() ?: barCornerRadius
+    val shape = when (shapeType) {
+        "circle" -> CircleShape
+        "continuous_capsule" -> Capsule()
+        else -> RoundedCornerShape(cornerRadius.dp)
+    }
+
+    val vibrancy = cell.props["vibrancy"] as? Boolean ?: barVibrancy
+    val lensHeight = (cell.props["lens_height"] as? Number)?.toFloat() ?: barLensHeight
+    val lensAmount = (cell.props["lens_amount"] as? Number)?.toFloat() ?: barLensAmount
+
+    val surfaceColorStr = cell.props["glass_surface_color"] as? String
+    val surfaceColor = if (surfaceColorStr != null) parseColor(surfaceColorStr) else barSurfaceColor
+    val surfaceAlpha = (cell.props["glass_surface_alpha"] as? Number)?.toFloat() ?: barSurfaceAlpha
+    val blendModeStr = cell.props["glass_blend_mode"] as? String
+    val layoutStr = cell.props["glass_layout"]?.toString()?.lowercase()
+    val pressAnim = cell.props["glass_press_animation"] as? Boolean ?: true
+
+    val pressProgress = remember { androidx.compose.animation.core.Animatable(0f) }
+
+    var cellModifier = Modifier
+        .drawBackdrop(
+            backdrop = backdrop,
+            shape = { shape },
+            effects = {
+                if (vibrancy) vibrancy()
+                if (blurPx > 0f) blur(blurPx)
+                if (lensHeight > 0f && lensAmount > 0f) {
+                    lens(lensHeight, lensAmount)
+                }
+            },
+            layerBlock = {
+                val progress = pressProgress.value
+                val maxScale = (size.width + 16f.dp.toPx()) / size.width
+                val scale = 1f + progress * (maxScale - 1f)
+                scaleX = scale
+                scaleY = scale
+            },
+            onDrawSurface = {
+                if (blendModeStr != null) {
+                    val tint = surfaceColor
+                    val bm = parseBlendMode(blendModeStr)
+                    if (bm != null) {
+                        drawRect(tint, blendMode = bm)
+                    }
+                    drawRect(tint.copy(alpha = surfaceAlpha))
+                } else {
+                    drawRect(surfaceColor.copy(alpha = surfaceAlpha))
+                }
+            },
+        )
+        .clickable(
+            interactionSource = null,
+            indication = null,
+            onClick = {
+                if (cell.callbackId > 0) {
+                    mruby.eval("Mrboto.dispatch_callback(${cell.callbackId})")
+                }
+            }
+        )
+
+    if (pressAnim) {
+        cellModifier = cellModifier.pointerInput(cell) {
+            val animationSpec = androidx.compose.animation.core.spring(
+                dampingRatio = 0.5f,
+                stiffness = 300f,
+                visibilityThreshold = 0.001f
+            )
+            awaitEachGesture {
+                awaitFirstDown()
+                animationScope.launch {
+                    pressProgress.animateTo(1f, animationSpec)
+                }
+                waitForUpOrCancellation()
+                animationScope.launch {
+                    pressProgress.animateTo(0f, animationSpec)
+                }
+            }
+        }
+    }
+
+    // Layout modifier
+    cellModifier = when (layoutStr) {
+        "aspect_ratio" -> cellModifier.aspectRatio(1f)
+        else -> cellModifier.fillMaxHeight().weight(1f)
+    }
+
+    Box(modifier = cellModifier) {
+        cell.children.forEach { child ->
+            RenderComposableNode(child, mruby, activity)
+        }
+    }
+}
+
+private fun parseBlendMode(name: String): BlendMode? = when (name.lowercase()) {
+    "hue" -> BlendMode.Hue
+    "saturation" -> BlendMode.Saturation
+    "color" -> BlendMode.Color
+    "luminosity" -> BlendMode.Luminosity
+    "multiply" -> BlendMode.Multiply
+    "screen" -> BlendMode.Screen
+    "overlay" -> BlendMode.Overlay
+    "darken" -> BlendMode.Darken
+    "lighten" -> BlendMode.Lighten
+    else -> null
 }

@@ -83,10 +83,12 @@ class EditorActivity < Mrboto::ComposeActivity
       }
 
       # 底部栏按钮
-      text_button("Run", icon: :play_arrow) { run_code }
-      text_button("Save", icon: :save) { save_code }
-      text_button("Load", icon: :content_paste) { load_code }
-      text_button("Clear", icon: :close) { clear_code }
+      glass_cell(shape: :circle) {
+        text_button("Run", icon: :play_arrow) { run_code }
+      }
+      glass_cell(shape: :continuous_capsule, layout: :aspect_ratio, surface_color: "0088FF", blend_mode: :hue) {
+        text_button("Save", icon: :save) { save_code }
+      }
     }
     _log("build_ui: tree built, root=#{Mrboto::ComposeBuilder.root ? Mrboto::ComposeBuilder.root["type"] : "nil"}")
 
