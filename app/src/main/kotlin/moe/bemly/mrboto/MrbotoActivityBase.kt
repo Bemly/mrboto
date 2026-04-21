@@ -106,7 +106,7 @@ abstract class MrbotoActivityBase : AppCompatActivity(),
         val success = resultCode == Activity.RESULT_OK && data != null
         if (success) {
             val mpm = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as android.media.projection.MediaProjectionManager
-            _mediaProjection = mpm.getMediaProjection(resultCode, data!!)
+            _mediaProjection = mpm.getMediaProjection(resultCode, data)
         }
         if (cbId > 0) {
             mruby.eval("Mrboto.dispatch_callback($cbId, $success)")
