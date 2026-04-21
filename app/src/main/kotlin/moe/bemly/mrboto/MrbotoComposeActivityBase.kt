@@ -2,6 +2,8 @@ package moe.bemly.mrboto
 
 import android.os.Bundle
 import androidx.activity.compose.setContent
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import org.json.JSONObject
 
@@ -38,9 +40,13 @@ abstract class MrbotoComposeActivityBase : MrbotoActivityBase() {
 
         // Set up Compose content that reacts to tree state changes
         setContent {
-            val tree = composeTreeState
-            if (tree != null) {
-                RenderComposableNode(tree, mruby, this)
+            MaterialTheme {
+                Surface {
+                    val tree = composeTreeState
+                    if (tree != null) {
+                        RenderComposableNode(tree, mruby, this@MrbotoComposeActivityBase)
+                    }
+                }
             }
         }
     }
