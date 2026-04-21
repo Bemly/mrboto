@@ -335,4 +335,74 @@ class GlassBarTest {
         // children should be text_button, not glass_cell
         assertFalse(json.contains("\"glass_cell\""))
     }
+
+    // ── glass_bottom_sheet ───────────────────────────────────────────────
+
+    @Test
+    fun `glass_bottom_sheet DSL exists`() {
+        val result = mruby.eval("respond_to?(:glass_bottom_sheet) ? 'ok' : 'fail'")
+        assertEquals("ok", result)
+    }
+
+    @Test
+    fun `glass_bottom_sheet builds correct node`() {
+        mruby.eval("""
+            Mrboto::ComposeBuilder.instance_variable_set(:@_compose_parent_stack, [])
+            Mrboto::ComposeBuilder.instance_variable_set(:@_compose_root, nil)
+        """.trimIndent())
+
+        val json = mruby.eval("""
+            glass_bottom_sheet(corner_radius: 44.0, blur_radius: 4.0, vibrancy: true, lens_height: 24.0, lens_amount: 48.0) {
+              spacer(height: 200)
+              text("Bottom Sheet Content")
+            }
+            Mrboto._compose_to_json(Mrboto::ComposeBuilder.root)
+        """.trimIndent())
+
+        assertTrue(json.contains("\"type\":\"glass_bottom_sheet\""))
+        assertTrue(json.contains("44"))
+        assertTrue(json.contains("48"))
+    }
+
+    // ── glass_slider ─────────────────────────────────────────────────────
+
+    @Test
+    fun `glass_slider DSL exists`() {
+        val result = mruby.eval("respond_to?(:glass_slider) ? 'ok' : 'fail'")
+        assertEquals("ok", result)
+    }
+
+    @Test
+    fun `glass_slider builds correct node`() {
+        mruby.eval("""
+            Mrboto::ComposeBuilder.instance_variable_set(:@_compose_parent_stack, [])
+            Mrboto::ComposeBuilder.instance_variable_set(:@_compose_root, nil)
+        """.trimIndent())
+
+        val json = mruby.eval("""
+            glass_slider(track_color: "0088FF", track_height: 6.0, thumb_width: 56.0, thumb_height: 32.0, lens_chromatic: true)
+            Mrboto._compose_to_json(Mrboto::ComposeBuilder.root)
+        """.trimIndent())
+
+        assertTrue(json.contains("\"type\":\"glass_slider\""))
+        assertTrue(json.contains("\"track_color\":\"0088FF\""))
+        assertTrue(json.contains("\"lens_chromatic\":true"))
+    }
+
+    @Test
+    fun `glass_slider with default values`() {
+        mruby.eval("""
+            Mrboto::ComposeBuilder.instance_variable_set(:@_compose_parent_stack, [])
+            Mrboto::ComposeBuilder.instance_variable_set(:@_compose_root, nil)
+        """.trimIndent())
+
+        val json = mruby.eval("""
+            glass_slider
+            Mrboto._compose_to_json(Mrboto::ComposeBuilder.root)
+        """.trimIndent())
+
+        assertTrue(json.contains("\"type\":\"glass_slider\""))
+        assertTrue(json.contains("\"track_height\""))
+        assertTrue(json.contains("\"thumb_width\""))
+    }
 }

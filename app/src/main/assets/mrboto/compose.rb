@@ -558,6 +558,39 @@ module Mrboto
     Mrboto._build_compose_node("draw_backdrop_glass", nil, props, &block)
   end
 
+  # ── kyant.backdrop: glass bottom sheet ──
+  # https://kyant.gitbook.io/backdrop/tutorials/glass-bottom-sheet
+  def glass_bottom_sheet(corner_radius: 44.0, blur_radius: 4.0, vibrancy: true, lens_height: 24.0, lens_amount: 48.0, lens_chromatic: false, surface_color: nil, surface_alpha: 0.5, thumb_size: 56.0, **kwargs, &block)
+    props = _extract_props(kwargs)
+    props["corner_radius"] = corner_radius.to_f
+    props["blur_radius"] = blur_radius.to_f
+    props["vibrancy"] = !!vibrancy
+    props["lens_height"] = lens_height.to_f if lens_height > 0
+    props["lens_amount"] = lens_amount.to_f if lens_amount > 0
+    props["lens_chromatic"] = !!lens_chromatic
+    props["surface_color"] = surface_color.to_s if surface_color
+    props["surface_alpha"] = surface_alpha.to_f
+    props["thumb_size"] = thumb_size.to_f
+    Mrboto._build_compose_node("glass_bottom_sheet", nil, props, &block)
+  end
+
+  # ── kyant.backdrop: glass slider ──
+  # https://kyant.gitbook.io/backdrop/tutorials/glass-slider
+  def glass_slider(track_color: "0088FF", track_height: 6.0, thumb_width: 56.0, thumb_height: 32.0, blur_radius: 4.0, lens_height: 12.0, lens_amount: 16.0, lens_chromatic: true, padding_horizontal: 24.0, thumb_offset: 0.0, **kwargs, &block)
+    props = _extract_props(kwargs)
+    props["track_color"] = track_color.to_s
+    props["track_height"] = track_height.to_f
+    props["thumb_width"] = thumb_width.to_f
+    props["thumb_height"] = thumb_height.to_f
+    props["blur_radius"] = blur_radius.to_f
+    props["lens_height"] = lens_height.to_f if lens_height > 0
+    props["lens_amount"] = lens_amount.to_f if lens_amount > 0
+    props["lens_chromatic"] = !!lens_chromatic
+    props["padding_horizontal"] = padding_horizontal.to_f
+    props["thumb_offset"] = thumb_offset.to_f
+    Mrboto._build_compose_node("glass_slider", nil, props, &block)
+  end
+
   # ── Internal: collect child nodes from a block ──
   def _collect_nodes(&block)
     ComposeBuilder.collect_nodes(&block)

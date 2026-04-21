@@ -397,6 +397,103 @@ kyant.backdrop 使用 LayerBackdrop 模式：
 
 每个 `glass_bar` 按钮都有独立的 `drawBackdrop` Box，遵循官方教程模式。
 
+### 每按钮独立配置 — `glass_cell`
+
+用 `glass_cell` 包裹每个按钮以独立设置形状、布局、颜色等：
+
+```ruby
+glass_bar(blur_radius: 25.0) {
+  column { text("Main content") }
+
+  # 圆形按钮，带 press 动画
+  glass_cell(shape: :circle) {
+    text_button("Run", icon: :play_arrow) { run_code }
+  }
+  # 胶囊按钮，1:1 比例，蓝色 tint
+  glass_cell(shape: :continuous_capsule, layout: :aspect_ratio,
+             surface_color: "0088FF", blend_mode: :hue) {
+    text_button("", icon: :settings) { toast("Settings") }
+  }
+}
+```
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| shape | Symbol | `:circle`, `:continuous_capsule`, `:rounded_rect` |
+| layout | Symbol | `:aspect_ratio` (1:1 比例) 或默认等宽 |
+| surface_color | String | 表面色（十六进制） |
+| surface_alpha | Float | 表面透明度 |
+| blend_mode | Symbol | `:hue`, `:saturation`, `:color` 等混合模式 |
+| press_animation | Boolean | `false` 关闭 press 动画 |
+
+---
+
+## 液态玻璃底部面板 / Glass Bottom Sheet
+
+使用 [kyant.backdrop](https://kyant.gitbook.io/backdrop/tutorials/glass-bottom-sheet) 实现全屏底部面板。
+
+```ruby
+column(fill_max_width: true) {
+  text("主内容区域")
+}
+
+glass_bottom_sheet(
+  corner_radius: 44.0,
+  blur_radius: 4.0,
+  vibrancy: true,
+  lens_height: 24.0,
+  lens_amount: 48.0,
+  surface_color: "FFFFFF",
+  surface_alpha: 0.5,
+  thumb_size: 56.0
+) {
+  spacer(height: 200)
+  text("面板内容")
+}
+```
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| corner_radius | Float | 圆角半径 (dp) |
+| blur_radius | Float | 模糊半径 |
+| vibrancy | Boolean | 启用色彩增强 |
+| lens_height | Float | 镜头折射高度 |
+| lens_amount | Float | 镜头折射强度 |
+| lens_chromatic | Boolean | 启用色差效果 |
+| surface_color | String | 表面色（十六进制） |
+| surface_alpha | Float | 表面透明度 |
+| thumb_size | Float | 底部缩略按钮高度 (dp) |
+
+---
+
+## 液态玻璃滑块 / Glass Slider
+
+使用 [kyant.backdrop](https://kyant.gitbook.io/backdrop/tutorials/glass-slider) 实现玻璃效果滑块。
+
+```ruby
+glass_slider(
+  track_color: "0088FF",
+  track_height: 6.0,
+  thumb_width: 56.0,
+  thumb_height: 32.0,
+  lens_chromatic: true,
+  padding_horizontal: 24.0
+)
+```
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| track_color | String | 轨道颜色（十六进制） |
+| track_height | Float | 轨道高度 (dp) |
+| thumb_width | Float | 滑块宽度 (dp) |
+| thumb_height | Float | 滑块高度 (dp) |
+| blur_radius | Float | 模糊半径 |
+| lens_height | Float | 镜头折射高度 |
+| lens_amount | Float | 镜头折射强度 |
+| lens_chromatic | Boolean | 启用色差效果 |
+| padding_horizontal | Float | 水平内边距 |
+| thumb_offset | Float | 滑块偏移量 (dp) |
+
 ---
 
 ## 主题切换 / Theme Toggle

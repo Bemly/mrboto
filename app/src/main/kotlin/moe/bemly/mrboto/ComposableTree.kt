@@ -664,6 +664,132 @@ fun RenderComposableNode(
             }
         }
 
+        // ── kyant.backdrop: glass bottom sheet ────────────────────────────
+        // https://kyant.gitbook.io/backdrop/tutorials/glass-bottom-sheet
+        "glass_bottom_sheet" -> {
+            val cornerRadius = (node.props["corner_radius"] as? Number)?.toFloat() ?: 44f
+            val blurPx = (node.props["blur_radius"] as? Number)?.toFloat() ?: 4f
+            val vibrancyEnabled = node.props["vibrancy"] != false
+            val lensHeight = (node.props["lens_height"] as? Number)?.toFloat() ?: 24f
+            val lensAmount = (node.props["lens_amount"] as? Number)?.toFloat() ?: 48f
+            val lensChromatic = node.props["lens_chromatic"] == true
+            val surfaceColorStr = node.props["surface_color"]?.toString()
+            val surfaceAlpha = (node.props["surface_alpha"] as? Number)?.toFloat() ?: 0.5f
+            val thumbSize = (node.props["thumb_size"] as? Number)?.toFloat() ?: 56f
+
+            val surfaceColor = if (surfaceColorStr != null) {
+                parseColor(surfaceColorStr)
+            } else {
+                Color.White
+            }
+
+            val bottomSheetBackdrop = rememberLayerBackdrop()
+
+            Column(
+                modifier = Modifier
+                    .safeContentPadding()
+                    .drawBackdrop(
+                        backdrop = backdrop,
+                        shape = { RoundedCornerShape(cornerRadius.dp) },
+                        effects = {
+                            if (vibrancyEnabled) vibrancy()
+                            if (blurPx > 0f) blur(blurPx)
+                            if (lensHeight > 0f && lensAmount > 0f) {
+                                lens(lensHeight, lensAmount, lensChromatic)
+                            }
+                        },
+                        exportedBackdrop = bottomSheetBackdrop,
+                        onDrawSurface = {
+                            drawRect(surfaceColor.copy(alpha = surfaceAlpha))
+                        },
+                    )
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter),
+            ) {
+                node.children.forEach { child ->
+                    RenderComposableNode(child, mruby, activity)
+                }
+
+                // Inner glass thumb/button
+                Box(
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .drawBackdrop(
+                            backdrop = bottomSheetBackdrop,
+                            shape = { CircleShape },
+                            shadow = null,
+                            effects = {
+                                if (vibrancyEnabled) vibrancy()
+                                if (blurPx > 0f) blur(blurPx)
+                                if (lensHeight > 0f && lensAmount > 0f) {
+                                    lens(lensHeight, lensAmount)
+                                }
+                            },
+                            onDrawSurface = {
+                                drawRect(surfaceColor.copy(alpha = surfaceAlpha))
+                            },
+                        )
+                        .height(thumbSize.dp)
+                        .fillMaxWidth()
+                        .clickable {
+                            if (node.callbackId > 0) {
+                                mruby.eval("Mrboto.dispatch_callback(${node.callbackId})")
+                            }
+                        },
+                )
+            }
+        }
+
+        // ── kyant.backdrop: glass slider ──────────────────────────────────
+        // https://kyant.gitbook.io/backdrop/tutorials/glass-slider
+        "glass_slider" -> {
+            val trackColorHex = node.props["track_color"]?.toString() ?: "0088FF"
+            val trackHeight = (node.props["track_height"] as? Number)?.toFloat() ?: 6f
+            val thumbWidth = (node.props["thumb_width"] as? Number)?.toFloat() ?: 56f
+            val thumbHeight = (node.props["thumb_height"] as? Number)?.toFloat() ?: 32f
+            val blurPx = (node.props["blur_radius"] as? Number)?.toFloat() ?: 4f
+            val lensHeight = (node.props["lens_height"] as? Number)?.toFloat() ?: 12f
+            val lensAmount = (node.props["lens_amount"] as? Number)?.toFloat() ?: 16f
+            val lensChromatic = node.props["lens_chromatic"] != false
+            val paddingHorizontal = (node.props["padding_horizontal"] as? Number)?.toFloat() ?: 24f
+            val thumbOffset = (node.props["thumb_offset"] as? Number)?.toFloat() ?: 0f
+
+            val trackColor = parseColor(trackColorHex)
+            val trackBackdrop = rememberLayerBackdrop()
+
+            BoxWithConstraints(
+                modifier = Modifier
+                    .padding(horizontal = paddingHorizontal.dp)
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.CenterStart,
+            ) {
+                // Track
+                Box(
+                    modifier = Modifier
+                        .layerBackdrop(trackBackdrop)
+                        .background(trackColor, CircleShape)
+                        .height(trackHeight.dp)
+                        .fillMaxWidth()
+                )
+
+                // Thumb
+                Box(
+                    modifier = Modifier
+                        .offset(x = maxWidth / 2f - thumbWidth.dp / 2f + thumbOffset.dp)
+                        .drawBackdrop(
+                            backdrop = trackBackdrop,
+                            shape = { CircleShape },
+                            effects = {
+                                if (lensHeight > 0f && lensAmount > 0f) {
+                                    lens(lensHeight, lensAmount, lensChromatic)
+                                }
+                            },
+                        )
+                        .size(thumbWidth.dp, thumbHeight.dp)
+                )
+            }
+        }
+
         // ── kyant.backdrop: low-level API — create backdrop reference ─────
         "remember_layer_backdrop" -> {
             val backdropId = (node.props["backdrop_id"] as? Number)?.toInt() ?: 0
