@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -309,7 +310,7 @@ fun RenderComposableNode(
             }
         }
 
-        "divider" -> Divider(modifier = mod)
+        "divider" -> HorizontalDivider(modifier = mod)
 
         "scaffold" -> {
             val topBarNode = node.props["top_bar"]
@@ -658,8 +659,8 @@ fun materialIcon(name: String): androidx.compose.ui.graphics.vector.ImageVector 
         "menu" -> Icons.Default.Menu
         "search" -> Icons.Default.Search
         "home" -> Icons.Default.Home
-        "arrow_back" -> Icons.Default.ArrowBack
-        "arrow_forward" -> Icons.Default.ArrowForward
+        "arrow_back" -> Icons.AutoMirrored.Filled.ArrowBack
+        "arrow_forward" -> Icons.AutoMirrored.Filled.ArrowForward
         "refresh" -> Icons.Default.Refresh
         "play_arrow" -> Icons.Default.PlayArrow
         "save" -> Icons.Default.Save
