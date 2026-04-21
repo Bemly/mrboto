@@ -24,6 +24,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -688,9 +690,8 @@ fun materialIcon(name: String): androidx.compose.ui.graphics.vector.ImageVector 
 }
 
 /**
- * Renders a LiquidGlassView using Compose backdrop APIs.
- * Creates a frosted glass effect by capturing the background and applying
- * blur + vibrancy effects, clipped to the specified shape.
+ * Renders a LiquidGlassView with Compose backdrop blur effect.
+ * Uses kyant.backdrop to capture the background and apply frosted glass.
  */
 @Composable
 fun RenderLiquidGlassView(
@@ -710,18 +711,20 @@ fun RenderLiquidGlassView(
         else -> RoundedCornerShape(cornerRadius.dp)
     }
 
-    Box(
-        modifier = modifier
-            .clip(shape)
-            .onSizeChanged { /* trigger layout */ },
+    BoxWithConstraints(
+        modifier = modifier.clip(shape),
     ) {
+        val density = LocalDensity.current
         val backdrop = rememberCanvasBackdrop(onDraw = {
             drawIntoCanvas { canvas ->
-                // Draw nothing — the effect comes from the backdrop
-                // which captures what's behind this composable
+                val paint = android.graphics.Paint().apply {
+                    isAntiAlias = true
+                }
+                canvas.nativeCanvas.drawPaint(paint)
             }
         })
 
+        // Glass effect layer (behind children)
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -735,7 +738,7 @@ fun RenderLiquidGlassView(
                 ),
         )
 
-        // Render children on top of the glass effect
+        // Render children on top of the glass
         node.children.forEach { child ->
             RenderComposableNode(child, mruby, activity)
         }
