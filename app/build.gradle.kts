@@ -70,6 +70,7 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.13.0")
     // AndroidLiquidGlass
     implementation("io.github.kyant0:backdrop:1.0.6")
+    implementation("io.github.kyant0:shapes-android:1.2.0")
     androidTestImplementation("androidx.test.ext:junit:1.3.0")
     androidTestImplementation("androidx.test:runner:1.7.0")
     androidTestImplementation("androidx.test:rules:1.7.0")

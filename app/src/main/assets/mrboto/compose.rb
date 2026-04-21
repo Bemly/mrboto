@@ -487,7 +487,7 @@ module Mrboto
   # ── Glass Bar (high-level) — auto backdrop + glass bottom bar ──
   # Full-screen component: block's first child = content, remaining = bar buttons.
   # Supports optional top_bar prop for a TopAppBar above the content.
-  def glass_bar(shape_type: :rounded_rect, corner_radius: 24.0, blur_radius: 25.0, vibrancy: true, lens_height: 0.0, lens_amount: 0.0, surface_color: nil, surface_alpha: 0.5, top_bar: nil, **kwargs, &block)
+  def glass_bar(shape_type: :rounded_rect, corner_radius: 24.0, blur_radius: 25.0, vibrancy: true, lens_height: 0.0, lens_amount: 0.0, surface_color: nil, surface_alpha: 0.5, bar_background_color: nil, top_bar: nil, **kwargs, &block)
     props = _extract_props(kwargs)
     props["shape_type"] = shape_type.to_s
     props["corner_radius"] = corner_radius.to_f
@@ -497,6 +497,7 @@ module Mrboto
     props["lens_amount"] = lens_amount.to_f if lens_amount > 0
     props["surface_color"] = surface_color.to_s if surface_color
     props["surface_alpha"] = surface_alpha.to_f
+    props["bar_background_color"] = bar_background_color.to_s if bar_background_color
     # top_bar: pass a proc that returns a top_app_bar node
     if top_bar.respond_to?(:call)
       props["top_bar"] = _collect_nodes(&top_bar)

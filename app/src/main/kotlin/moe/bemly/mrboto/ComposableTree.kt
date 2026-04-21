@@ -2,6 +2,10 @@ package moe.bemly.mrboto
 
 import android.annotation.SuppressLint
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -14,6 +18,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -35,7 +40,7 @@ import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.effects.blur
 import com.kyant.backdrop.effects.vibrancy
 import com.kyant.backdrop.effects.lens
-import com.kyant.backdrop.shadow.Shadow
+import com.kyant.shapes.ContinuousCapsule
 import androidx.compose.ui.viewinterop.AndroidView
 import org.json.JSONArray
 import org.json.JSONObject
@@ -585,6 +590,7 @@ fun RenderComposableNode(
 
             val shape = when (shapeType.lowercase()) {
                 "circle" -> CircleShape
+                "continuous_capsule" -> ContinuousCapsule
                 else -> RoundedCornerShape(cornerRadius.dp)
             }
 
@@ -652,7 +658,7 @@ fun RenderComposableNode(
                                     layerBlock = {
                                         val progress = pressProgress.value
                                         val maxScale = (size.width + 16f.dp.toPx()) / size.width
-                                        val scale = androidx.compose.ui.geometry.lerp(1f, maxScale, progress)
+                                        val scale = 1f + progress * (maxScale - 1f)
                                         scaleX = scale
                                         scaleY = scale
                                     },
@@ -739,6 +745,7 @@ fun RenderComposableNode(
 
             val shape = when (shapeType.lowercase()) {
                 "circle" -> CircleShape
+                "continuous_capsule" -> ContinuousCapsule
                 else -> RoundedCornerShape(cornerRadius.dp)
             }
 
