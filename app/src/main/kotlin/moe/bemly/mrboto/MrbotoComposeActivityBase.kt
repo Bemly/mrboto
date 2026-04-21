@@ -62,9 +62,11 @@ abstract class MrbotoComposeActivityBase : MrbotoActivityBase() {
     fun setComposeContent(jsonStr: CharSequence) {
         try {
             val json = JSONObject(jsonStr.toString())
+            android.util.Log.d(TAG, "setComposeContent: type=${json.optString("type")}, children=${json.optJSONArray("children")?.length() ?: 0}")
+            android.util.Log.d(TAG, "JSON preview: ${jsonStr.take(500)}")
             composeTreeState = parseComposableTree(json)
         } catch (e: Exception) {
-            android.util.Log.e(TAG, "setComposeContent failed: ${e.message}")
+            android.util.Log.e(TAG, "setComposeContent failed: ${e.message}", e)
         }
     }
 

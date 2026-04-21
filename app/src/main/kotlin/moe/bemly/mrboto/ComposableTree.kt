@@ -312,6 +312,9 @@ fun RenderComposableNode(
             val topBarNode = node.props["top_bar"]
             val bottomBarNode = node.props["bottom_bar"]
             val fabNode = node.props["floating_action_button"]
+            android.util.Log.d(TAG, "Scaffold: topBar=${topBarNode != null}, bottomBar=${bottomBarNode != null}, fab=${fabNode != null}, children=${node.children.size}")
+            if (topBarNode is JSONObject) android.util.Log.d(TAG, "  topBar type=${topBarNode.optString("type")}")
+            if (bottomBarNode is JSONObject) android.util.Log.d(TAG, "  bottomBar type=${bottomBarNode.optString("type")}")
             Scaffold(
                 topBar = {
                     if (topBarNode is JSONObject) {
