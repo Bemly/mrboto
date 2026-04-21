@@ -86,7 +86,7 @@ class EditorActivity < Mrboto::ComposeActivity
       glass_cell(shape: :circle) {
         text_button("Run", icon: :play_arrow) { run_code }
       }
-      glass_cell(shape: :continuous_capsule, layout: :aspect_ratio, surface_color: "0088FF", blend_mode: :hue) {
+      glass_cell(shape: :continuous_capsule, layout: :aspect_ratio) {
         text_button("Save", icon: :save) { save_code }
       }
     }
