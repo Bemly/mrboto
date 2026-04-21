@@ -623,6 +623,7 @@ fun RenderComposableNode(
             // Separate glass_cell children from content children
             val cellNodes = node.children.filter { it.type == "glass_cell" }
             val contentNodes = node.children.filter { it.type != "glass_cell" }
+            val rightCellNode = node.props["right_cell"]
 
             Box(modifier = Modifier.fillMaxSize()) {
                 Column(modifier = Modifier.fillMaxSize()) {
@@ -647,25 +648,25 @@ fun RenderComposableNode(
                             .padding(bottom = bottomOffset)
                             .fillMaxWidth(0.8f)
                             .height(64.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                     val animationScope = rememberCoroutineScope()
 
-                    if (cellNodes.isNotEmpty()) {
-                        // Use explicit glass_cell nodes
-                        cellNodes.forEach { cell ->
-                            RenderGlassCell(cell, backdrop, barShapeType, barCornerRadius,
-                                barVibrancy, blurPx, barLensHeight, barLensAmount,
-                                barSurfaceColor, barSurfaceAlpha, mruby, activity, animationScope)
-                        }
-                    } else {
-                        // Legacy: no glass_cell wrappers — apply bar defaults to all children
-                        node.children.drop(1).forEach { child ->
-                            RenderGlassCell(child, backdrop, barShapeType, barCornerRadius,
-                                barVibrancy, blurPx, barLensHeight, barLensAmount,
-                                barSurfaceColor, barSurfaceAlpha, mruby, activity, animationScope)
-                        }
+                    // Left cells — evenly distributed
+                    val leftCells = if (cellNodes.isNotEmpty()) cellNodes else node.children.drop(1)
+                    leftCells.forEach { cell ->
+                        RenderGlassCell(this, cell, backdrop, barShapeType, barCornerRadius,
+                            barVibrancy, blurPx, barLensHeight, barLensAmount,
+                            barSurfaceColor, barSurfaceAlpha, mruby, activity, animationScope)
+                    }
+
+                    // Spacer pushes right cell to the end
+                    if (rightCellNode is JSONObject) {
+                        Spacer(modifier = Modifier.weight(1f))
+                        val rightCellParsed = parseComposableTree(rightCellNode)
+                        RenderGlassCell(this, rightCellParsed, backdrop, barShapeType, barCornerRadius,
+                            barVibrancy, blurPx, barLensHeight, barLensAmount,
+                            barSurfaceColor, barSurfaceAlpha, mruby, activity, animationScope)
                     }
                     }
                 }
@@ -677,6 +678,29 @@ fun RenderComposableNode(
             // Should not appear outside glass_bar; render children as fallback
             node.children.forEach { child ->
                 RenderComposableNode(child, mruby, activity)
+            }
+        }
+
+        // ── nav_cell: vertical icon + text layout for nav bar ────────────
+        "nav_cell" -> {
+            val iconName = node.props["icon"]?.toString()
+            Column(
+                modifier = mod,
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                if (iconName != null) {
+                    Icon(
+                        imageVector = materialIcon(iconName),
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp),
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                }
+                Text(
+                    text = node.content ?: "",
+                    fontSize = 10.sp,
+                    textAlign = TextAlign.Center,
+                )
             }
         }
 
@@ -1136,6 +1160,7 @@ fun materialIcon(name: String): androidx.compose.ui.graphics.vector.ImageVector 
         "close" -> Icons.Default.Close
         "menu" -> Icons.Default.Menu
         "search" -> Icons.Default.Search
+        "ic_menu_search" -> Icons.Default.Search
         "home" -> Icons.Default.Home
         "arrow_back" -> Icons.AutoMirrored.Filled.ArrowBack
         "arrow_forward" -> Icons.AutoMirrored.Filled.ArrowForward
@@ -1144,6 +1169,10 @@ fun materialIcon(name: String): androidx.compose.ui.graphics.vector.ImageVector 
         "save" -> Icons.Default.Save
         "content_copy" -> Icons.Default.ContentCopy
         "content_paste" -> Icons.Default.ContentPaste
+        "ic_menu_code" -> Icons.Default.Code
+        "ic_menu_file" -> Icons.Default.Folder
+        "ic_menu_log" -> Icons.Default.Article
+        "ic_menu_search" -> Icons.Default.Search
         else -> Icons.Default.Info
     }
 }

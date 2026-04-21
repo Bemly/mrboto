@@ -83,11 +83,22 @@ class EditorActivity < Mrboto::ComposeActivity
       }
 
       # 底部栏按钮
-      glass_cell(shape: :circle) {
-        text_button("Run", icon: :play_arrow) { run_code }
+      # 底部栏 — 左侧 nav cells
+      glass_cell {
+        nav_cell(icon: :ic_menu_code, content: "代码") { run_code }
       }
-      glass_cell(shape: :continuous_capsule, layout: :aspect_ratio) {
-        text_button("Save", icon: :save) { save_code }
+      glass_cell {
+        nav_cell(icon: :ic_menu_file, content: "文件") { save_code }
+      }
+      glass_cell {
+        nav_cell(icon: :ic_menu_log, content: "日志") { load_code }
+      }
+
+      # 右侧 cell
+      right_cell {
+        glass_cell {
+          nav_cell(icon: :ic_menu_search, content: "搜索") { clear_code }
+        }
       }
     }
     _log("build_ui: tree built, root=#{Mrboto::ComposeBuilder.root ? Mrboto::ComposeBuilder.root["type"] : "nil"}")

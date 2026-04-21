@@ -522,6 +522,28 @@ module Mrboto
     Mrboto._build_compose_node("glass_cell", nil, props, &block)
   end
 
+  # ── nav_cell: vertical icon + text for glass_bar nav items ──
+  def nav_cell(icon:, content:, **kwargs, &block)
+    props = _extract_props(kwargs)
+    props["icon"] = icon.to_s
+    Mrboto._build_compose_node("nav_cell", content.to_s, props, &block)
+  end
+
+  # ── right_cell: right-side cell in glass_bar (passed as prop) ──
+  def right_cell(&block)
+    # Collect nodes and store as prop on the parent glass_bar node
+    node = { "type" => "right_cell", "props" => {}, "children" => [] }
+    ComposeBuilder.with_parent(node) { yield nil } if block_given?
+    # Instead of adding to children, store as right_cell prop on root glass_bar
+    root = ComposeBuilder.root
+    if root && root["type"] == "glass_bar"
+      root["props"]["right_cell"] = node
+      nil
+    else
+      node
+    end
+  end
+
   # ── kyant.backdrop low-level API ──
   # Creates a backdrop reference with a numeric ID for sharing between nodes
   def remember_layer_backdrop(backdrop_id = 1, &block)
