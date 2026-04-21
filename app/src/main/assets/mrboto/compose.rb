@@ -36,23 +36,21 @@ module Mrboto
   # ── Compose Node Builder — internal tree construction ──
   module ComposeBuilder
     class << self
+      # Stack of parent hashes. Each entry has a "children" => [] key.
       def stack
         @_compose_parent_stack ||= []
-      end
-
-      def push_parent(node)
-        stack.push(node)
-      end
-
-      def pop_parent
-        stack.pop
       end
 
       # Push a node onto the current parent, or make it root
       def add_node(node)
         parent = stack.last
         if parent
-          parent[:children] << node
+          kids = parent["children"]
+          if kids.nil?
+            kids = []
+            parent["children"] = kids
+          end
+          kids << node
         end
         node
       end

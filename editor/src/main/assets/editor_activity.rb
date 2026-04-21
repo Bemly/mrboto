@@ -30,7 +30,7 @@ class EditorActivity < Mrboto::ComposeActivity
 
   def build_ui
     # ── 清除之前的树栈 ──
-    Mrboto::ComposeBuilder.stack.clear
+    Mrboto::ComposeBuilder.instance_variable_set(:@_compose_parent_stack, [])
 
     scaffold(
       top_bar: -> { top_app_bar("Ruby Editor", actions: [
