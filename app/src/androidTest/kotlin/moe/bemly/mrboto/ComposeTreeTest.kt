@@ -177,8 +177,8 @@ class ComposeTreeTest {
 
     @Test
     fun `Kotlin parseArrangement maps values`() {
-        assertEquals(androidx.compose.foundation.layout.Arrangement.Center, parseArrangement("center"))
-        assertEquals(androidx.compose.foundation.layout.Arrangement.SpaceEvenly, parseArrangement("space_evenly"))
+        assertEquals(androidx.compose.foundation.layout.Arrangement.Center, parseHorizontalArrangement("center"))
+        assertEquals(androidx.compose.foundation.layout.Arrangement.SpaceEvenly, parseVerticalArrangement("space_evenly"))
     }
 
     @Test
