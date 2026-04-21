@@ -403,7 +403,7 @@ fun RenderComposableNode(
 
 @Composable
 fun buildModifier(props: Map<String, Any?>): Modifier {
-    var m = Modifier
+    var m: Modifier = Modifier
 
     val modifierList = props["modifier"]
     if (modifierList is JSONArray) {
@@ -424,7 +424,7 @@ fun buildModifier(props: Map<String, Any?>): Modifier {
         val w = (it as? Number)?.toFloat() ?: 1f
         m = m.weight(w)
     }
-    props["background_color"]?.let { m = Modifier.background(parseColor(it)).then(m) }
+    props["background_color"]?.let { m = m.background(parseColor(it)) }
     props["align"]?.let { m = m.align(parseContentAlignment(it.toString())) }
     props["aspect_ratio"]?.let {
         m = m.aspectRatio((it as? Number)?.toFloat() ?: 1f)
@@ -435,7 +435,7 @@ fun buildModifier(props: Map<String, Any?>): Modifier {
 
 @Composable
 fun applyModifierArray(arr: JSONArray, modifier: Modifier): Modifier {
-    var m = modifier
+    var m: Modifier = modifier
     for (i in 0 until arr.length()) {
         val obj = arr.getJSONObject(i)
         val type = obj.optString("type", "")
@@ -452,7 +452,7 @@ fun applyModifierArray(arr: JSONArray, modifier: Modifier): Modifier {
             "weight" -> m = m.weight(obj.optDouble("value", 1.0).toFloat())
             "width" -> m = m.width(toDp(obj.get("value")))
             "height" -> m = m.height(toDp(obj.get("value")))
-            "background" -> m = Modifier.background(parseColor(obj.get("value"))).then(m)
+            "background" -> m = m.background(parseColor(obj.get("value")))
             "align" -> m = m.align(parseContentAlignment(obj.getString("value")))
             "aspect_ratio" -> m = m.aspectRatio(obj.getDouble("value").toFloat())
             "clip" -> m = m.clip(MaterialTheme.shapes.medium)
@@ -480,7 +480,7 @@ private fun buildAndroidView(
         val view = mruby.lookupJavaObject<android.view.View>(viewId)
         if (view != null) return view
     }
-    android.widget.LinearLayout(context).apply { orientation = android.widget.LinearLayout.VERTICAL }
+    return android.widget.LinearLayout(context).apply { orientation = android.widget.LinearLayout.VERTICAL }
 }
 
 private fun buildPropsJson(props: Map<String, Any?>): String {
@@ -632,8 +632,8 @@ fun parseRange(value: Any?): ClosedFloatingPointRange<Float> {
 
 fun materialIcon(name: String): androidx.compose.ui.graphics.vector.ImageVector {
     return when (name.lowercase()) {
-        "light_mode" -> Icons.Default.WbSunny
-        "dark_mode" -> Icons.Default.NightsStay
+        "light_mode" -> Icons.Default.LightMode
+        "dark_mode" -> Icons.Default.DarkMode
         "settings" -> Icons.Default.Settings
         "delete" -> Icons.Default.Delete
         "add" -> Icons.Default.Add
@@ -645,7 +645,7 @@ fun materialIcon(name: String): androidx.compose.ui.graphics.vector.ImageVector 
         "arrow_forward" -> Icons.Default.ArrowForward
         "refresh" -> Icons.Default.Refresh
         "play_arrow" -> Icons.Default.PlayArrow
-        "save" -> Icons.Default.Bookmark
+        "save" -> Icons.Default.Save
         "content_copy" -> Icons.Default.ContentCopy
         "content_paste" -> Icons.Default.ContentPaste
         else -> Icons.Default.Info

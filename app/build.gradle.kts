@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "moe.bemly.mrboto"
-    compileSdk = 36
+    compileSdk = 37
     ndkVersion = "29.0.14206865"
 
     defaultConfig {
@@ -53,7 +53,7 @@ android {
 
 dependencies {
     implementation("com.github.equationl.paddleocr4android:ncnnandroidppocr:v1.3.0")
-    implementation("com.google.zxing:core:3.5.3")
+    implementation("com.google.zxing:core:3.5.4")
     api("androidx.core:core-ktx:1.18.0")
     api("androidx.appcompat:appcompat:1.7.1")
     api("com.google.android.material:material:1.13.0")
@@ -66,7 +66,8 @@ dependencies {
     implementation(composeBom)
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.material3:material3")
-    implementation("androidx.activity:activity-compose:1.10.1")
+    implementation("androidx.compose.material:material-icons-extended")
+    implementation("androidx.activity:activity-compose:1.13.0")
     // AndroidLiquidGlass
     implementation("io.github.kyant0:backdrop:1.0.6")
     androidTestImplementation("androidx.test.ext:junit:1.3.0")
