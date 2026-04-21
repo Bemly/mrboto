@@ -261,4 +261,78 @@ class GlassBarTest {
         assertTrue(json.contains("\"blur_radius\""))
         assertTrue(json.contains("25"))
     }
+
+    // ── glass_cell: per-button config ─────────────────────────────────────
+
+    @Test
+    fun `glass_cell DSL exists`() {
+        val result = mruby.eval("respond_to?(:glass_cell) ? 'ok' : 'fail'")
+        assertEquals("ok", result)
+    }
+
+    @Test
+    fun `glass_cell creates node with per-button props`() {
+        mruby.eval("""
+            Mrboto::ComposeBuilder.instance_variable_set(:@_compose_parent_stack, [])
+            Mrboto::ComposeBuilder.instance_variable_set(:@_compose_root, nil)
+        """.trimIndent())
+
+        val result = mruby.eval("""
+            glass_cell(shape: :circle, layout: :aspect_ratio, surface_color: "0088FF", blend_mode: :hue) {
+              text_button("Btn") { }
+            }
+            root = Mrboto::ComposeBuilder.root
+            "type=#{root['type']},shape=#{root['props']['glass_shape']},layout=#{root['props']['glass_layout']},color=#{root['props']['glass_surface_color']},blend=#{root['props']['glass_blend_mode']}"
+        """.trimIndent())
+
+        assertEquals("type=glass_cell,shape=circle,layout=aspect_ratio,color=0088FF,blend=hue", result)
+    }
+
+    @Test
+    fun `glass_bar with glass_cell children renders cells`() {
+        mruby.eval("""
+            Mrboto::ComposeBuilder.instance_variable_set(:@_compose_parent_stack, [])
+            Mrboto::ComposeBuilder.instance_variable_set(:@_compose_root, nil)
+        """.trimIndent())
+
+        val json = mruby.eval("""
+            glass_bar(blur_radius: 25.0) {
+              text("content")
+              glass_cell(shape: :circle) {
+                text_button("Run") { }
+              }
+              glass_cell(shape: :continuous_capsule, layout: :aspect_ratio) {
+                text_button("Save") { }
+              }
+            }
+            Mrboto._compose_to_json(Mrboto::ComposeBuilder.root)
+        """.trimIndent())
+
+        assertTrue(json.contains("\"type\":\"glass_bar\""))
+        assertTrue(json.contains("\"type\":\"glass_cell\""))
+        assertTrue(json.contains("\"glass_shape\":\"circle\""))
+        assertTrue(json.contains("\"glass_shape\":\"continuous_capsule\""))
+        assertTrue(json.contains("\"glass_layout\":\"aspect_ratio\""))
+    }
+
+    @Test
+    fun `glass_bar without glass_cell still works (backward compat)`() {
+        mruby.eval("""
+            Mrboto::ComposeBuilder.instance_variable_set(:@_compose_parent_stack, [])
+            Mrboto::ComposeBuilder.instance_variable_set(:@_compose_root, nil)
+        """.trimIndent())
+
+        val json = mruby.eval("""
+            glass_bar(blur_radius: 25.0) {
+              text("content")
+              text_button("Run") { }
+              text_button("Save") { }
+            }
+            Mrboto._compose_to_json(Mrboto::ComposeBuilder.root)
+        """.trimIndent())
+
+        assertTrue(json.contains("\"type\":\"glass_bar\""))
+        // children should be text_button, not glass_cell
+        assertFalse(json.contains("\"glass_cell\""))
+    }
 }
