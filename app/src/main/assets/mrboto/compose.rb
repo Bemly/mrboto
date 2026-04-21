@@ -64,22 +64,24 @@ module Mrboto
       end
 
       # Enter a parent context (for nested children)
-      # Pushes node only if it's not the root (already on stack via add_node)
+      # Pushes node only if it's not already the current stack top
       def with_parent(node)
-        is_root = stack.last == node
-        stack.push(node) unless is_root
+        is_top = stack.last == node
+        stack.push(node) unless is_top
         yield if block_given?
-        stack.pop unless is_root
+        stack.pop unless is_top
         node
       end
 
       # Internal: collect child nodes from a block
+      # Returns the single child directly (not a wrapper) when there's exactly one.
       def collect_nodes
-        parent = { "children" => [] }
-        stack.push(parent)
+        wrapper = { "children" => [] }
+        stack.push(wrapper)
         yield
         stack.pop
-        parent["children"].first
+        kids = wrapper["children"]
+        kids.size == 1 ? kids[0] : nil
       end
     end
   end
@@ -220,14 +222,9 @@ module Mrboto
       node["callback_id"] = cid
     end
 
-    current = ComposeBuilder.root
-    if current
-      ComposeBuilder.with_parent(node) { yield nil if block_given? && !%w[button text_button floating_action_button icon_button].include?(type.to_s) }
-    else
-      # Root node — store on the activity
-      if block_given? && !%w[button text_button floating_action_button icon_button].include?(type.to_s)
-        ComposeBuilder.with_parent(node) { yield nil }
-      end
+    # Yield block content for non-interactive nodes
+    if block_given? && !%w[button text_button floating_action_button icon_button].include?(type.to_s)
+      ComposeBuilder.with_parent(node) { yield nil }
     end
 
     ComposeBuilder.add_node(node)
@@ -369,8 +366,6 @@ module Mrboto
 
   def scaffold(top_bar: nil, bottom_bar: nil, floating_action_button: nil, **kwargs, &content_block)
     props = _extract_props(kwargs)
-    # top_bar, bottom_bar, fab are stored as props
-    # They will be set during tree construction
 
     node = {
       "type" => "scaffold",
@@ -379,29 +374,41 @@ module Mrboto
     }
 
     if top_bar.respond_to?(:call)
-      # top_bar is a proc/lambda — call it to build the tree
+      saved_stack = ComposeBuilder.instance_variable_get(:@_compose_parent_stack)
+      ComposeBuilder.instance_variable_set(:@_compose_parent_stack, [])
       top_bar_node = _collect_nodes(&top_bar)
+      ComposeBuilder.instance_variable_set(:@_compose_parent_stack, saved_stack)
       node["props"]["top_bar"] = top_bar_node if top_bar_node
     elsif top_bar.is_a?(Hash)
       node["props"]["top_bar"] = top_bar
     end
 
     if bottom_bar.respond_to?(:call)
+      saved_stack = ComposeBuilder.instance_variable_get(:@_compose_parent_stack)
+      ComposeBuilder.instance_variable_set(:@_compose_parent_stack, [])
       bottom_bar_node = _collect_nodes(&bottom_bar)
+      ComposeBuilder.instance_variable_set(:@_compose_parent_stack, saved_stack)
       node["props"]["bottom_bar"] = bottom_bar_node if bottom_bar_node
     elsif bottom_bar.is_a?(Hash)
       node["props"]["bottom_bar"] = bottom_bar
     end
 
     if floating_action_button.respond_to?(:call)
+      saved_stack = ComposeBuilder.instance_variable_get(:@_compose_parent_stack)
+      ComposeBuilder.instance_variable_set(:@_compose_parent_stack, [])
       fab_node = _collect_nodes(&floating_action_button)
+      ComposeBuilder.instance_variable_set(:@_compose_parent_stack, saved_stack)
       node["props"]["floating_action_button"] = fab_node if fab_node
     elsif floating_action_button.is_a?(Hash)
       node["props"]["floating_action_button"] = floating_action_button
     end
 
-    # Content block
-    ComposeBuilder.with_parent(node) { content_block.call if content_block.respond_to?(:call) }
+    # Content block — add children to scaffold via with_parent
+    if content_block.respond_to?(:call)
+      ComposeBuilder.stack.push(node)
+      content_block.call
+      ComposeBuilder.stack.pop
+    end
 
     ComposeBuilder.add_node(node)
     node
