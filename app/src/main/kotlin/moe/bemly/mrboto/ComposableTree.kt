@@ -3,7 +3,6 @@ package moe.bemly.mrboto
 import android.annotation.SuppressLint
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
@@ -669,12 +668,16 @@ fun RenderComposableNode(
                                         drawRect(surfaceColor.copy(alpha = surfaceAlpha))
                                     },
                                 )
-                                .clickable(interactionSource = null, indication = null) {
-                                    if (child.callbackId > 0) {
-                                        mruby.eval("Mrboto.dispatch_callback(${child.callbackId})")
+                                .clickable(
+                                    interactionSource = null,
+                                    indication = null,
+                                    onClick = {
+                                        if (child.callbackId > 0) {
+                                            mruby.eval("Mrboto.dispatch_callback(${child.callbackId})")
+                                        }
                                     }
-                                }
-                                .pointerInput(animationScope) {
+                                )
+                                .pointerInput(child) {
                                     val animationSpec = androidx.compose.animation.core.spring(
                                         dampingRatio = 0.5f,
                                         stiffness = 300f,
