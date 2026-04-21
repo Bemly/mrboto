@@ -11,7 +11,7 @@
         android:theme="@style/Theme.MrbotoEditor">
 
         <activity
-            android:name="moe.bemly.mrboto.RubyActivity"
+            android:name="moe.bemly.mrboto.ComposeRubyActivity"
             android:exported="true"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
