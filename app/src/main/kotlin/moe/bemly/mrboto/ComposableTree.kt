@@ -372,15 +372,32 @@ fun RenderComposableNode(
         }
 
         "android_view" -> {
-            AndroidView(
-                modifier = mod,
-                factory = { ctx ->
-                    buildAndroidView(node, ctx, activity, mruby)
-                },
-                update = { view ->
-                    updateAndroidView(view, node, activity, mruby)
-                },
-            )
+            if (node.children.isNotEmpty()) {
+                // Has Compose children — wrap in ComposeView
+                androidx.compose.ui.platform.AndroidView(
+                    modifier = mod,
+                    factory = { ctx ->
+                        androidx.compose.ui.platform.ComposeView(ctx).apply {
+                            setContent {
+                                node.children.forEach { child ->
+                                    RenderComposableNode(child, mruby, activity)
+                                }
+                            }
+                        }
+                    },
+                )
+            } else {
+                // Native View only (e.g. LiquidGlassView without children)
+                AndroidView(
+                    modifier = mod,
+                    factory = { ctx ->
+                        buildAndroidView(node, ctx, activity, mruby)
+                    },
+                    update = { view ->
+                        updateAndroidView(view, node, activity, mruby)
+                    },
+                )
+            }
         }
 
         "image" -> {
