@@ -60,10 +60,10 @@ class EditorActivity < Mrboto::ComposeActivity
           vibrancy: true
         ) {
           row(horizontal_arrangement: :space_evenly, padding: 8) {
-            button("▶ Run") { run_code }
-            button("💾 Save") { save_code }
-            button("📂 Load") { load_code }
-            button("✕ Clear") { clear_code }
+            text_button("Run", icon: :play_arrow) { run_code }
+            text_button("Save", icon: :save) { save_code }
+            text_button("Load", icon: :content_paste) { load_code }
+            text_button("Clear", icon: :close) { clear_code }
           }
         }
       }

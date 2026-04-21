@@ -20,8 +20,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -187,6 +187,7 @@ fun RenderComposableNode(
         }
 
         "text_button" -> {
+            val iconName = node.props["icon"]?.toString()
             TextButton(
                 onClick = {
                     if (node.callbackId > 0) {
@@ -194,7 +195,22 @@ fun RenderComposableNode(
                     }
                 },
                 modifier = mod,
-            ) { Text(text = node.content ?: "") }
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (iconName != null) {
+                        Icon(
+                            imageVector = materialIcon(iconName),
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                    }
+                    Text(text = node.content ?: "")
+                }
+            }
         }
 
         "floating_action_button" -> {
@@ -329,51 +345,109 @@ fun RenderComposableNode(
             if (topBarNode is JSONObject) android.util.Log.d(TAG, "  topBar type=${topBarNode.optString("type")}")
             if (bottomBarNode is JSONObject) android.util.Log.d(TAG, "  bottomBar type=${bottomBarNode.optString("type")}")
 
-            // Determine bottom bar content children and glass props
+            // Check if bottomBar has liquid glass effect
+            val glassProps = findGlassPropsInTree(bottomBarNode as? JSONObject)
             val bottomBarContentNodes = parseBottomBarContent(bottomBarNode as? JSONObject)
-            val bottomBarGlassProps = findGlassPropsInTree(bottomBarNode as? JSONObject)
 
-            Scaffold(
-                topBar = {
-                    if (topBarNode is JSONObject) {
-                        RenderComposableNode(parseComposableTree(topBarNode), mruby, activity)
-                    }
-                },
-                bottomBar = {
-                    if (bottomBarContentNodes.isNotEmpty()) {
-                        val blurRadius = (bottomBarGlassProps?.get("blur_radius") as? Number)?.toFloat() ?: 25f
-                        val vibrancyEnabled = bottomBarGlassProps?.get("vibrancy") == true
-                        val cornerRadius = (bottomBarGlassProps?.get("corner_radius") as? Number)?.toFloat() ?: 16f
-                        val shapeType = bottomBarGlassProps?.get("shape_type")?.toString() ?: "rounded_rect"
-                        val shape = when (shapeType.lowercase()) {
-                            "circle" -> CircleShape
-                            else -> RoundedCornerShape(cornerRadius.dp)
+            if (glassProps != null && bottomBarContentNodes.isNotEmpty()) {
+                // Glass bottom bar using kyant.backdrop LayerBackdrop pattern
+                // https://kyant.gitbook.io/backdrop/tutorials/glass-bottom-bar
+                val blurRadius = (glassProps["blur_radius"] as? Number)?.toFloat() ?: 25f
+                val vibrancyEnabled = glassProps["vibrancy"] == true
+                val cornerRadius = (glassProps["corner_radius"] as? Number)?.toFloat() ?: 16f
+                val shapeType = glassProps["shape_type"]?.toString() ?: "rounded_rect"
+                val shape = when (shapeType.lowercase()) {
+                    "circle" -> CircleShape
+                    else -> RoundedCornerShape(cornerRadius.dp)
+                }
+                val isDark = isSystemInDarkTheme()
+                val barColor = if (isDark) Color(0xFF1C1C1E) else Color(0xFFF2F2F7)
+                val backdrop = rememberLayerBackdrop()
+
+                Box(modifier = Modifier.fillMaxSize()) {
+                    // Main content area — capture to backdrop
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        if (topBarNode is JSONObject) {
+                            RenderComposableNode(parseComposableTree(topBarNode), mruby, activity)
                         }
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .layerBackdrop(backdrop),
+                        ) {
+                            val contentNode = node.children.firstOrNull()
+                            if (contentNode != null) {
+                                RenderComposableNode(contentNode, mruby, activity)
+                            }
+                        }
+                    }
 
-                        // Glass bar container with styled background + optional backdrop blur
-                        RenderGlassBar(
-                            blurRadius = blurRadius,
-                            vibrancyEnabled = vibrancyEnabled,
-                            shape = shape,
-                            content = {
-                                bottomBarContentNodes.forEach { child ->
-                                    RenderComposableNode(child, mruby, activity)
-                                }
-                            },
+                    // FAB
+                    if (fabNode is JSONObject) {
+                        RenderComposableNode(
+                            parseComposableTree(fabNode),
+                            mruby,
+                            activity,
                         )
                     }
-                },
-                floatingActionButton = {
-                    if (fabNode is JSONObject) {
-                        RenderComposableNode(parseComposableTree(fabNode), mruby, activity)
+
+                    // Glass bottom bar — Row with glass button cells
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .height(64.dp)
+                            .fillMaxWidth()
+                            .safeContentPadding(),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        bottomBarContentNodes.forEach { child ->
+                            Box(
+                                modifier = Modifier
+                                    .drawBackdrop(
+                                        backdrop = backdrop,
+                                        shape = { shape },
+                                        effects = {
+                                            if (blurRadius > 0f) blur(blurRadius)
+                                            if (vibrancyEnabled) vibrancy()
+                                        },
+                                        onDrawSurface = {
+                                            drawRect(barColor.copy(alpha = 0.5f))
+                                        },
+                                    )
+                                    .fillMaxHeight()
+                                    .weight(1f)
+                            ) {
+                                RenderComposableNode(child, mruby, activity)
+                            }
+                        }
                     }
-                },
-                modifier = mod,
-            ) { padding ->
-                val contentNode = node.children.firstOrNull()
-                if (contentNode != null) {
-                    Box(modifier = Modifier.padding(padding)) {
-                        RenderComposableNode(contentNode, mruby, activity)
+                }
+            } else {
+                // Standard Scaffold without glass bottom bar
+                Scaffold(
+                    topBar = {
+                        if (topBarNode is JSONObject) {
+                            RenderComposableNode(parseComposableTree(topBarNode), mruby, activity)
+                        }
+                    },
+                    bottomBar = {
+                        if (bottomBarNode is JSONObject) {
+                            RenderComposableNode(parseComposableTree(bottomBarNode), mruby, activity)
+                        }
+                    },
+                    floatingActionButton = {
+                        if (fabNode is JSONObject) {
+                            RenderComposableNode(parseComposableTree(fabNode), mruby, activity)
+                        }
+                    },
+                    modifier = mod,
+                ) { padding ->
+                    val contentNode = node.children.firstOrNull()
+                    if (contentNode != null) {
+                        Box(modifier = Modifier.padding(padding)) {
+                            RenderComposableNode(contentNode, mruby, activity)
+                        }
                     }
                 }
             }
@@ -751,31 +825,6 @@ private fun findGlassPropsInNode(node: ComposableNode): Map<String, Any?>? {
         if (result != null) return result
     }
     return null
-}
-
-/**
- * Render a styled glass bar for Scaffold bottomBar.
- * Uses a semi-transparent colored background with rounded corners
- * to create a frosted glass appearance.
- */
-@Composable
-private fun RenderGlassBar(
-    blurRadius: Float,
-    vibrancyEnabled: Boolean,
-    shape: Shape,
-    content: @Composable () -> Unit,
-) {
-    val isDark = androidx.compose.foundation.isSystemInDarkTheme()
-    val barColor = if (isDark) Color(0xFF2C2C2E) else Color(0xFFF2F2F7)
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .background(barColor.copy(alpha = 0.85f))
-    ) {
-        content()
-    }
 }
 
 /**
