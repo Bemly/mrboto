@@ -28,9 +28,6 @@ import org.json.JSONObject
 
 /**
  * Represents a single node in the Compose UI tree built from Ruby DSL.
- *
- * Structure:
- *   { "type": "column", "props": { "modifier": [...] }, "children": [...], "callback_id": 123 }
  */
 data class ComposableNode(
     val type: String,
@@ -40,9 +37,6 @@ data class ComposableNode(
     val content: String? = null,
 )
 
-/**
- * Parse a JSONObject into a ComposableNode tree.
- */
 fun parseComposableTree(json: JSONObject): ComposableNode {
     val type = json.optString("type", "box")
     val props = mutableMapOf<String, Any?>()
@@ -64,36 +58,29 @@ fun parseComposableTree(json: JSONObject): ComposableNode {
     return ComposableNode(type, props, children, cbId, content)
 }
 
-/**
- * Parse a JSON array of nodes (for lazy list items).
- */
 fun parseComposableTreeArray(jsonArray: JSONArray): List<ComposableNode> {
     return (0 until jsonArray.length()).map { i ->
         parseComposableTree(jsonArray.getJSONObject(i))
     }
 }
 
-/**
- * Render a ComposableNode tree into actual Compose UI.
- * This is a @Composable function called from setContent.
- */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RenderComposableNode(
     node: ComposableNode,
     mruby: MRuby,
     activity: MrbotoActivityBase,
 ) {
-    val modifier = buildModifier(node.props, activity)
+    val mod = buildModifier(node.props)
 
     when (node.type) {
-        // ── Layouts ──
         "column" -> {
-            val verticalArrangement = parseArrangement(node.props["vertical_arrangement"])
-            val horizontalAlignment = parseAlignment(node.props["horizontal_alignment"])
+            val vertArr = parseVerticalArrangement(node.props["vertical_arrangement"])
+            val horzAlign = parseHorizontalAlignment(node.props["horizontal_alignment"])
             Column(
-                modifier = modifier,
-                verticalArrangement = verticalArrangement,
-                horizontalAlignment = horizontalAlignment,
+                modifier = mod,
+                verticalArrangement = vertArr,
+                horizontalAlignment = horzAlign,
             ) {
                 node.children.forEach { child ->
                     RenderComposableNode(child, mruby, activity)
@@ -102,12 +89,12 @@ fun RenderComposableNode(
         }
 
         "row" -> {
-            val horizontalArrangement = parseArrangement(node.props["horizontal_arrangement"])
-            val verticalAlignment = parseAlignment(node.props["vertical_alignment"])
+            val horzArr = parseHorizontalArrangement(node.props["horizontal_arrangement"])
+            val vertAlign = parseVerticalAlignment(node.props["vertical_alignment"])
             Row(
-                modifier = modifier,
-                horizontalArrangement = horizontalArrangement,
-                verticalAlignment = verticalAlignment,
+                modifier = mod,
+                horizontalArrangement = horzArr,
+                verticalAlignment = vertAlign,
             ) {
                 node.children.forEach { child ->
                     RenderComposableNode(child, mruby, activity)
@@ -116,10 +103,10 @@ fun RenderComposableNode(
         }
 
         "box" -> {
-            val contentAlignment = parseAlignment(node.props["content_alignment"])
+            val contentAlign = parseContentAlignment(node.props["content_alignment"])
             Box(
-                modifier = modifier,
-                contentAlignment = contentAlignment,
+                modifier = mod,
+                contentAlignment = contentAlign,
             ) {
                 node.children.forEach { child ->
                     RenderComposableNode(child, mruby, activity)
@@ -127,12 +114,11 @@ fun RenderComposableNode(
             }
         }
 
-        "spacer" -> Spacer(modifier = modifier)
+        "spacer" -> Spacer(modifier = mod)
 
-        // ── Scrolling ──
         "vertical_scroll" -> {
             val scrollState = rememberScrollState()
-            Column(modifier = modifier.verticalScroll(scrollState)) {
+            Column(modifier = mod.verticalScroll(scrollState)) {
                 node.children.forEach { child ->
                     RenderComposableNode(child, mruby, activity)
                 }
@@ -141,7 +127,7 @@ fun RenderComposableNode(
 
         "horizontal_scroll" -> {
             val scrollState = rememberScrollState()
-            Row(modifier = modifier.horizontalScroll(scrollState)) {
+            Row(modifier = mod.horizontalScroll(scrollState)) {
                 node.children.forEach { child ->
                     RenderComposableNode(child, mruby, activity)
                 }
@@ -149,7 +135,7 @@ fun RenderComposableNode(
         }
 
         "lazy_column" -> {
-            LazyColumn(modifier = modifier) {
+            LazyColumn(modifier = mod) {
                 items(node.children) { child ->
                     RenderComposableNode(child, mruby, activity)
                 }
@@ -157,59 +143,55 @@ fun RenderComposableNode(
         }
 
         "lazy_row" -> {
-            LazyRow(modifier = modifier) {
+            LazyRow(modifier = mod) {
                 items(node.children) { child ->
                     RenderComposableNode(child, mruby, activity)
                 }
             }
         }
 
-        // ── Text ──
         "text" -> {
-            val color = parseColor(node.props["color"])
-            val fontSize = parseTextSize(node.props["font_size"])
-            val textAlign = parseTextAlign(node.props["text_align"])
-            val fontFamily = parseFontFamily(node.props["font_family"])
             Text(
                 text = node.content ?: "",
-                modifier = modifier,
-                color = color,
-                fontSize = fontSize,
-                textAlign = textAlign,
-                fontFamily = fontFamily,
+                modifier = mod,
+                color = parseColor(node.props["color"]),
+                fontSize = parseTextSize(node.props["font_size"]),
+                textAlign = parseTextAlign(node.props["text_align"]),
+                fontFamily = parseFontFamily(node.props["font_family"]),
             )
         }
 
-        // ── Buttons ──
         "button" -> {
-            val onClick = {
-                if (node.callbackId > 0) {
-                    mruby.eval("Mrboto.dispatch_callback(${node.callbackId})")
-                }
-            }
-            Button(onClick = onClick, modifier = modifier) {
-                Text(text = node.content ?: "")
-            }
+            Button(
+                onClick = {
+                    if (node.callbackId > 0) {
+                        mruby.eval("Mrboto.dispatch_callback(${node.callbackId})")
+                    }
+                },
+                modifier = mod,
+            ) { Text(text = node.content ?: "") }
         }
 
         "text_button" -> {
-            val onClick = {
-                if (node.callbackId > 0) {
-                    mruby.eval("Mrboto.dispatch_callback(${node.callbackId})")
-                }
-            }
-            TextButton(onClick = onClick, modifier = modifier) {
-                Text(text = node.content ?: "")
-            }
+            TextButton(
+                onClick = {
+                    if (node.callbackId > 0) {
+                        mruby.eval("Mrboto.dispatch_callback(${node.callbackId})")
+                    }
+                },
+                modifier = mod,
+            ) { Text(text = node.content ?: "") }
         }
 
         "floating_action_button" -> {
-            val onClick = {
-                if (node.callbackId > 0) {
-                    mruby.eval("Mrboto.dispatch_callback(${node.callbackId})")
-                }
-            }
-            FloatingActionButton(onClick = onClick, modifier = modifier) {
+            FloatingActionButton(
+                onClick = {
+                    if (node.callbackId > 0) {
+                        mruby.eval("Mrboto.dispatch_callback(${node.callbackId})")
+                    }
+                },
+                modifier = mod,
+            ) {
                 node.children.forEach { child ->
                     RenderComposableNode(child, mruby, activity)
                 }
@@ -217,41 +199,39 @@ fun RenderComposableNode(
         }
 
         "icon_button" -> {
-            val onClick = {
-                if (node.callbackId > 0) {
-                    mruby.eval("Mrboto.dispatch_callback(${node.callbackId})")
-                }
-            }
-            val iconName = parseIconName(node.props["icon"])
-            IconButton(onClick = onClick, modifier = modifier) {
-                Icon(
-                    imageVector = materialIcon(iconName),
-                    contentDescription = null,
-                )
+            val iconName = node.props["icon"]?.toString() ?: "info"
+            IconButton(
+                onClick = {
+                    if (node.callbackId > 0) {
+                        mruby.eval("Mrboto.dispatch_callback(${node.callbackId})")
+                    }
+                },
+                modifier = mod,
+            ) {
+                Icon(imageVector = materialIcon(iconName), contentDescription = null)
             }
         }
 
-        // ── Input: TextField ──
         "text_field" -> {
             var value by remember { mutableStateOf(node.content ?: "") }
-            val callbackId = node.callbackId
+            val cbId = node.callbackId
             TextField(
                 value = value,
                 onValueChange = { newValue ->
                     value = newValue
-                    if (callbackId > 0) {
+                    if (cbId > 0) {
                         val safe = newValue.replace("\\", "\\\\").replace("'", "\\'")
-                        mruby.eval("Mrboto.dispatch_callback($callbackId, '$safe')")
+                        mruby.eval("Mrboto.dispatch_callback($cbId, '$safe')")
                     }
                 },
-                modifier = modifier,
+                modifier = mod,
                 singleLine = node.props["single_line"] == true,
             )
         }
 
         "outlined_text_field" -> {
             var value by remember { mutableStateOf(node.content ?: "") }
-            val callbackId = node.callbackId
+            val cbId = node.callbackId
             val hint = node.props["hint"]?.toString()
             val singleLine = node.props["single_line"] == true
             val maxLines = (node.props["max_lines"] as? Number)?.toInt() ?: if (singleLine) 1 else Int.MAX_VALUE
@@ -259,76 +239,73 @@ fun RenderComposableNode(
                 value = value,
                 onValueChange = { newValue ->
                     value = newValue
-                    if (callbackId > 0) {
+                    if (cbId > 0) {
                         val safe = newValue.replace("\\", "\\\\").replace("'", "\\'")
-                        mruby.eval("Mrboto.dispatch_callback($callbackId, '$safe')")
+                        mruby.eval("Mrboto.dispatch_callback($cbId, '$safe')")
                     }
                 },
-                modifier = modifier,
+                modifier = mod,
                 placeholder = if (hint != null) { { Text(hint) } } else null,
                 singleLine = singleLine,
                 maxLines = maxLines,
             )
         }
 
-        // ── Controls ──
         "switch" -> {
             var checked by remember { mutableStateOf(node.props["checked"] == true) }
-            val callbackId = node.callbackId
+            val cbId = node.callbackId
             Switch(
                 checked = checked,
                 onCheckedChange = { newValue ->
                     checked = newValue
-                    if (callbackId > 0) {
-                        mruby.eval("Mrboto.dispatch_callback($callbackId, $newValue)")
+                    if (cbId > 0) {
+                        mruby.eval("Mrboto.dispatch_callback($cbId, $newValue)")
                     }
                 },
-                modifier = modifier,
+                modifier = mod,
             )
         }
 
         "checkbox" -> {
             var checked by remember { mutableStateOf(node.props["checked"] == true) }
-            val callbackId = node.callbackId
+            val cbId = node.callbackId
             Checkbox(
                 checked = checked,
                 onCheckedChange = { newValue ->
                     checked = newValue
-                    if (callbackId > 0) {
-                        mruby.eval("Mrboto.dispatch_callback($callbackId, $newValue)")
+                    if (cbId > 0) {
+                        mruby.eval("Mrboto.dispatch_callback($cbId, $newValue)")
                     }
                 },
-                modifier = modifier,
+                modifier = mod,
             )
         }
 
         "slider" -> {
             var value by remember { mutableStateOf((node.props["value"] as? Number)?.toFloat() ?: 0f) }
-            val callbackId = node.callbackId
-            val valueRange = parseRange(node.props["value_range"])
+            val cbId = node.callbackId
             Slider(
                 value = value,
                 onValueChange = { newValue ->
                     value = newValue
-                    if (callbackId > 0) {
-                        mruby.eval("Mrboto.dispatch_callback($callbackId, $newValue)")
+                    if (cbId > 0) {
+                        mruby.eval("Mrboto.dispatch_callback($cbId, $newValue)")
                     }
                 },
-                modifier = modifier,
-                valueRange = valueRange,
+                modifier = mod,
+                valueRange = parseRange(node.props["value_range"]),
             )
         }
 
-        // ── Material3 ──
         "card" -> {
-            Card(modifier = modifier) {
+            Card(modifier = mod) {
                 node.children.forEach { child ->
                     RenderComposableNode(child, mruby, activity)
                 }
             }
         }
 
-        "divider" -> Divider(modifier = modifier)
+        "divider" -> Divider(modifier = mod)
 
         "scaffold" -> {
             val topBarNode = node.props["top_bar"]
@@ -350,7 +327,7 @@ fun RenderComposableNode(
                         RenderComposableNode(parseComposableTree(fabNode), mruby, activity)
                     }
                 },
-                modifier = modifier,
+                modifier = mod,
             ) { padding ->
                 val contentNode = node.children.firstOrNull()
                 if (contentNode != null) {
@@ -372,35 +349,32 @@ fun RenderComposableNode(
                 title = { Text(title) },
                 actions = {
                     actionsList.forEach { actionNode ->
-                        val icon = parseIconName(actionNode.props["icon"])
+                        val iconName = actionNode.props["icon"]?.toString() ?: "info"
                         val cbId = actionNode.callbackId
                         IconButton(onClick = {
                             if (cbId > 0) mruby.eval("Mrboto.dispatch_callback($cbId)")
                         }) {
-                            Icon(imageVector = materialIcon(icon), contentDescription = null)
+                            Icon(imageVector = materialIcon(iconName), contentDescription = null)
                         }
                     }
                 },
-                modifier = modifier,
+                modifier = mod,
             )
         }
 
         "bottom_app_bar" -> {
-            BottomAppBar(modifier = modifier) {
+            BottomAppBar(modifier = mod) {
                 node.children.forEach { child ->
                     RenderComposableNode(child, mruby, activity)
                 }
             }
         }
 
-        // ── AndroidView (embed native View) ──
         "android_view" -> {
             AndroidView(
-                modifier = modifier,
-                factory = { context ->
-                    // For LiquidGlassView and other native views,
-                    // we build them via the existing View creation mechanism
-                    buildAndroidView(node, context, activity, mruby)
+                modifier = mod,
+                factory = { ctx ->
+                    buildAndroidView(node, ctx, activity, mruby)
                 },
                 update = { view ->
                     updateAndroidView(view, node, activity, mruby)
@@ -408,95 +382,65 @@ fun RenderComposableNode(
             )
         }
 
-        // ── Image / Icon ──
         "image" -> {
-            // Placeholder for now
-            Box(modifier = modifier) {
-                Text(text = "[image]")
-            }
+            Box(modifier = mod) { Text(text = "[image]") }
         }
 
         "icon" -> {
-            val iconName = parseIconName(node.props["name"])
+            val iconName = node.props["name"]?.toString() ?: "info"
             Icon(
                 imageVector = materialIcon(iconName),
                 contentDescription = null,
-                modifier = modifier,
+                modifier = mod,
             )
         }
 
         else -> {
-            // Fallback: render as Box
-            Box(modifier = modifier) {
-                Text(text = "[unknown: ${node.type}]")
-            }
+            Box(modifier = mod) { Text(text = "[unknown: ${node.type}]") }
         }
     }
 }
 
-/**
- * Build a Compose Modifier from Ruby DSL props.
- */
 @Composable
-fun buildModifier(props: Map<String, Any?>, activity: MrbotoActivityBase): Modifier {
-    var modifier = Modifier
+fun buildModifier(props: Map<String, Any?>): Modifier {
+    var m = Modifier
 
-    // ── modifier list from props ──
     val modifierList = props["modifier"]
     if (modifierList is JSONArray) {
-        modifier = applyModifierArray(modifierList, activity, modifier)
+        m = applyModifierArray(modifierList, m)
     }
 
-    // ── shorthand props ──
-    props["padding"]?.let { v ->
-        val dpVal = toDp(v)
-        modifier = modifier.padding(dpVal)
-    }
+    props["padding"]?.let { v -> m = m.padding(toDp(v)) }
     props["fill_max_width"]?.let {
-        if (it == true || it is Number && it.toFloat() > 0) {
-            modifier = modifier.fillMaxWidth(
-                if (it is Number) it.toFloat() else 1f
-            )
-        }
+        val f = if (it is Number) it.toFloat() else 1f
+        if (f > 0) m = m.fillMaxWidth(f)
     }
     props["fill_max_height"]?.let {
-        if (it is Number) {
-            modifier = modifier.fillMaxHeight(it.toFloat())
-        } else if (it == true) {
-            modifier = modifier.fillMaxHeight()
-        }
+        m = if (it is Number) m.fillMaxHeight(it.toFloat()) else m.fillMaxHeight()
     }
-    props["width"]?.let { modifier = modifier.width(toDp(it)) }
-    props["height"]?.let { modifier = modifier.height(toDp(it)) }
-    props["weight"]?.let { modifier = modifier.weight((it as? Number)?.toFloat() ?: 1f) }
-    props["background_color"]?.let {
-        modifier = modifier.background(parseColor(it))
+    props["width"]?.let { m = m.width(toDp(it)) }
+    props["height"]?.let { m = m.height(toDp(it)) }
+    props["layout_weight"]?.let {
+        val w = (it as? Number)?.toFloat() ?: 1f
+        m = m.weight(w)
     }
-    props["align"]?.let {
-        modifier = modifier.align(parseAlignment(it.toString()))
-    }
+    props["background_color"]?.let { m = Modifier.background(parseColor(it)).then(m) }
+    props["align"]?.let { m = m.align(parseContentAlignment(it.toString())) }
     props["aspect_ratio"]?.let {
-        modifier = modifier.aspectRatio((it as? Number)?.toFloat() ?: 1f)
+        m = m.aspectRatio((it as? Number)?.toFloat() ?: 1f)
     }
 
-    return modifier
+    return m
 }
 
-/**
- * Apply a chain of modifiers from a JSON array.
- * Each element: { "type": "padding", "value": 16 } or { "type": "fill_max_width" }
- */
 @Composable
-fun applyModifierArray(arr: JSONArray, activity: MrbotoActivityBase, modifier: Modifier): Modifier {
+fun applyModifierArray(arr: JSONArray, modifier: Modifier): Modifier {
     var m = modifier
     for (i in 0 until arr.length()) {
         val obj = arr.getJSONObject(i)
         val type = obj.optString("type", "")
         when (type) {
-            "padding" -> {
-                val v = toDp(obj.opt("value") ?: 0)
-                m = m.padding(v)
-            }
+            "padding" -> m = m.padding(toDp(obj.opt("value") ?: 0))
             "fill_max_width" -> {
                 val v = if (obj.has("value")) obj.getDouble("value").toFloat() else 1f
                 m = m.fillMaxWidth(v)
@@ -508,17 +452,14 @@ fun applyModifierArray(arr: JSONArray, activity: MrbotoActivityBase, modifier: M
             "weight" -> m = m.weight(obj.optDouble("value", 1.0).toFloat())
             "width" -> m = m.width(toDp(obj.get("value")))
             "height" -> m = m.height(toDp(obj.get("value")))
-            "background" -> m = m.background(parseColor(obj.get("value")))
-            "align" -> m = m.align(parseAlignment(obj.getString("value")))
+            "background" -> m = Modifier.background(parseColor(obj.get("value"))).then(m)
+            "align" -> m = m.align(parseContentAlignment(obj.getString("value")))
             "aspect_ratio" -> m = m.aspectRatio(obj.getDouble("value").toFloat())
             "clip" -> m = m.clip(MaterialTheme.shapes.medium)
-            else -> {}
         }
     }
     return m
 }
-
-// ── Helper functions ──
 
 @SuppressLint("DiscouragedApi")
 private fun buildAndroidView(
@@ -529,7 +470,7 @@ private fun buildAndroidView(
 ): android.view.View {
     val viewType = node.props["view_type"]?.toString() ?: "android.widget.LinearLayout"
     val registryId = (activity as? MrbotoComposeActivityBase)?.composeRegistryId
-        ?: return android.widget.LinearLayout(context)
+        ?: return android.widget.LinearLayout(context).apply { orientation = android.widget.LinearLayout.VERTICAL }
     val propsJson = buildPropsJson(node.props)
     val result = mruby.eval(
         "Mrboto._create_view($registryId, '$viewType', $propsJson)"
@@ -539,10 +480,7 @@ private fun buildAndroidView(
         val view = mruby.lookupJavaObject<android.view.View>(viewId)
         if (view != null) return view
     }
-    // Fallback: create a simple LinearLayout
-    android.widget.LinearLayout(context).apply {
-        orientation = android.widget.LinearLayout.VERTICAL
-    }
+    android.widget.LinearLayout(context).apply { orientation = android.widget.LinearLayout.VERTICAL }
 }
 
 private fun buildPropsJson(props: Map<String, Any?>): String {
@@ -551,8 +489,7 @@ private fun buildPropsJson(props: Map<String, Any?>): String {
     props.forEach { (k, v) ->
         if (!first) sb.append(",")
         first = false
-        sb.append("\"$k\":")
-        sb.append(jsonValue(v))
+        sb.append("\"$k\":").append(jsonValue(v))
     }
     sb.append("}")
     return sb.toString()
@@ -574,8 +511,7 @@ private fun updateAndroidView(
     activity: MrbotoActivityBase,
     mruby: MRuby,
 ) {
-    // Rebuild child views if needed — for LiquidGlassView,
-    // children are already built in the factory phase
+    // Children already built in factory phase
 }
 
 fun toDp(value: Any): Dp {
@@ -593,11 +529,7 @@ fun parseColor(value: Any?): Color {
             val hex = if (value.startsWith("#")) value.substring(1) else value
             try {
                 val c = hex.toLong(16)
-                if (hex.length <= 6) {
-                    Color(0xFF000000L or c)
-                } else {
-                    Color(c)
-                }
+                if (hex.length <= 6) Color(0xFF000000L or c) else Color(c)
             } catch (_: NumberFormatException) {
                 Color.Unspecified
             }
@@ -615,7 +547,7 @@ fun parseTextSize(value: Any?): TextUnit {
     }
 }
 
-fun parseAlignment(value: Any?): Alignment.Horizontal {
+fun parseHorizontalAlignment(value: Any?): Alignment.Horizontal {
     return when (value?.toString()?.lowercase()) {
         "center", "center_horizontal" -> Alignment.CenterHorizontally
         "end", "right" -> Alignment.End
@@ -646,7 +578,7 @@ fun parseContentAlignment(value: Any?): Alignment {
     }
 }
 
-fun parseArrangement(value: Any?): Arrangement.Horizontal {
+fun parseHorizontalArrangement(value: Any?): Arrangement.Horizontal {
     return when (value?.toString()?.lowercase()) {
         "center", "center_horizontal" -> Arrangement.Center
         "end", "right" -> Arrangement.End
@@ -690,10 +622,6 @@ fun parseFontFamily(value: Any?): FontFamily {
     }
 }
 
-fun parseIconName(value: Any?): String {
-    return value?.toString() ?: ""
-}
-
 fun parseRange(value: Any?): ClosedFloatingPointRange<Float> {
     return if (value is JSONArray && value.length() == 2) {
         value.getDouble(0).toFloat()..value.getDouble(1).toFloat()
@@ -704,8 +632,8 @@ fun parseRange(value: Any?): ClosedFloatingPointRange<Float> {
 
 fun materialIcon(name: String): androidx.compose.ui.graphics.vector.ImageVector {
     return when (name.lowercase()) {
-        "light_mode" -> Icons.Default.LightMode
-        "dark_mode" -> Icons.Default.DarkMode
+        "light_mode" -> Icons.Default.WbSunny
+        "dark_mode" -> Icons.Default.NightsStay
         "settings" -> Icons.Default.Settings
         "delete" -> Icons.Default.Delete
         "add" -> Icons.Default.Add
@@ -717,7 +645,7 @@ fun materialIcon(name: String): androidx.compose.ui.graphics.vector.ImageVector 
         "arrow_forward" -> Icons.Default.ArrowForward
         "refresh" -> Icons.Default.Refresh
         "play_arrow" -> Icons.Default.PlayArrow
-        "save" -> Icons.Default.Save
+        "save" -> Icons.Default.Bookmark
         "content_copy" -> Icons.Default.ContentCopy
         "content_paste" -> Icons.Default.ContentPaste
         else -> Icons.Default.Info
