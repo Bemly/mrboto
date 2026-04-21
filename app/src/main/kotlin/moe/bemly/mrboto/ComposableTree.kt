@@ -655,7 +655,7 @@ fun RenderComposableNode(
                     // Left cells — evenly distributed
                     val leftCells = if (cellNodes.isNotEmpty()) cellNodes else node.children.drop(1)
                     leftCells.forEach { cell ->
-                        RenderGlassCell(this, cell, backdrop, barShapeType, barCornerRadius,
+                        RenderGlassCell(cell, backdrop, barShapeType, barCornerRadius,
                             barVibrancy, blurPx, barLensHeight, barLensAmount,
                             barSurfaceColor, barSurfaceAlpha, mruby, activity, animationScope)
                     }
@@ -663,7 +663,7 @@ fun RenderComposableNode(
                     // Spacer pushes right cell to the end
                     if (rightCellNode != null) {
                         Spacer(modifier = Modifier.weight(1f))
-                        RenderGlassCell(this, rightCellNode, backdrop, barShapeType, barCornerRadius,
+                        RenderGlassCell(rightCellNode, backdrop, barShapeType, barCornerRadius,
                             barVibrancy, blurPx, barLensHeight, barLensAmount,
                             barSurfaceColor, barSurfaceAlpha, mruby, activity, animationScope)
                     }
