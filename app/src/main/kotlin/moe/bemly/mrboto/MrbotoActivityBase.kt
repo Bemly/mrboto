@@ -773,10 +773,11 @@ abstract class MrbotoActivityBase : AppCompatActivity(),
         requestPermissionsSync(permissionsJson)
     }
 
-    fun requestScreenCapture(callbackId: Int) {
+    override fun requestScreenCapture(callbackId: Int): Boolean {
         _screenCaptureCallbackId = callbackId
         val mpm = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as android.media.projection.MediaProjectionManager
         screenCaptureLauncher.launch(mpm.createScreenCaptureIntent())
+        return true
     }
 
     /**
