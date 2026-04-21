@@ -683,60 +683,63 @@ fun RenderComposableNode(
                 Color.White
             }
 
-            val bottomSheetBackdrop = rememberLayerBackdrop()
+            val sheetBackdrop = rememberLayerBackdrop()
 
-            Column(
-                modifier = Modifier
-                    .safeContentPadding()
-                    .drawBackdrop(
-                        backdrop = backdrop,
-                        shape = { RoundedCornerShape(cornerRadius.dp) },
-                        effects = {
-                            if (vibrancyEnabled) vibrancy()
-                            if (blurPx > 0f) blur(blurPx)
-                            if (lensHeight > 0f && lensAmount > 0f) {
-                                lens(lensHeight, lensAmount, lensChromatic)
-                            }
-                        },
-                        exportedBackdrop = bottomSheetBackdrop,
-                        onDrawSurface = {
-                            drawRect(surfaceColor.copy(alpha = surfaceAlpha))
-                        },
-                    )
-                    .fillMaxWidth()
-                    .align(Alignment.BottomCenter),
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.BottomCenter,
             ) {
-                node.children.forEach { child ->
-                    RenderComposableNode(child, mruby, activity)
-                }
-
-                // Inner glass thumb/button
-                Box(
+                Column(
                     modifier = Modifier
-                        .padding(16.dp)
+                        .safeContentPadding()
                         .drawBackdrop(
-                            backdrop = bottomSheetBackdrop,
-                            shape = { CircleShape },
-                            shadow = null,
+                            backdrop = sheetBackdrop,
+                            shape = { RoundedCornerShape(cornerRadius.dp) },
                             effects = {
                                 if (vibrancyEnabled) vibrancy()
                                 if (blurPx > 0f) blur(blurPx)
                                 if (lensHeight > 0f && lensAmount > 0f) {
-                                    lens(lensHeight, lensAmount)
+                                    lens(lensHeight, lensAmount, lensChromatic)
                                 }
                             },
                             onDrawSurface = {
                                 drawRect(surfaceColor.copy(alpha = surfaceAlpha))
                             },
                         )
-                        .height(thumbSize.dp)
-                        .fillMaxWidth()
-                        .clickable {
-                            if (node.callbackId > 0) {
-                                mruby.eval("Mrboto.dispatch_callback(${node.callbackId})")
-                            }
-                        },
-                )
+                        .fillMaxWidth(),
+                ) {
+                    node.children.forEach { child ->
+                        RenderComposableNode(child, mruby, activity)
+                    }
+
+                    // Inner glass thumb/button
+                    Box(
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .drawBackdrop(
+                                backdrop = sheetBackdrop,
+                                shape = { CircleShape },
+                                shadow = null,
+                                effects = {
+                                    if (vibrancyEnabled) vibrancy()
+                                    if (blurPx > 0f) blur(blurPx)
+                                    if (lensHeight > 0f && lensAmount > 0f) {
+                                        lens(lensHeight, lensAmount)
+                                    }
+                                },
+                                onDrawSurface = {
+                                    drawRect(surfaceColor.copy(alpha = surfaceAlpha))
+                                },
+                            )
+                            .height(thumbSize.dp)
+                            .fillMaxWidth()
+                            .clickable {
+                                if (node.callbackId > 0) {
+                                    mruby.eval("Mrboto.dispatch_callback(${node.callbackId})")
+                                }
+                            },
+                    )
+                }
             }
         }
 
