@@ -35,28 +35,48 @@ module Mrboto
 
   # ── Compose Node Builder — internal tree construction ──
   module ComposeBuilder
-    # Stack of child arrays, parallel to View DSL's @_view_parent_stack
-    @_compose_parent_stack = []
-
-    # Push a node onto the current parent, or make it root
-    def self.add_node(node)
-      parent = @_compose_parent_stack.last
-      if parent
-        parent[:children] << node
+    class << self
+      def stack
+        @_compose_parent_stack ||= []
       end
-      node
-    end
 
-    # Enter a parent context (for nested children)
-    def self.with_parent(node)
-      @_compose_parent_stack.push(node)
-      yield if block_given?
-      @_compose_parent_stack.pop
-      node
-    end
+      def push_parent(node)
+        stack.push(node)
+      end
 
-    def self.root
-      @_compose_parent_stack.last
+      def pop_parent
+        stack.pop
+      end
+
+      # Push a node onto the current parent, or make it root
+      def add_node(node)
+        parent = stack.last
+        if parent
+          parent[:children] << node
+        end
+        node
+      end
+
+      # Enter a parent context (for nested children)
+      def with_parent(node)
+        stack.push(node)
+        yield if block_given?
+        stack.pop
+        node
+      end
+
+      def root
+        stack.last
+      end
+
+      # Internal: collect child nodes from a block
+      def collect_nodes
+        parent = { "children" => [] }
+        stack.push(parent)
+        yield
+        stack.pop
+        parent["children"].first
+      end
     end
   end
 
@@ -449,16 +469,8 @@ module Mrboto
   end
 
   # ── Internal: collect child nodes from a block ──
-  def self._collect_nodes
-    parent = { "children" => [] }
-    @_compose_parent_stack.push(parent)
-    yield
-    @_compose_parent_stack.pop
-    parent["children"].first
-  end
-
   def _collect_nodes(&block)
-    Mrboto._collect_nodes(&block)
+    ComposeBuilder.collect_nodes(&block)
   end
 
   # ── Extract DSL props from kwargs ──

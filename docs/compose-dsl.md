@@ -334,7 +334,7 @@ def toggle_theme
 end
 
 def rebuild_ui
-  Mrboto::ComposeBuilder.instance_variable_set(:@_compose_parent_stack, [])
+  Mrboto::ComposeBuilder.stack.clear
   build_ui
 end
 ```
@@ -372,7 +372,7 @@ class EditorActivity < Mrboto::ComposeActivity
   end
 
   def build_ui
-    Mrboto::ComposeBuilder.instance_variable_set(:@_compose_parent_stack, [])
+    Mrboto::ComposeBuilder.stack.clear
 
     scaffold(
       top_bar: -> { top_app_bar("Ruby Editor", actions: [
@@ -456,7 +456,7 @@ class EditorActivity < Mrboto::ComposeActivity
   end
 
   def refresh_ui
-    Mrboto::ComposeBuilder.instance_variable_set(:@_compose_parent_stack, [])
+    Mrboto::ComposeBuilder.stack.clear
     build_ui
   end
 end

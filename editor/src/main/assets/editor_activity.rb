@@ -30,7 +30,7 @@ class EditorActivity < Mrboto::ComposeActivity
 
   def build_ui
     # ── 清除之前的树栈 ──
-    Mrboto::ComposeBuilder.instance_variable_set(:@_compose_parent_stack, [])
+    Mrboto::ComposeBuilder.stack.clear
 
     scaffold(
       top_bar: -> { top_app_bar("Ruby Editor", actions: [
@@ -144,7 +144,7 @@ class EditorActivity < Mrboto::ComposeActivity
 
   def refresh_ui
     # Rebuild the entire UI to reflect state changes
-    Mrboto::ComposeBuilder.instance_variable_set(:@_compose_parent_stack, [])
+    Mrboto::ComposeBuilder.stack.clear
     build_ui
   end
 
