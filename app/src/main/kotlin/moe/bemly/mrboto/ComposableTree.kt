@@ -640,14 +640,14 @@ fun RenderComposableNode(
                     if (cellNodes.isNotEmpty()) {
                         // Use explicit glass_cell nodes
                         cellNodes.forEach { cell ->
-                            RenderGlassCell(this, cell, backdrop, barShapeType, barCornerRadius,
+                            RenderGlassCell(cell, backdrop, barShapeType, barCornerRadius,
                                 barVibrancy, blurPx, barLensHeight, barLensAmount,
                                 barSurfaceColor, barSurfaceAlpha, mruby, activity, animationScope)
                         }
                     } else {
                         // Legacy: no glass_cell wrappers — apply bar defaults to all children
                         node.children.drop(1).forEach { child ->
-                            RenderGlassCell(this, child, backdrop, barShapeType, barCornerRadius,
+                            RenderGlassCell(child, backdrop, barShapeType, barCornerRadius,
                                 barVibrancy, blurPx, barLensHeight, barLensAmount,
                                 barSurfaceColor, barSurfaceAlpha, mruby, activity, animationScope)
                         }
