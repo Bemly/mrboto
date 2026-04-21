@@ -18,6 +18,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -26,6 +29,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.viewinterop.AndroidView
+import com.kyant.backdrop.drawBackdrop
+import com.kyant.backdrop.backdrops.rememberCanvasBackdrop
+import com.kyant.backdrop.effects.blur
+import com.kyant.backdrop.effects.vibrancy
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -379,7 +386,10 @@ fun RenderComposableNode(
         }
 
         "android_view" -> {
-            if (node.children.isNotEmpty()) {
+            if (node.props["view_type"]?.toString()?.contains("LiquidGlassView") == true) {
+                // Handle LiquidGlassView with Compose rendering
+                RenderLiquidGlassView(node, mruby, activity, mod)
+            } else if (node.children.isNotEmpty()) {
                 // Has Compose children — wrap in ComposeView
                 androidx.compose.ui.viewinterop.AndroidView(
                     modifier = mod,
@@ -394,7 +404,7 @@ fun RenderComposableNode(
                     },
                 )
             } else {
-                // Native View only (e.g. LiquidGlassView without children)
+                // Native View only
                 AndroidView(
                     modifier = mod,
                     factory = { ctx ->
@@ -405,6 +415,10 @@ fun RenderComposableNode(
                     },
                 )
             }
+        }
+
+        "liquid_glass_view" -> {
+            RenderLiquidGlassView(node, mruby, activity, mod)
         }
 
         "image" -> {
@@ -667,5 +681,60 @@ fun materialIcon(name: String): androidx.compose.ui.graphics.vector.ImageVector 
         "content_copy" -> Icons.Default.ContentCopy
         "content_paste" -> Icons.Default.ContentPaste
         else -> Icons.Default.Info
+    }
+}
+
+/**
+ * Renders a LiquidGlassView using Compose backdrop APIs.
+ * Creates a frosted glass effect by capturing the background and applying
+ * blur + vibrancy effects, clipped to the specified shape.
+ */
+@Composable
+fun RenderLiquidGlassView(
+    node: ComposableNode,
+    mruby: MRuby,
+    activity: MrbotoActivityBase,
+    modifier: Modifier = Modifier,
+) {
+    val blurRadius = (node.props["blur_radius"] as? Number)?.toFloat() ?: 25f
+    val vibrancyEnabled = node.props["vibrancy"] == true
+    val shapeType = node.props["shape_type"]?.toString() ?: "rounded_rect"
+    val cornerRadius = (node.props["corner_radius"] as? Number)?.toFloat() ?: 16f
+
+    val shape = when (shapeType) {
+        "circle" -> CircleShape
+        "none" -> RoundedCornerShape(0.dp)
+        else -> RoundedCornerShape(cornerRadius.dp)
+    }
+
+    Box(
+        modifier = modifier
+            .clip(shape)
+            .onSizeChanged { /* trigger layout */ },
+    ) {
+        val backdrop = rememberCanvasBackdrop(onDraw = {
+            drawIntoCanvas { canvas ->
+                // Draw nothing — the effect comes from the backdrop
+                // which captures what's behind this composable
+            }
+        })
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .drawBackdrop(
+                    backdrop = backdrop,
+                    shape = { shape },
+                    effects = {
+                        if (blurRadius > 0f) blur(blurRadius)
+                        if (vibrancyEnabled) vibrancy()
+                    },
+                ),
+        )
+
+        // Render children on top of the glass effect
+        node.children.forEach { child ->
+            RenderComposableNode(child, mruby, activity)
+        }
     }
 }
