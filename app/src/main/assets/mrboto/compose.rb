@@ -36,15 +36,23 @@ module Mrboto
   # ── Compose Node Builder — internal tree construction ──
   module ComposeBuilder
     class << self
-      # Stack of parent hashes. Each entry has a "children" => [] key.
+      # Stack of parent hashes for nested children building.
+      # The root node stays on the stack permanently until cleared.
       def stack
         @_compose_parent_stack ||= []
       end
 
+      # Store the root node reference for set_compose_content
+      def root
+        stack.first
+      end
+
       # Push a node onto the current parent, or make it root
       def add_node(node)
-        parent = stack.last
-        if parent
+        if stack.empty?
+          stack.push(node)
+        else
+          parent = stack.last
           kids = parent["children"]
           if kids.nil?
             kids = []
@@ -56,15 +64,13 @@ module Mrboto
       end
 
       # Enter a parent context (for nested children)
+      # Pushes node only if it's not the root (already on stack via add_node)
       def with_parent(node)
-        stack.push(node)
+        is_root = stack.last == node
+        stack.push(node) unless is_root
         yield if block_given?
-        stack.pop
+        stack.pop unless is_root
         node
-      end
-
-      def root
-        stack.last
       end
 
       # Internal: collect child nodes from a block
