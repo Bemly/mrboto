@@ -581,6 +581,7 @@ fun RenderComposableNode(
             val surfaceAlpha = (node.props["surface_alpha"] as? Number)?.toFloat() ?: 0.5f
             val lensHeightPx = (node.props["lens_height"] as? Number)?.toFloat() ?: 0f
             val lensAmountPx = (node.props["lens_amount"] as? Number)?.toFloat() ?: 0f
+            val barBgColorStr = node.props["bar_background_color"]?.toString()
 
             val shape = when (shapeType.lowercase()) {
                 "circle" -> CircleShape
@@ -594,7 +595,16 @@ fun RenderComposableNode(
                 if (isDark) Color(0xFF1C1C1E) else Color(0xFFF2F2F7)
             }
 
-            val backdrop = rememberLayerBackdrop()
+            val barBgColor = if (barBgColorStr != null) {
+                parseColor(barBgColorStr)
+            } else {
+                Color.White
+            }
+
+            val backdrop = rememberLayerBackdrop {
+                drawRect(barBgColor)
+                drawContent()
+            }
 
             Box(modifier = Modifier.fillMaxSize()) {
                 Column(modifier = Modifier.fillMaxSize()) {
@@ -624,7 +634,9 @@ fun RenderComposableNode(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    val animationScope = rememberCoroutineScope()
                     node.children.drop(1).forEach { child ->
+                        val pressProgress = remember { androidx.compose.animation.core.Animatable(0f) }
                         Box(
                             modifier = Modifier
                                 .drawBackdrop(
@@ -637,10 +649,40 @@ fun RenderComposableNode(
                                             lens(lensHeightPx, lensAmountPx)
                                         }
                                     },
+                                    layerBlock = {
+                                        val progress = pressProgress.value
+                                        val maxScale = (size.width + 16f.dp.toPx()) / size.width
+                                        val scale = androidx.compose.ui.geometry.lerp(1f, maxScale, progress)
+                                        scaleX = scale
+                                        scaleY = scale
+                                    },
                                     onDrawSurface = {
                                         drawRect(surfaceColor.copy(alpha = surfaceAlpha))
                                     },
                                 )
+                                .clickable(interactionSource = null, indication = null) {
+                                    if (child.callbackId > 0) {
+                                        mruby.eval("Mrboto.dispatch_callback(${child.callbackId})")
+                                    }
+                                }
+                                .pointerInput(animationScope) {
+                                    val animationSpec = androidx.compose.animation.core.spring(
+                                        dampingRatio = 0.5f,
+                                        stiffness = 300f,
+                                        visibilityThreshold = 0.001f
+                                    )
+                                    awaitEachGesture {
+                                        awaitFirstDown()
+                                        animationScope.launch {
+                                            pressProgress.animateTo(1f, animationSpec)
+                                        }
+                                        waitForUpOrCancellation()
+                                        animationScope.launch {
+                                            pressProgress.animateTo(0f, animationSpec)
+                                        }
+                                    }
+                                }
+                                .fillMaxHeight()
                                 .weight(1f),
                         ) {
                             RenderComposableNode(child, mruby, activity)
