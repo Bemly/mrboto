@@ -60,8 +60,8 @@ class EditorActivity < Mrboto::ComposeActivity
           @code,
           hint: "在此输入 Ruby 代码...",
           single_line: false,
-          max_lines: 9999,
-          modifier: fill_max_height(0.55).then(background_color(@dark_mode ? "1E1E2E" : "FFFFFF"))
+          max_lines: 30,
+          modifier: background_color(@dark_mode ? "1E1E2E" : "FFFFFF")
         ) { |v| @code = v }
 
         divider
@@ -73,7 +73,7 @@ class EditorActivity < Mrboto::ComposeActivity
           @output,
           font_size: 12,
           font_family: :monospace,
-          modifier: fill_max_height(0.3).then(background_color(@dark_mode ? "181825" : "F0F0F5")).then(padding(8))
+          modifier: background_color(@dark_mode ? "181825" : "F0F0F5").then(padding(8))
         )
       }
     }
