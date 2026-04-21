@@ -380,9 +380,9 @@ fun RenderComposableNode(
         "android_view" -> {
             if (node.children.isNotEmpty()) {
                 // Has Compose children — wrap in ComposeView
-                androidx.compose.ui.platform.AndroidView(
+                androidx.compose.ui.viewinterop.AndroidView(
                     modifier = mod,
-                    factory = { ctx ->
+                    factory = { ctx: android.content.Context ->
                         androidx.compose.ui.platform.ComposeView(ctx).apply {
                             setContent {
                                 node.children.forEach { child ->
