@@ -92,6 +92,10 @@ fun parseComposableTreeArray(jsonArray: JSONArray): List<ComposableNode> {
 private val LocalBackdropStore =
     compositionLocalOf<MutableMap<Int, LayerBackdrop>> { mutableMapOf() }
 
+/** Whether we're inside a glass_cell — children should skip their own clickable. */
+private val LocalInGlassCell =
+    compositionLocalOf<Boolean> { false }
+
 /** Collect all backdrop IDs used by layer_backdrop / draw_backdrop_glass nodes in the tree. */
 private fun collectBackdropIds(node: ComposableNode, ids: MutableSet<Int>) {
     when (node.type) {
@@ -224,39 +228,44 @@ fun RenderComposableNode(
         }
 
         "button" -> {
-            Button(
-                onClick = {
-                    if (node.callbackId > 0) {
-                        mruby.eval("Mrboto.dispatch_callback(${node.callbackId})")
-                    }
-                },
-                modifier = mod,
-            ) { Text(text = node.content ?: "") }
+            val inGlassCell = LocalInGlassCell.current
+            if (inGlassCell) {
+                Button(
+                    onClick = { },
+                    modifier = mod,
+                ) { Text(text = node.content ?: "") }
+            } else {
+                Button(
+                    onClick = {
+                        if (node.callbackId > 0) {
+                            mruby.eval("Mrboto.dispatch_callback(${node.callbackId})")
+                        }
+                    },
+                    modifier = mod,
+                ) { Text(text = node.content ?: "") }
+            }
         }
 
         "text_button" -> {
             val iconName = node.props["icon"]?.toString()
-            TextButton(
-                onClick = {
-                    if (node.callbackId > 0) {
-                        mruby.eval("Mrboto.dispatch_callback(${node.callbackId})")
-                    }
-                },
-                modifier = mod,
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically,
+            val inGlassCell = LocalInGlassCell.current
+            if (inGlassCell) {
+                TextButton(
+                    onClick = { },
+                    modifier = mod,
                 ) {
-                    if (iconName != null) {
-                        Icon(
-                            imageVector = materialIcon(iconName),
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                    }
-                    Text(text = node.content ?: "")
+                    GlassCellContent(iconName, node.content)
+                }
+            } else {
+                TextButton(
+                    onClick = {
+                        if (node.callbackId > 0) {
+                            mruby.eval("Mrboto.dispatch_callback(${node.callbackId})")
+                        }
+                    },
+                    modifier = mod,
+                ) {
+                    GlassCellContent(iconName, node.content)
                 }
             }
         }
@@ -278,10 +287,13 @@ fun RenderComposableNode(
 
         "icon_button" -> {
             val iconName = node.props["icon"]?.toString() ?: "info"
+            val inGlassCell = LocalInGlassCell.current
             IconButton(
-                onClick = {
-                    if (node.callbackId > 0) {
-                        mruby.eval("Mrboto.dispatch_callback(${node.callbackId})")
+                onClick = if (inGlassCell) { { } } else {
+                    {
+                        if (node.callbackId > 0) {
+                            mruby.eval("Mrboto.dispatch_callback(${node.callbackId})")
+                        }
                     }
                 },
                 modifier = mod,
@@ -628,7 +640,7 @@ fun RenderComposableNode(
 
                 // Floating bar — 10% margin left/right, 10% from bottom (Apple Liquid Glass spec)
                 BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-                    val bottomOffset = maxHeight * 0.1f
+                    val bottomOffset = maxHeight * 0.05f
                     Row(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
@@ -1312,8 +1324,9 @@ private fun RowScope.RenderGlassCell(
             interactionSource = null,
             indication = null,
             onClick = {
-                if (cell.callbackId > 0) {
-                    mruby.eval("Mrboto.dispatch_callback(${cell.callbackId})")
+                val cbId = if (cell.callbackId > 0) cell.callbackId else cell.children.firstOrNull { it.callbackId > 0 }?.callbackId ?: 0
+                if (cbId > 0) {
+                    mruby.eval("Mrboto.dispatch_callback($cbId)")
                 }
             }
         )
@@ -1341,14 +1354,16 @@ private fun RowScope.RenderGlassCell(
             }
         }
 
-    Box(
-        modifier = when (layoutStr) {
-            "aspect_ratio" -> cellModifier.aspectRatio(1f)
-            else -> cellModifier.fillMaxHeight().weight(1f)
-        },
-    ) {
-        cell.children.forEach { child ->
-            RenderComposableNode(child, mruby, activity)
+    CompositionLocalProvider(LocalInGlassCell provides true) {
+        Box(
+            modifier = when (layoutStr) {
+                "aspect_ratio" -> cellModifier.aspectRatio(1f)
+                else -> cellModifier.fillMaxHeight().weight(1f)
+            },
+        ) {
+            cell.children.forEach { child ->
+                RenderComposableNode(child, mruby, activity)
+            }
         }
     }
 }
@@ -1364,4 +1379,23 @@ private fun parseBlendMode(name: String): BlendMode? = when (name.lowercase()) {
     "darken" -> BlendMode.Darken
     "lighten" -> BlendMode.Lighten
     else -> null
+}
+
+/** Shared icon+text layout for text_button — reused by glass_cell and normal rendering. */
+@Composable
+private fun GlassCellContent(iconName: String?, content: String?) {
+    Row(
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (iconName != null) {
+            Icon(
+                imageVector = materialIcon(iconName),
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+        }
+        Text(text = content ?: "")
+    }
 }
