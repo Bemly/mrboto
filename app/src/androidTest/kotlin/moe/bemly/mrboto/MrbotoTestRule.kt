@@ -96,7 +96,8 @@ class MrbotoTestRule : TestRule {
             "mrboto/layout.rb",
             "mrboto/activity.rb",
             "mrboto/widgets.rb",
-            "mrboto/helpers.rb"
+            "mrboto/helpers.rb",
+            "mrboto/compose.rb"
         )
         for (file in coreFiles) {
             val result = mruby.loadAssetScript(context.assets, file)

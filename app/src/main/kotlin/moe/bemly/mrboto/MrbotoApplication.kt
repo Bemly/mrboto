@@ -45,7 +45,8 @@ class MrbotoApplication : Application() {
             "mrboto/layout.rb",
             "mrboto/activity.rb",
             "mrboto/widgets.rb",
-            "mrboto/helpers.rb"
+            "mrboto/helpers.rb",
+            "mrboto/compose.rb"
         )
 
         for (file in coreFiles) {
