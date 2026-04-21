@@ -504,7 +504,7 @@ module Mrboto
              }
            end
 
-    json = _compose_to_json(tree)
+    json = Mrboto._compose_to_json(tree)
     activity = Mrboto.current_activity
     return unless activity
 
@@ -512,15 +512,15 @@ module Mrboto
   end
 
   # ── Minimal JSON serializer (no JSON gem needed) ──
-  def _compose_to_json(obj)
+  def self._compose_to_json(obj)
     case obj
     when Hash
       pairs = obj.map do |k, v|
-        "\"#{k.to_s.gsub('"', '\\"')}\":#{_compose_to_json(v)}"
+        "\"#{k.to_s.gsub('"', '\\"')}\":#{Mrboto._compose_to_json(v)}"
       end
       "{#{pairs.join(',')}}"
     when Array
-      items = obj.map { |item| _compose_to_json(item) }
+      items = obj.map { |item| Mrboto._compose_to_json(item) }
       "[#{items.join(',')}]"
     when String
       safe = obj.gsub('\\', '\\\\').gsub('"', '\\"').gsub("\n", '\\n').gsub("\r", '\\r').gsub("\t", '\\t')
@@ -538,7 +538,6 @@ module Mrboto
       "\"#{obj.to_s.gsub('"', '\\"')}\""
     end
   end
-  module_function :_compose_to_json
 end
 
 # Make DSL methods available at top level in scripts

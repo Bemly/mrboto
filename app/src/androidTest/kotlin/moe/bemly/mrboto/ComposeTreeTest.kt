@@ -85,13 +85,13 @@ class ComposeTreeTest {
 
     @Test
     fun `ComposeBuilder exists`() {
-        val result = mruby.eval("defined?(Mrboto::ComposeBuilder) ? 'ok' : 'fail'")
+        val result = mruby.eval("Mrboto.const_defined?(:ComposeBuilder) ? 'ok' : 'fail'")
         assertEquals("ok", result)
     }
 
     @Test
     fun `ComposeActivity class exists`() {
-        val result = mruby.eval("defined?(Mrboto::ComposeActivity) ? 'ok' : 'fail'")
+        val result = mruby.eval("Mrboto.const_defined?(:ComposeActivity) ? 'ok' : 'fail'")
         assertEquals("ok", result)
     }
 
