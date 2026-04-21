@@ -454,6 +454,8 @@ glass_bar(blur_radius: 25.0, top_bar: -> { top_app_bar("标题") }) {
 }
 ```
 
+每个 cell 包含一个 `nav_cell`，渲染为上图标下文字布局。`right_cell` 包裹的 `glass_cell` 会被推到右侧。
+
 | 图标 | 说明 |
 |------|------|
 | `ic_menu_code` | 代码图标 |
