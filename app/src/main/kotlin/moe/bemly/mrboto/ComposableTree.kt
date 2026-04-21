@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.LayerBackdrop
 import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.effects.blur
 import com.kyant.backdrop.effects.vibrancy
@@ -81,7 +82,7 @@ fun parseComposableTreeArray(jsonArray: JSONArray): List<ComposableNode> {
 @OptIn(ExperimentalMaterial3Api::class)
 /** Backdrop store shared across a single composition tree. Key = Ruby-side backdrop ID. */
 private val LocalBackdropStore =
-    compositionLocalOf<MutableMap<Int, LayerBackdrop>> { mutableStateMapOf() }
+    compositionLocalOf<MutableMap<Int, LayerBackdrop>> { mutableMapOf() }
 
 /** Collect all backdrop IDs used by layer_backdrop / draw_backdrop_glass nodes in the tree. */
 private fun collectBackdropIds(node: ComposableNode, ids: MutableSet<Int>) {
@@ -117,6 +118,7 @@ fun RenderComposableTree(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RenderComposableNode(
     node: ComposableNode,
