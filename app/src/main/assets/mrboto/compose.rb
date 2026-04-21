@@ -520,20 +520,10 @@ module Mrboto
   def set_compose_content
     root = ComposeBuilder.root
     _log("set_compose_content: root=#{root ? root["type"] : "nil"}, children=#{root ? (root["children"] ? root["children"].size : 0) : 0}")
-    return unless root && !root["children"].empty?
+    return unless root
 
-    # If there's a single root node, use it; otherwise wrap in a Column
-    tree = if root["children"].size == 1
-             root["children"][0]
-           else
-             {
-               "type" => "column",
-               "props" => {},
-               "children" => root["children"],
-             }
-           end
-
-    json = Mrboto._compose_to_json(tree)
+    # Pass the root node directly as the tree (scaffold, column, etc.)
+    json = Mrboto._compose_to_json(root)
     activity = Mrboto.current_activity
     return unless activity
 
