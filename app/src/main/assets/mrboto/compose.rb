@@ -59,11 +59,12 @@ module Mrboto
         @_compose_root = node
       end
 
-      # Add a node as child of current parent.
-      # If no parent on stack, this node becomes root.
+      # Push a node onto the current parent, or make it root.
+      # Only sets @_compose_root the FIRST time (idempotent).
       def add_node(node)
         if stack.empty?
-          @_compose_root = node
+          @_compose_root = node unless @_compose_root
+          stack.push(node)
         else
           parent = stack.last
           kids = parent["children"] ||= []
@@ -80,14 +81,19 @@ module Mrboto
         node
       end
 
-      # Internal: collect child nodes from a block
-      # Returns the single child directly (not a wrapper) when there's exactly one.
+      # Internal: collect child nodes from a block in an isolated stack context.
+      # Saves and restores the stack and root so that the block's nodes don't
+      # pollute the outer state.
       def collect_nodes
+        saved_stack = stack.dup
+        saved_root = @_compose_root
         wrapper = { "children" => [] }
-        stack.push(wrapper)
+        @_compose_parent_stack = [wrapper]
+        @_compose_root = nil
         yield
-        stack.pop
         kids = wrapper["children"]
+        @_compose_parent_stack = saved_stack
+        @_compose_root = saved_root
         kids.size == 1 ? kids[0] : nil
       end
     end
@@ -382,38 +388,30 @@ module Mrboto
     }
 
     if top_bar.respond_to?(:call)
-      saved_stack = ComposeBuilder.stack.dup
-      ComposeBuilder.instance_variable_set(:@_compose_parent_stack, [])
       top_bar_node = _collect_nodes(&top_bar)
-      ComposeBuilder.instance_variable_set(:@_compose_parent_stack, saved_stack)
       node["props"]["top_bar"] = top_bar_node if top_bar_node
     elsif top_bar.is_a?(Hash)
       node["props"]["top_bar"] = top_bar
     end
 
     if bottom_bar.respond_to?(:call)
-      saved_stack = ComposeBuilder.stack.dup
-      ComposeBuilder.instance_variable_set(:@_compose_parent_stack, [])
       bottom_bar_node = _collect_nodes(&bottom_bar)
-      ComposeBuilder.instance_variable_set(:@_compose_parent_stack, saved_stack)
       node["props"]["bottom_bar"] = bottom_bar_node if bottom_bar_node
     elsif bottom_bar.is_a?(Hash)
       node["props"]["bottom_bar"] = bottom_bar
     end
 
     if floating_action_button.respond_to?(:call)
-      saved_stack = ComposeBuilder.stack.dup
-      ComposeBuilder.instance_variable_set(:@_compose_parent_stack, [])
       fab_node = _collect_nodes(&floating_action_button)
-      ComposeBuilder.instance_variable_set(:@_compose_parent_stack, saved_stack)
       node["props"]["floating_action_button"] = fab_node if fab_node
     elsif floating_action_button.is_a?(Hash)
       node["props"]["floating_action_button"] = floating_action_button
     end
 
-    # Push node as current parent, run content, DON'T pop — let add_node handle it
-    ComposeBuilder.stack.push(node)
-    content_block.call if content_block.respond_to?(:call)
+    # Build content children
+    if content_block.respond_to?(:call)
+      ComposeBuilder.with_parent(node) { content_block.call }
+    end
 
     ComposeBuilder.add_node(node)
     Mrboto._log("add_node: type=#{node["type"]}, is_root=#{ComposeBuilder.root == node}")
