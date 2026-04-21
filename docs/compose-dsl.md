@@ -426,6 +426,41 @@ glass_bar(blur_radius: 25.0) {
 | blend_mode | Symbol | `:hue`, `:saturation`, `:color` 等混合模式 |
 | press_animation | Boolean | `false` 关闭 press 动画 |
 
+### 导航栏模式 — `nav_cell` + `right_cell`
+
+在 `glass_cell` 内使用 `nav_cell` 实现上图标下文字的导航栏布局。使用 `right_cell` 添加右侧分隔的 cell：
+
+```ruby
+glass_bar(blur_radius: 25.0, top_bar: -> { top_app_bar("标题") }) {
+  column { text("主内容") }
+
+  # 左侧 cells — 等宽分布
+  glass_cell {
+    nav_cell(icon: :ic_menu_code, content: "代码") { navigate_to_code }
+  }
+  glass_cell {
+    nav_cell(icon: :ic_menu_file, content: "文件") { navigate_to_file }
+  }
+  glass_cell {
+    nav_cell(icon: :ic_menu_log, content: "日志") { navigate_to_log }
+  }
+
+  # 右侧 cell — 用 Spacer 分隔
+  right_cell {
+    glass_cell {
+      nav_cell(icon: :ic_menu_search, content: "搜索") { navigate_to_search }
+    }
+  }
+}
+```
+
+| 图标 | 说明 |
+|------|------|
+| `ic_menu_code` | 代码图标 |
+| `ic_menu_file` | 文件夹图标 |
+| `ic_menu_log` | 日志图标 |
+| `ic_menu_search` | 搜索图标 |
+
 ---
 
 ## 液态玻璃底部面板 / Glass Bottom Sheet

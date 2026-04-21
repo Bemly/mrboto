@@ -405,4 +405,61 @@ class GlassBarTest {
         assertTrue(json.contains("\"track_height\""))
         assertTrue(json.contains("\"thumb_width\""))
     }
+
+    // ── nav_cell ─────────────────────────────────────────────────────────
+
+    @Test
+    fun `nav_cell DSL exists`() {
+        val result = mruby.eval("respond_to?(:nav_cell) ? 'ok' : 'fail'")
+        assertEquals("ok", result)
+    }
+
+    @Test
+    fun `nav_cell builds vertical icon+text node`() {
+        mruby.eval("""
+            Mrboto::ComposeBuilder.instance_variable_set(:@_compose_parent_stack, [])
+            Mrboto::ComposeBuilder.instance_variable_set(:@_compose_root, nil)
+        """.trimIndent())
+
+        val json = mruby.eval("""
+            nav_cell(icon: :ic_menu_code, content: "代码")
+            Mrboto._compose_to_json(Mrboto::ComposeBuilder.root)
+        """.trimIndent())
+
+        assertTrue(json.contains("\"type\":\"nav_cell\""))
+        assertTrue(json.contains("\"icon\":\"ic_menu_code\""))
+        assertTrue(json.contains("代码"))
+    }
+
+    // ── right_cell ───────────────────────────────────────────────────────
+
+    @Test
+    fun `right_cell DSL exists`() {
+        val result = mruby.eval("respond_to?(:right_cell) ? 'ok' : 'fail'")
+        assertEquals("ok", result)
+    }
+
+    @Test
+    fun `glass_bar with right_cell stores as prop`() {
+        mruby.eval("""
+            Mrboto::ComposeBuilder.instance_variable_set(:@_compose_parent_stack, [])
+            Mrboto::ComposeBuilder.instance_variable_set(:@_compose_root, nil)
+        """.trimIndent())
+
+        val json = mruby.eval("""
+            glass_bar(blur_radius: 25.0) {
+              text("content")
+              glass_cell { nav_cell(icon: :ic_menu_code, content: "代码") }
+              right_cell {
+                glass_cell { nav_cell(icon: :ic_menu_search, content: "搜索") }
+              }
+            }
+            Mrboto._compose_to_json(Mrboto::ComposeBuilder.root)
+        """.trimIndent())
+
+        assertTrue(json.contains("\"type\":\"glass_bar\""))
+        assertTrue(json.contains("\"right_cell\""))
+        assertTrue(json.contains("\"icon\":\"ic_menu_code\""))
+        assertTrue(json.contains("\"icon\":\"ic_menu_search\""))
+    }
 }
