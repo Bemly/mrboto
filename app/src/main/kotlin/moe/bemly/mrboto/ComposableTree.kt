@@ -640,14 +640,14 @@ fun RenderComposableNode(
                     if (cellNodes.isNotEmpty()) {
                         // Use explicit glass_cell nodes
                         cellNodes.forEach { cell ->
-                            RenderGlassCell(cell, backdrop, barShapeType, barCornerRadius,
+                            RenderGlassCell(this, cell, backdrop, barShapeType, barCornerRadius,
                                 barVibrancy, blurPx, barLensHeight, barLensAmount,
                                 barSurfaceColor, barSurfaceAlpha, mruby, activity, animationScope)
                         }
                     } else {
                         // Legacy: no glass_cell wrappers — apply bar defaults to all children
                         node.children.drop(1).forEach { child ->
-                            RenderGlassCell(child, backdrop, barShapeType, barCornerRadius,
+                            RenderGlassCell(this, child, backdrop, barShapeType, barCornerRadius,
                                 barVibrancy, blurPx, barLensHeight, barLensAmount,
                                 barSurfaceColor, barSurfaceAlpha, mruby, activity, animationScope)
                         }
@@ -1107,7 +1107,7 @@ fun RenderLiquidGlassCompose(
  * the node, falling back to bar-level defaults when not specified.
  */
 @Composable
-private fun RenderGlassCell(
+private fun RowScope.RenderGlassCell(
     cell: ComposableNode,
     backdrop: LayerBackdrop,
     barShapeType: String,
@@ -1120,7 +1120,7 @@ private fun RenderGlassCell(
     barSurfaceAlpha: Float,
     mruby: MRuby,
     activity: MrbotoActivityBase,
-    animationScope: androidx.lifecycle.LifecycleCoroutineScope,
+    animationScope: kotlinx.coroutines.CoroutineScope,
 ) {
     // Per-cell props with fallback to bar defaults
     val shapeType = cell.props["glass_shape"]?.toString()?.lowercase() ?: barShapeType.lowercase()
@@ -1144,7 +1144,7 @@ private fun RenderGlassCell(
 
     val pressProgress = remember { androidx.compose.animation.core.Animatable(0f) }
 
-    var cellModifier = Modifier
+    val cellModifier = Modifier
         .drawBackdrop(
             backdrop = backdrop,
             shape = { shape },
@@ -1184,34 +1184,36 @@ private fun RenderGlassCell(
                 }
             }
         )
-
-    if (pressAnim) {
-        cellModifier = cellModifier.pointerInput(cell) {
-            val animationSpec = androidx.compose.animation.core.spring(
-                dampingRatio = 0.5f,
-                stiffness = 300f,
-                visibilityThreshold = 0.001f
-            )
-            awaitEachGesture {
-                awaitFirstDown()
-                animationScope.launch {
-                    pressProgress.animateTo(1f, animationSpec)
+        .run {
+            if (pressAnim) {
+                pointerInput(cell) {
+                    val animationSpec = androidx.compose.animation.core.spring(
+                        dampingRatio = 0.5f,
+                        stiffness = 300f,
+                        visibilityThreshold = 0.001f
+                    )
+                    awaitEachGesture {
+                        awaitFirstDown()
+                        animationScope.launch {
+                            pressProgress.animateTo(1f, animationSpec)
+                        }
+                        waitForUpOrCancellation()
+                        animationScope.launch {
+                            pressProgress.animateTo(0f, animationSpec)
+                        }
+                    }
                 }
-                waitForUpOrCancellation()
-                animationScope.launch {
-                    pressProgress.animateTo(0f, animationSpec)
-                }
+            } else {
+                this
             }
         }
-    }
 
-    // Layout modifier
-    cellModifier = when (layoutStr) {
-        "aspect_ratio" -> cellModifier.aspectRatio(1f)
-        else -> cellModifier.fillMaxHeight().weight(1f)
-    }
-
-    Box(modifier = cellModifier) {
+    Box(
+        modifier = when (layoutStr) {
+            "aspect_ratio" -> cellModifier.aspectRatio(1f)
+            else -> cellModifier.fillMaxHeight().weight(1f)
+        },
+    ) {
         cell.children.forEach { child ->
             RenderComposableNode(child, mruby, activity)
         }
