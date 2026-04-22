@@ -54,47 +54,15 @@ class EditorActivity < Mrboto::ComposeActivity
       blur_radius: 25.0,
       vibrancy: true
     ) {
-      # 代码编辑区
       column(fill_max_width: true) {
-        text("代码", font_size: 13, font_family: :monospace)
-
-        outlined_text_field(
-          @code,
-          hint: "在此输入 Ruby 代码...",
-          single_line: false,
-          max_lines: 30,
-          modifier: background_color(@dark_mode ? "1E1E2E" : "FFFFFF")
-        ) { |v| @code = v }
-
-        divider
-
-        # 输出区
-        text("输出", font_size: 13, font_family: :monospace)
-
-        text(
-          @output,
-          font_size: 12,
-          font_family: :monospace,
-          modifier: background_color(@dark_mode ? "181825" : "F0F0F5").then(padding(8))
-        )
+        text("测试")
       }
 
-      # 底部栏 — 左侧 nav cells
       glass_cell {
         nav_cell(icon: :ic_menu_code, content: "代码") { run_code }
       }
       glass_cell {
         nav_cell(icon: :ic_menu_file, content: "文件") { save_code }
-      }
-      glass_cell {
-        nav_cell(icon: :ic_menu_log, content: "日志") { load_code }
-      }
-
-      # 右侧 cell
-      right_cell {
-        glass_cell {
-          nav_cell(icon: :ic_menu_search, content: "搜索") { clear_code }
-        }
       }
     }
     _log("build_ui: tree built, root=#{Mrboto::ComposeBuilder.root ? Mrboto::ComposeBuilder.root["type"] : "nil"}")
