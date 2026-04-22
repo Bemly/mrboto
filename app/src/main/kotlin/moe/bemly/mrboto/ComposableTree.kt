@@ -666,12 +666,12 @@ fun RenderComposableNode(
                             Modifier.weight(1f).fillMaxHeight())
                     }
 
-                    // Right cell — smaller fixed size
+                    // Right cell — smaller fixed width
                     if (rightCellNode != null) {
                         RenderGlassCell(rightCellNode, backdrop, barShapeType, barCornerRadius,
                             barVibrancy, blurPx, barLensHeight, barLensAmount,
                             barSurfaceColor, barSurfaceAlpha, mruby, activity, animationScope,
-                            Modifier.fillMaxHeight())
+                            Modifier.width(48.dp).fillMaxHeight())
                     }
                     }
                 }
