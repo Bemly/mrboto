@@ -503,7 +503,7 @@ abstract class MrbotoActivityBase : AppCompatActivity(),
      * Show a full-screen error page for script loading failures.
      * Red background, white selectable text.
      */
-    private fun showErrorPage(title: String, message: String) {
+    protected open fun showErrorPage(title: String, message: String) {
         Log.e(TAG, "⚠ $title\n$message")
         val scroll = ScrollView(this)
         val textView = TextView(this).apply {

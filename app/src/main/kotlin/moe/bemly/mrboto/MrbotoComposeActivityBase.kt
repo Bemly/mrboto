@@ -35,16 +35,26 @@ abstract class MrbotoComposeActivityBase : MrbotoActivityBase() {
     val composeRegistryId: Int
         get() = rubyInstanceId
 
+    /** Whether an error occurred in super.onCreate (e.g. script load failure). */
+    private var hasError = false
+
+    override fun showErrorPage(title: String, message: String) {
+        hasError = true
+        super.showErrorPage(title, message)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Set up Compose content that reacts to tree state changes
-        setContent {
-            MaterialTheme {
-                Surface {
-                    val tree = composeTreeState
-                    if (tree != null) {
-                        RenderComposableTree(tree, mruby, this@MrbotoComposeActivityBase)
+        // Only set up Compose content if no error occurred in super.onCreate
+        if (!hasError) {
+            setContent {
+                MaterialTheme {
+                    Surface {
+                        val tree = composeTreeState
+                        if (tree != null) {
+                            RenderComposableTree(tree, mruby, this@MrbotoComposeActivityBase)
+                        }
                     }
                 }
             }
