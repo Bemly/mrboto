@@ -238,10 +238,7 @@ fun RenderComposableNode(
         "button" -> {
             val inGlassCell = LocalInGlassCell.current
             if (inGlassCell) {
-                Button(
-                    onClick = { },
-                    modifier = mod,
-                ) { Text(text = node.content ?: "") }
+                Text(text = node.content ?: "", modifier = mod)
             } else {
                 Button(
                     onClick = {
@@ -258,12 +255,7 @@ fun RenderComposableNode(
             val iconName = node.props["icon"]?.toString()
             val inGlassCell = LocalInGlassCell.current
             if (inGlassCell) {
-                TextButton(
-                    onClick = { },
-                    modifier = mod,
-                ) {
-                    GlassCellContent(iconName, node.content)
-                }
+                GlassCellContent(iconName, node.content)
             } else {
                 TextButton(
                     onClick = {
@@ -296,17 +288,19 @@ fun RenderComposableNode(
         "icon_button" -> {
             val iconName = node.props["icon"]?.toString() ?: "info"
             val inGlassCell = LocalInGlassCell.current
-            IconButton(
-                onClick = if (inGlassCell) { { } } else {
-                    {
+            if (inGlassCell) {
+                Icon(imageVector = materialIcon(iconName), contentDescription = null, modifier = mod)
+            } else {
+                IconButton(
+                    onClick = {
                         if (node.callbackId > 0) {
                             mruby.eval("Mrboto.dispatch_callback(${node.callbackId})")
                         }
-                    }
-                },
-                modifier = mod,
-            ) {
-                Icon(imageVector = materialIcon(iconName), contentDescription = null)
+                    },
+                    modifier = mod,
+                ) {
+                    Icon(imageVector = materialIcon(iconName), contentDescription = null)
+                }
             }
         }
 
@@ -648,7 +642,7 @@ fun RenderComposableNode(
                 Column(modifier = Modifier.fillMaxSize()) {
                     Spacer(modifier = Modifier.weight(1f))
                     val spacerHeight = with(LocalDensity.current) { (LocalConfiguration.current.screenHeightDp * 0.15f).toDp() }
-                    val sidePadding = with(LocalDensity.current) { (LocalConfiguration.current.screenWidthDp * 0.1f).toDp() }
+                    val sidePadding = with(LocalDensity.current) { (LocalConfiguration.current.screenWidthDp * 0.5f).toDp() }
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -710,7 +704,8 @@ fun RenderComposableNode(
         // ── nav_cell: vertical icon + text layout for nav bar ────────────
         "nav_cell" -> {
             val iconName = node.props["icon"]?.toString()
-            val navMod = if (node.callbackId > 0) {
+            val inGlassCell = LocalInGlassCell.current
+            val navMod = if (!inGlassCell && node.callbackId > 0) {
                 Modifier.clickable(
                     interactionSource = null,
                     indication = null,
