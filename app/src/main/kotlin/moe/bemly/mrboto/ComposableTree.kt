@@ -648,11 +648,12 @@ fun RenderComposableNode(
                 Column(modifier = Modifier.fillMaxSize()) {
                     Spacer(modifier = Modifier.weight(1f))
                     val spacerHeight = with(LocalDensity.current) { (LocalConfiguration.current.screenHeightDp * 0.15f).toDp() }
+                    val sidePadding = with(LocalDensity.current) { (LocalConfiguration.current.screenWidthDp * 0.1f).toDp() }
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(100.dp)
-                            .padding(bottom = spacerHeight),
+                            .height(110.dp)
+                            .padding(bottom = spacerHeight, start = sidePadding, end = sidePadding),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
