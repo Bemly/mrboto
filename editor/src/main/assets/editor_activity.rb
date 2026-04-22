@@ -85,7 +85,7 @@ class EditorActivity < Mrboto::ComposeActivity
       # 右侧一个独立的 glass_cell
       right_cell {
         glass_cell {
-          nav_cell(icon: :ic_menu_search, content: "搜索") { clear_code }
+          nav_cell(icon: :ic_menu_search, content: "清除") { clear_code }
         }
       }
     }
