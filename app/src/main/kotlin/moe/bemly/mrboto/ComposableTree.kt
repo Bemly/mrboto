@@ -1158,8 +1158,6 @@ fun materialIcon(name: String): androidx.compose.ui.graphics.vector.ImageVector 
         "add" -> Icons.Default.Add
         "close" -> Icons.Default.Close
         "menu" -> Icons.Default.Menu
-        "search" -> Icons.Default.Search
-        "ic_menu_search" -> Icons.Default.Search
         "home" -> Icons.Default.Home
         "arrow_back" -> Icons.AutoMirrored.Filled.ArrowBack
         "arrow_forward" -> Icons.AutoMirrored.Filled.ArrowForward
@@ -1170,7 +1168,7 @@ fun materialIcon(name: String): androidx.compose.ui.graphics.vector.ImageVector 
         "content_paste" -> Icons.Default.ContentPaste
         "ic_menu_code" -> Icons.Default.Code
         "ic_menu_file" -> Icons.Default.Folder
-        "ic_menu_log" -> Icons.Default.Article
+        "ic_menu_log" -> Icons.AutoMirrored.Filled.Article
         "ic_menu_search" -> Icons.Default.Search
         else -> Icons.Default.Info
     }

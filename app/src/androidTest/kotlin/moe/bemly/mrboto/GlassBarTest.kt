@@ -415,7 +415,7 @@ class GlassBarTest {
     }
 
     @Test
-    fun `nav_cell builds vertical icon+text node`() {
+    fun `nav_cell builds vertical icon and text node`() {
         mruby.eval("""
             Mrboto::ComposeBuilder.instance_variable_set(:@_compose_parent_stack, [])
             Mrboto::ComposeBuilder.instance_variable_set(:@_compose_root, nil)
