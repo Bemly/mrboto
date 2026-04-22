@@ -704,8 +704,15 @@ fun RenderComposableNode(
         // ── nav_cell: vertical icon + text layout for nav bar ────────────
         "nav_cell" -> {
             val iconName = node.props["icon"]?.toString()
+            val navMod = if (node.callbackId > 0) {
+                Modifier.clickable(
+                    interactionSource = null,
+                    indication = null,
+                    onClick = { mruby.eval("Mrboto.dispatch_callback(${node.callbackId})") }
+                )
+            } else Modifier
             Column(
-                modifier = mod,
+                modifier = mod.then(navMod),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 if (iconName != null) {
@@ -1347,8 +1354,19 @@ private fun RenderGlassCellDirect(
 
     CompositionLocalProvider(LocalInGlassCell provides true) {
         Box(modifier = cellMod) {
-            cell.children.forEach { child ->
-                RenderComposableNode(child, mruby, activity)
+            // Multiple children → Row with equal weights (nav bar style)
+            if (cell.children.size > 1) {
+                Row(modifier = Modifier.fillMaxSize()) {
+                    cell.children.forEach { child ->
+                        Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                            RenderComposableNode(child, mruby, activity)
+                        }
+                    }
+                }
+            } else {
+                cell.children.forEach { child ->
+                    RenderComposableNode(child, mruby, activity)
+                }
             }
         }
     }

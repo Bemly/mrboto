@@ -75,12 +75,14 @@ class EditorActivity < Mrboto::ComposeActivity
         )
       }
 
-      # 左侧按钮 — 平分宽度
+      # 左侧一个大 glass_cell，内含 3 个 nav_cell 平分宽度
       glass_cell {
         nav_cell(icon: :ic_menu_code, content: "代码") { run_code }
+        nav_cell(icon: :ic_menu_file, content: "文件") { save_code }
+        nav_cell(icon: :ic_menu_log, content: "日志") { load_code }
       }
 
-      # 右侧按钮 — aspectRatio(1f)
+      # 右侧一个独立的 glass_cell
       right_cell {
         glass_cell {
           nav_cell(icon: :ic_menu_search, content: "搜索") { clear_code }
