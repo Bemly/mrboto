@@ -526,7 +526,12 @@ module Mrboto
   def nav_cell(icon:, content:, **kwargs, &block)
     props = _extract_props(kwargs)
     props["icon"] = icon.to_s
-    Mrboto._build_compose_node("nav_cell", content.to_s, props, &block)
+    # Register callback if block given (for click action)
+    callback_id = 0
+    if block_given?
+      callback_id = Mrboto.register_callback(&block)
+    end
+    Mrboto._build_compose_node("nav_cell", content.to_s, props, callback_id)
   end
 
   # ── right_cell: right-side cell in glass_bar (passed as prop) ──

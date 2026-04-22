@@ -1,52 +1,19 @@
-# editor_activity.rb — 100% Ruby Compose 代码编辑器 + 运行器
-# 使用液态玻璃底部栏，支持深色/浅色主题切换
-
-DEFAULT_CODE = <<'RUBY'
-# Ruby Editor — 编写并直接运行
-# 点击 ▶ Run 执行代码
-
-# 示例：
-toast("Hello from Ruby Editor!")
-
-(1..5).each do |i|
-  puts "Count: #{i}"
-end
-
-result = "Ruby is awesome!"
-result
-RUBY
-
+# editor_activity.rb — 最小化测试 glass_cell + nav_cell
 class EditorActivity < Mrboto::ComposeActivity
-  SCRIPT_PATH = "editor_script.rb"
-
   def on_create(bundle)
     super
     self.title = "Ruby Editor"
-    @dark_mode = true
-    @code = DEFAULT_CODE
-    @output = ""
     begin
       build_ui
-      _log("build_ui completed successfully")
     rescue => e
-      _log("build_ui ERROR: #{e.class}: #{e.message}")
-      if e.respond_to?(:backtrace) && e.backtrace
-        e.backtrace.first(5).each { |l| _log("  #{l}") }
-      end
+      puts("build_ui ERROR: #{e.class}: #{e.message}")
+      puts(e.backtrace.first(10).join("\n")) if e.respond_to?(:backtrace)
     end
   end
 
-  def _log(msg)
-    # Use Java Log to print to logcat
-    call_java_method("logDebug", "EditorActivity", msg.to_s) rescue puts(msg)
-  end
-
   def build_ui
-    _log("build_ui: starting")
-    # ── 清除之前的树栈和根节点 ──
     Mrboto::ComposeBuilder.instance_variable_set(:@_compose_parent_stack, [])
     Mrboto::ComposeBuilder.instance_variable_set(:@_compose_root, nil)
-    _log("build_ui: stack cleared")
 
     glass_bar(
       shape_type: :rounded_rect,
@@ -55,93 +22,32 @@ class EditorActivity < Mrboto::ComposeActivity
       vibrancy: true
     ) {
       column(fill_max_width: true) {
-        text("测试")
+        text("测试内容")
       }
 
       glass_cell {
-        nav_cell(icon: :ic_menu_code, content: "代码") { run_code }
+        nav_cell(icon: :ic_menu_code, content: "代码") { toast("代码") }
       }
       glass_cell {
-        nav_cell(icon: :ic_menu_file, content: "文件") { save_code }
+        nav_cell(icon: :ic_menu_file, content: "文件") { toast("文件") }
+      }
+      glass_cell {
+        nav_cell(icon: :ic_menu_log, content: "日志") { toast("日志") }
+      }
+
+      right_cell {
+        glass_cell {
+          nav_cell(icon: :ic_menu_search, content: "搜索") { toast("搜索") }
+        }
       }
     }
-    _log("build_ui: tree built, root=#{Mrboto::ComposeBuilder.root ? Mrboto::ComposeBuilder.root["type"] : "nil"}")
+
+    puts("build_ui: root=#{Mrboto::ComposeBuilder.root ? Mrboto::ComposeBuilder.root["type"] : "nil"}")
+    if Mrboto::ComposeBuilder.root
+      puts(Mrboto._compose_to_json(Mrboto::ComposeBuilder.root))
+    end
 
     set_compose_content
-    _log("build_ui: set_compose_content called")
-    apply_theme_colors
-  end
-
-  def run_code
-    code = @code.to_s
-    return if code.strip.empty?
-
-    @output = "执行中..."
-    refresh_ui
-
-    begin
-      result = Mrboto._eval(code)
-      @output = if result.nil?
-                  "(nil)"
-                elsif result.is_a?(String)
-                  result
-                else
-                  result.to_s
-                end
-    rescue => e
-      msg = e.message.to_s
-      bt = e.backtrace ? e.backtrace.first(3).join("\n") : ""
-      @output = "错误: #{e.class}\n#{msg}\n\n#{bt}"
-    end
-
-    refresh_ui
-  end
-
-  def save_code
-    begin
-      file_write(SCRIPT_PATH, @code.to_s)
-      toast("已保存")
-    rescue => e
-      toast("保存失败: #{e.message}")
-    end
-  end
-
-  def load_code
-    begin
-      if file_exists?(SCRIPT_PATH)
-        @code = file_read(SCRIPT_PATH)
-        toast("已加载")
-      else
-        toast("没有保存的脚本")
-      end
-    rescue => e
-      toast("加载失败: #{e.message}")
-    end
-    refresh_ui
-  end
-
-  def clear_code
-    @code = ""
-    @output = ""
-    refresh_ui
-  end
-
-  def toggle_theme
-    @dark_mode = !@dark_mode
-    refresh_ui
-    apply_theme_colors
-  end
-
-  def refresh_ui
-    # Rebuild the entire UI to reflect state changes
-    Mrboto::ComposeBuilder.instance_variable_set(:@_compose_parent_stack, [])
-    Mrboto::ComposeBuilder.instance_variable_set(:@_compose_root, nil)
-    build_ui
-  end
-
-  def apply_theme_colors
-    # Colors are baked into the Compose tree via build_ui
-    # No native View manipulation needed in Compose mode
   end
 end
 
