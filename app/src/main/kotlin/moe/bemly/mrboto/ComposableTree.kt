@@ -643,14 +643,13 @@ fun RenderComposableNode(
                 }
 
                 // Bottom bar Row — positioned 5% above screen bottom
-                BoxWithConstraints(modifier = Modifier.fillMaxSize().align(Alignment.BottomCenter)) {
-                    val bottomOffsetDp = maxHeight * 0.05f
+                Column(modifier = Modifier.fillMaxSize().align(Alignment.BottomCenter)) {
+                    Spacer(modifier = Modifier.weight(0.95f))
                     Row(
                         modifier = Modifier
                             .safeContentPadding()
                             .height(64.dp)
-                            .fillMaxWidth()
-                            .offset(y = -bottomOffsetDp),
+                            .fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -692,7 +691,7 @@ fun RenderComposableNode(
                         )
                     }
                 }
-                } // BoxWithConstraints
+                } // Column
             }
         }
 
