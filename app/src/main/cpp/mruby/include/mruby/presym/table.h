@@ -19,7 +19,6 @@ static const uint16_t presym_length_table[] = {
   1,	/* f */
   1,	/* h */
   1,	/* i */
-  1,	/* j */
   1,	/* k */
   1,	/* l */
   1,	/* m */
@@ -33,7 +32,6 @@ static const uint16_t presym_length_table[] = {
   1,	/* w */
   1,	/* x */
   1,	/* y */
-  1,	/* z */
   1,	/* | */
   1,	/* ~ */
   2,	/* != */
@@ -54,9 +52,9 @@ static const uint16_t presym_length_table[] = {
   2,	/* IO */
   2,	/* PI */
   2,	/* [] */
+  2,	/* _1 */
   2,	/* af */
   2,	/* ai */
-  2,	/* ar */
   2,	/* at */
   2,	/* bi */
   2,	/* bs */
@@ -64,7 +62,6 @@ static const uint16_t presym_length_table[] = {
   2,	/* e0 */
   2,	/* e2 */
   2,	/* e3 */
-  2,	/* ed */
   2,	/* ei */
   2,	/* fd */
   2,	/* gm */
@@ -74,6 +71,7 @@ static const uint16_t presym_length_table[] = {
   2,	/* lz */
   2,	/* nv */
   2,	/* pc */
+  2,	/* s2 */
   2,	/* sa */
   2,	/* sv */
   2,	/* tr */
@@ -96,7 +94,6 @@ static const uint16_t presym_length_table[] = {
   3,	/* arg */
   3,	/* arr */
   3,	/* ary */
-  3,	/* beg */
   3,	/* blk */
   3,	/* chr */
   3,	/* cmd */
@@ -113,12 +110,15 @@ static const uint16_t presym_length_table[] = {
   3,	/* err */
   3,	/* exp */
   3,	/* fib */
+  3,	/* gcd */
+  3,	/* gen */
   3,	/* hex */
   3,	/* idx */
   3,	/* int */
   3,	/* ip? */
   3,	/* key */
   3,	/* kwd */
+  3,	/* lcm */
   3,	/* len */
   3,	/* lhs */
   3,	/* lim */
@@ -128,10 +128,10 @@ static const uint16_t presym_length_table[] = {
   3,	/* max */
   3,	/* mid */
   3,	/* min */
-  3,	/* mod */
   3,	/* mon */
   3,	/* msg */
   3,	/* new */
+  3,	/* nil */
   3,	/* now */
   3,	/* num */
   3,	/* obj */
@@ -144,7 +144,6 @@ static const uint16_t presym_length_table[] = {
   3,	/* pop */
   3,	/* pos */
   3,	/* pow */
-  3,	/* pre */
   3,	/* pwd */
   3,	/* quo */
   3,	/* req */
@@ -152,13 +151,13 @@ static const uint16_t presym_length_table[] = {
   3,	/* rhs */
   3,	/* row */
   3,	/* sec */
-  3,	/* sep */
   3,	/* set */
   3,	/* sin */
   3,	/* str */
   3,	/* sub */
   3,	/* sum */
   3,	/* sym */
+  3,	/* tag */
   3,	/* tan */
   3,	/* tap */
   3,	/* tcp */
@@ -172,6 +171,8 @@ static const uint16_t presym_length_table[] = {
   4,	/* @fib */
   4,	/* @kwd */
   4,	/* @obj */
+  4,	/* @pos */
+  4,	/* @tag */
   4,	/* ARGV */
   4,	/* Data */
   4,	/* EADV */
@@ -219,12 +220,10 @@ static const uint16_t presym_length_table[] = {
   4,	/* drop */
   4,	/* dst? */
   4,	/* dump */
-  4,	/* e_id */
   4,	/* each */
   4,	/* elem */
   4,	/* enum */
   4,	/* eof? */
-  4,	/* epos */
   4,	/* eql? */
   4,	/* erfc */
   4,	/* eval */
@@ -245,7 +244,6 @@ static const uint16_t presym_length_table[] = {
   4,	/* high */
   4,	/* host */
   4,	/* hour */
-  4,	/* idx2 */
   4,	/* imag */
   4,	/* init */
   4,	/* join */
@@ -254,7 +252,6 @@ static const uint16_t presym_length_table[] = {
   4,	/* last */
   4,	/* lazy */
   4,	/* line */
-  4,	/* list */
   4,	/* log2 */
   4,	/* loop */
   4,	/* map! */
@@ -268,15 +265,13 @@ static const uint16_t presym_length_table[] = {
   4,	/* next */
   4,	/* nil? */
   4,	/* none */
+  4,	/* nsec */
   4,	/* ntop */
   4,	/* odd? */
   4,	/* one? */
   4,	/* open */
   4,	/* opts */
-  4,	/* orig */
   4,	/* pack */
-  4,	/* pad1 */
-  4,	/* pad2 */
   4,	/* pair */
   4,	/* path */
   4,	/* peek */
@@ -288,6 +283,7 @@ static const uint16_t presym_length_table[] = {
   4,	/* proc */
   4,	/* pton */
   4,	/* push */
+  4,	/* putc */
   4,	/* puts */
   4,	/* rand */
   4,	/* read */
@@ -297,7 +293,6 @@ static const uint16_t presym_length_table[] = {
   4,	/* rest */
   4,	/* sary */
   4,	/* seek */
-  4,	/* seen */
   4,	/* send */
   4,	/* sinh */
   4,	/* size */
@@ -305,7 +300,6 @@ static const uint16_t presym_length_table[] = {
   4,	/* sort */
   4,	/* sqrt */
   4,	/* step */
-  4,	/* str2 */
   4,	/* sub! */
   4,	/* succ */
   4,	/* sync */
@@ -334,15 +328,14 @@ static const uint16_t presym_length_table[] = {
   4,	/* year */
   4,	/* zone */
   5,	/* @args */
-  5,	/* @hash */
   5,	/* @meth */
   5,	/* @name */
   5,	/* @path */
   5,	/* @proc */
   5,	/* @size */
   5,	/* Array */
-  5,	/* CMath */
   5,	/* CREAT */
+  5,	/* Chain */
   5,	/* Class */
   5,	/* DSYNC */
   5,	/* E2BIG */
@@ -374,7 +367,9 @@ static const uint16_t presym_length_table[] = {
   5,	/* TOTAL */
   5,	/* TRUNC */
   5,	/* T_ENV */
+  5,	/* __xor */
   5,	/* _bind */
+  5,	/* _keys */
   5,	/* _name */
   5,	/* _pipe */
   5,	/* _proc */
@@ -382,7 +377,6 @@ static const uint16_t presym_length_table[] = {
   5,	/* acosh */
   5,	/* angle */
   5,	/* arity */
-  5,	/* array */
   5,	/* ary_F */
   5,	/* ary_T */
   5,	/* asinh */
@@ -393,6 +387,8 @@ static const uint16_t presym_length_table[] = {
   5,	/* begin */
   5,	/* block */
   5,	/* bytes */
+  5,	/* catch */
+  5,	/* chain */
   5,	/* chars */
   5,	/* chdir */
   5,	/* chmod */
@@ -408,10 +404,10 @@ static const uint16_t presym_length_table[] = {
   5,	/* ctime */
   5,	/* curry */
   5,	/* cycle */
-  5,	/* depth */
   5,	/* enums */
   5,	/* errno */
   5,	/* even? */
+  5,	/* expm1 */
   5,	/* fetch */
   5,	/* field */
   5,	/* file? */
@@ -420,7 +416,6 @@ static const uint16_t presym_length_table[] = {
   5,	/* flock */
   5,	/* floor */
   5,	/* flush */
-  5,	/* fname */
   5,	/* force */
   5,	/* found */
   5,	/* frexp */
@@ -439,11 +434,11 @@ static const uint16_t presym_length_table[] = {
   5,	/* ljust */
   5,	/* local */
   5,	/* log10 */
+  5,	/* log1p */
   5,	/* merge */
   5,	/* mkdir */
   5,	/* month */
   5,	/* mtime */
-  5,	/* names */
   5,	/* next! */
   5,	/* none? */
   5,	/* other */
@@ -459,6 +454,7 @@ static const uint16_t presym_length_table[] = {
   5,	/* raise */
   5,	/* real? */
   5,	/* reset */
+  5,	/* rfind */
   5,	/* rjust */
   5,	/* rmdir */
   5,	/* round */
@@ -476,20 +472,21 @@ static const uint16_t presym_length_table[] = {
   5,	/* sync= */
   5,	/* taken */
   5,	/* tally */
+  5,	/* throw */
   5,	/* times */
-  5,	/* total */
   5,	/* tr_s! */
   5,	/* umask */
   5,	/* union */
   5,	/* uniq! */
   5,	/* unix? */
   5,	/* value */
-  5,	/* width */
   5,	/* write */
   5,	/* yield */
   5,	/* zero? */
   6,	/* $DEBUG */
   6,	/* $stdin */
+  6,	/* @enums */
+  6,	/* @value */
   6,	/* AF_MAX */
   6,	/* APPEND */
   6,	/* BINARY */
@@ -563,6 +560,8 @@ static const uint16_t presym_length_table[] = {
   6,	/* T_PROC */
   6,	/* WRONLY */
   6,	/* __id__ */
+  6,	/* __init */
+  6,	/* __uniq */
   6,	/* _alone */
   6,	/* _atime */
   6,	/* _chdir */
@@ -602,6 +601,7 @@ static const uint16_t presym_length_table[] = {
   6,	/* freeze */
   6,	/* getutc */
   6,	/* gmtime */
+  6,	/* gmtoff */
   6,	/* grep_v */
   6,	/* ifnone */
   6,	/* inject */
@@ -614,7 +614,6 @@ static const uint16_t presym_length_table[] = {
   6,	/* length */
   6,	/* linger */
   6,	/* listen */
-  6,	/* longer */
   6,	/* lstrip */
   6,	/* max_by */
   6,	/* maxlen */
@@ -627,7 +626,6 @@ static const uint16_t presym_length_table[] = {
   6,	/* object */
   6,	/* offset */
   6,	/* others */
-  6,	/* padstr */
   6,	/* printf */
   6,	/* public */
   6,	/* pwrite */
@@ -727,11 +725,16 @@ static const uint16_t presym_length_table[] = {
   7,	/* T_FLOAT */
   7,	/* T_RANGE */
   7,	/* Yielder */
+  7,	/* __chars */
+  7,	/* __fetch */
   7,	/* __lines */
   7,	/* __merge */
+  7,	/* __union */
+  7,	/* __uniq! */
   7,	/* _accept */
   7,	/* _listen */
   7,	/* _socket */
+  7,	/* add_all */
   7,	/* afamily */
   7,	/* asctime */
   7,	/* backlog */
@@ -764,6 +767,7 @@ static const uint16_t presym_length_table[] = {
   7,	/* frozen? */
   7,	/* getbyte */
   7,	/* include */
+  7,	/* indices */
   7,	/* inspect */
   7,	/* ip_port */
   7,	/* keep_if */
@@ -783,7 +787,6 @@ static const uint16_t presym_length_table[] = {
   7,	/* nobits? */
   7,	/* numeric */
   7,	/* optname */
-  7,	/* padding */
   7,	/* pattern */
   7,	/* pfamily */
   7,	/* pointer */
@@ -801,7 +804,6 @@ static const uint16_t presym_length_table[] = {
   7,	/* sep_len */
   7,	/* service */
   7,	/* setbyte */
-  7,	/* shorter */
   7,	/* shuffle */
   7,	/* socket? */
   7,	/* sort_by */
@@ -816,6 +818,7 @@ static const uint16_t presym_length_table[] = {
   7,	/* to_enum */
   7,	/* to_hash */
   7,	/* to_proc */
+  7,	/* tv_nsec */
   7,	/* unpack1 */
   7,	/* unshift */
   7,	/* upcase! */
@@ -867,6 +870,7 @@ static const uint16_t presym_length_table[] = {
   8,	/* T_STRING */
   8,	/* T_STRUCT */
   8,	/* __delete */
+  8,	/* __except */
   8,	/* __send__ */
   8,	/* __svalue */
   8,	/* __to_int */
@@ -889,7 +893,6 @@ static const uint16_t presym_length_table[] = {
   8,	/* each_key */
   8,	/* enum_for */
   8,	/* extended */
-  8,	/* filename */
   8,	/* find_all */
   8,	/* flat_map */
   8,	/* flatten! */
@@ -900,7 +903,6 @@ static const uint16_t presym_length_table[] = {
   8,	/* included */
   8,	/* integer? */
   8,	/* kind_of? */
-  8,	/* modified */
   8,	/* new_args */
   8,	/* nodename */
   8,	/* nonzero? */
@@ -1031,7 +1033,6 @@ static const uint16_t presym_length_table[] = {
   9,	/* transpose */
   9,	/* ungetbyte */
   9,	/* unix_path */
-  9,	/* validated */
   9,	/* values_at */
   10,	/* @feedvalue */
   10,	/* @lookahead */
@@ -1071,16 +1072,18 @@ static const uint16_t presym_length_table[] = {
   10,	/* UNIXSocket */
   10,	/* __callee__ */
   10,	/* __case_eqq */
-  10,	/* __get_hash */
   10,	/* __method__ */
   10,	/* __num_to_a */
+  10,	/* __subtract */
   10,	/* _separator */
+  10,	/* bit_length */
   10,	/* byterindex */
   10,	/* bytesplice */
   10,	/* capitalize */
   10,	/* class_eval */
   10,	/* class_exec */
   10,	/* codepoints */
+  10,	/* delete_all */
   10,	/* difference */
   10,	/* directory? */
   10,	/* drop_while */
@@ -1096,6 +1099,7 @@ static const uint16_t presym_length_table[] = {
   10,	/* getpeereid */
   10,	/* getsockopt */
   10,	/* given_args */
+  10,	/* gmt_offset */
   10,	/* has_value? */
   10,	/* initialize */
   10,	/* intersect? */
@@ -1114,6 +1118,7 @@ static const uint16_t presym_length_table[] = {
   10,	/* subclasses */
   10,	/* superclass */
   10,	/* take_while */
+  10,	/* utc_offset */
   10,	/* wednesday? */
   10,	/* with_index */
   10,	/* yield_self */
@@ -1153,6 +1158,7 @@ static const uint16_t presym_length_table[] = {
   11,	/* TCP_KEEPCNT */
   11,	/* TCP_NODELAY */
   11,	/* T_EXCEPTION */
+  11,	/* __fill_exec */
   11,	/* __members__ */
   11,	/* _is_socket= */
   11,	/* ascii_only? */
@@ -1162,6 +1168,8 @@ static const uint16_t presym_length_table[] = {
   11,	/* chunk_while */
   11,	/* close_write */
   11,	/* combination */
+  11,	/* const_added */
+  11,	/* deconstruct */
   11,	/* denominator */
   11,	/* each_object */
   11,	/* expand_path */
@@ -1176,6 +1184,7 @@ static const uint16_t presym_length_table[] = {
   11,	/* other_begin */
   11,	/* peek_values */
   11,	/* permutation */
+  11,	/* public_send */
   11,	/* rectangular */
   11,	/* respond_to? */
   11,	/* sockaddr_in */
@@ -1185,7 +1194,6 @@ static const uint16_t presym_length_table[] = {
   11,	/* to_sockaddr */
   11,	/* with_object */
   12,	/* AI_CANONNAME */
-  12,	/* DebuggerExit */
   12,	/* EAFNOSUPPORT */
   12,	/* ECONNABORTED */
   12,	/* ECONNREFUSED */
@@ -1221,7 +1229,9 @@ static const uint16_t presym_length_table[] = {
   12,	/* __ENCODING__ */
   12,	/* __attached__ */
   12,	/* __codepoints */
+  12,	/* __difference */
   12,	/* __errno_list */
+  12,	/* __pat_values */
   12,	/* _setnonblock */
   12,	/* _sockaddr_in */
   12,	/* alias_method */
@@ -1231,8 +1241,11 @@ static const uint16_t presym_length_table[] = {
   12,	/* default_proc */
   12,	/* exclude_end? */
   12,	/* fetch_values */
+  12,	/* include_all? */
+  12,	/* include_any? */
   12,	/* instance_of? */
   12,	/* intersection */
+  12,	/* keyword_init */
   12,	/* method_added */
   12,	/* mruby_Random */
   12,	/* remove_const */
@@ -1265,8 +1278,6 @@ static const uint16_t presym_length_table[] = {
   13,	/* define_method */
   13,	/* delete_prefix */
   13,	/* delete_suffix */
-  13,	/* extend_object */
-  13,	/* flatten_merge */
   13,	/* in_lower_half */
   13,	/* instance_eval */
   13,	/* instance_exec */
@@ -1288,6 +1299,8 @@ static const uint16_t presym_length_table[] = {
   14,	/* __do_with_enum */
   14,	/* __empty_range? */
   14,	/* __errno_define */
+  14,	/* __intersection */
+  14,	/* __product_next */
   14,	/* __upto_endless */
   14,	/* absolute_path? */
   14,	/* close_on_exec= */
@@ -1305,7 +1318,6 @@ static const uint16_t presym_length_table[] = {
   14,	/* public_methods */
   14,	/* remote_address */
   14,	/* transform_keys */
-  15,	/* DebuggerRestart */
   15,	/* ENOTRECOVERABLE */
   15,	/* EPROTONOSUPPORT */
   15,	/* ESOCKTNOSUPPORT */
@@ -1319,7 +1331,6 @@ static const uint16_t presym_length_table[] = {
   15,	/* SystemCallError */
   15,	/* accept_nonblock */
   15,	/* append_as_bytes */
-  15,	/* append_features */
   15,	/* attached_object */
   15,	/* class_variables */
   15,	/* each_with_index */
@@ -1329,7 +1340,6 @@ static const uint16_t presym_length_table[] = {
   15,	/* local_variables */
   15,	/* method_defined? */
   15,	/* module_function */
-  15,	/* pad_repetitions */
   15,	/* private_methods */
   15,	/* singleton_class */
   15,	/* source_location */
@@ -1342,21 +1352,24 @@ static const uint16_t presym_length_table[] = {
   16,	/* MRUBY_RELEASE_NO */
   16,	/* SystemStackError */
   16,	/* __errno_defined? */
+  16,	/* __fill_parse_arg */
   16,	/* _sockaddr_family */
   16,	/* connect_nonblock */
+  16,	/* deconstruct_keys */
   16,	/* each_with_object */
   16,	/* global_variables */
   16,	/* included_modules */
   16,	/* inspect_sockaddr */
   16,	/* instance_methods */
   16,	/* method_undefined */
+  16,	/* normalized_index */
   16,	/* pack_sockaddr_in */
   16,	/* pack_sockaddr_un */
-  16,	/* prepend_features */
   16,	/* proper_superset? */
   16,	/* singleton_class? */
   16,	/* singleton_method */
   16,	/* transform_values */
+  17,	/* @__keyword_init__ */
   17,	/* IPV6_MULTICAST_IF */
   17,	/* IPV6_UNICAST_HOPS */
   17,	/* IP_ADD_MEMBERSHIP */
@@ -1365,7 +1378,7 @@ static const uint16_t presym_length_table[] = {
   17,	/* MCAST_LEAVE_GROUP */
   17,	/* MRUBY_DESCRIPTION */
   17,	/* ZeroDivisionError */
-  17,	/* _new_with_prelude */
+  17,	/* __normalize_index */
   17,	/* generational_mode */
   17,	/* protected_methods */
   17,	/* recvfrom_nonblock */
@@ -1374,6 +1387,10 @@ static const uint16_t presym_length_table[] = {
   18,	/* IP_DROP_MEMBERSHIP */
   18,	/* MCAST_BLOCK_SOURCE */
   18,	/* MRUBY_RELEASE_DATE */
+  18,	/* UncaughtThrowError */
+  18,	/* __combination_init */
+  18,	/* __combination_next */
+  18,	/* __product_generate */
   18,	/* class_variable_get */
   18,	/* class_variable_set */
   18,	/* generational_mode= */
@@ -1387,9 +1404,9 @@ static const uint16_t presym_length_table[] = {
   19,	/* NotImplementedError */
   19,	/* RUBY_ENGINE_VERSION */
   19,	/* TCP_CONNECTION_INFO */
+  19,	/* __method_recursive? */
   19,	/* respond_to_missing? */
   20,	/* MCAST_UNBLOCK_SOURCE */
-  20,	/* __inspect_recursive? */
   20,	/* repeated_combination */
   20,	/* repeated_permutation */
   21,	/* __coerce_step_counter */
@@ -1398,6 +1415,7 @@ static const uint16_t presym_length_table[] = {
   21,	/* instance_variable_set */
   21,	/* remove_class_variable */
   22,	/* @do_not_reverse_lookup */
+  22,	/* NoMatchingPatternError */
   22,	/* __repeated_combination */
   22,	/* do_not_reverse_lookup= */
   22,	/* singleton_method_added */
@@ -1441,7 +1459,6 @@ static const char * const presym_name_table[] = {
   "f",
   "h",
   "i",
-  "j",
   "k",
   "l",
   "m",
@@ -1455,7 +1472,6 @@ static const char * const presym_name_table[] = {
   "w",
   "x",
   "y",
-  "z",
   "|",
   "~",
   "!=",
@@ -1476,9 +1492,9 @@ static const char * const presym_name_table[] = {
   "IO",
   "PI",
   "[]",
+  "_1",
   "af",
   "ai",
-  "ar",
   "at",
   "bi",
   "bs",
@@ -1486,7 +1502,6 @@ static const char * const presym_name_table[] = {
   "e0",
   "e2",
   "e3",
-  "ed",
   "ei",
   "fd",
   "gm",
@@ -1496,6 +1511,7 @@ static const char * const presym_name_table[] = {
   "lz",
   "nv",
   "pc",
+  "s2",
   "sa",
   "sv",
   "tr",
@@ -1518,7 +1534,6 @@ static const char * const presym_name_table[] = {
   "arg",
   "arr",
   "ary",
-  "beg",
   "blk",
   "chr",
   "cmd",
@@ -1535,12 +1550,15 @@ static const char * const presym_name_table[] = {
   "err",
   "exp",
   "fib",
+  "gcd",
+  "gen",
   "hex",
   "idx",
   "int",
   "ip?",
   "key",
   "kwd",
+  "lcm",
   "len",
   "lhs",
   "lim",
@@ -1550,10 +1568,10 @@ static const char * const presym_name_table[] = {
   "max",
   "mid",
   "min",
-  "mod",
   "mon",
   "msg",
   "new",
+  "nil",
   "now",
   "num",
   "obj",
@@ -1566,7 +1584,6 @@ static const char * const presym_name_table[] = {
   "pop",
   "pos",
   "pow",
-  "pre",
   "pwd",
   "quo",
   "req",
@@ -1574,13 +1591,13 @@ static const char * const presym_name_table[] = {
   "rhs",
   "row",
   "sec",
-  "sep",
   "set",
   "sin",
   "str",
   "sub",
   "sum",
   "sym",
+  "tag",
   "tan",
   "tap",
   "tcp",
@@ -1594,6 +1611,8 @@ static const char * const presym_name_table[] = {
   "@fib",
   "@kwd",
   "@obj",
+  "@pos",
+  "@tag",
   "ARGV",
   "Data",
   "EADV",
@@ -1641,12 +1660,10 @@ static const char * const presym_name_table[] = {
   "drop",
   "dst?",
   "dump",
-  "e_id",
   "each",
   "elem",
   "enum",
   "eof?",
-  "epos",
   "eql?",
   "erfc",
   "eval",
@@ -1667,7 +1684,6 @@ static const char * const presym_name_table[] = {
   "high",
   "host",
   "hour",
-  "idx2",
   "imag",
   "init",
   "join",
@@ -1676,7 +1692,6 @@ static const char * const presym_name_table[] = {
   "last",
   "lazy",
   "line",
-  "list",
   "log2",
   "loop",
   "map!",
@@ -1690,15 +1705,13 @@ static const char * const presym_name_table[] = {
   "next",
   "nil?",
   "none",
+  "nsec",
   "ntop",
   "odd?",
   "one?",
   "open",
   "opts",
-  "orig",
   "pack",
-  "pad1",
-  "pad2",
   "pair",
   "path",
   "peek",
@@ -1710,6 +1723,7 @@ static const char * const presym_name_table[] = {
   "proc",
   "pton",
   "push",
+  "putc",
   "puts",
   "rand",
   "read",
@@ -1719,7 +1733,6 @@ static const char * const presym_name_table[] = {
   "rest",
   "sary",
   "seek",
-  "seen",
   "send",
   "sinh",
   "size",
@@ -1727,7 +1740,6 @@ static const char * const presym_name_table[] = {
   "sort",
   "sqrt",
   "step",
-  "str2",
   "sub!",
   "succ",
   "sync",
@@ -1756,15 +1768,14 @@ static const char * const presym_name_table[] = {
   "year",
   "zone",
   "@args",
-  "@hash",
   "@meth",
   "@name",
   "@path",
   "@proc",
   "@size",
   "Array",
-  "CMath",
   "CREAT",
+  "Chain",
   "Class",
   "DSYNC",
   "E2BIG",
@@ -1796,7 +1807,9 @@ static const char * const presym_name_table[] = {
   "TOTAL",
   "TRUNC",
   "T_ENV",
+  "__xor",
   "_bind",
+  "_keys",
   "_name",
   "_pipe",
   "_proc",
@@ -1804,7 +1817,6 @@ static const char * const presym_name_table[] = {
   "acosh",
   "angle",
   "arity",
-  "array",
   "ary_F",
   "ary_T",
   "asinh",
@@ -1815,6 +1827,8 @@ static const char * const presym_name_table[] = {
   "begin",
   "block",
   "bytes",
+  "catch",
+  "chain",
   "chars",
   "chdir",
   "chmod",
@@ -1830,10 +1844,10 @@ static const char * const presym_name_table[] = {
   "ctime",
   "curry",
   "cycle",
-  "depth",
   "enums",
   "errno",
   "even?",
+  "expm1",
   "fetch",
   "field",
   "file?",
@@ -1842,7 +1856,6 @@ static const char * const presym_name_table[] = {
   "flock",
   "floor",
   "flush",
-  "fname",
   "force",
   "found",
   "frexp",
@@ -1861,11 +1874,11 @@ static const char * const presym_name_table[] = {
   "ljust",
   "local",
   "log10",
+  "log1p",
   "merge",
   "mkdir",
   "month",
   "mtime",
-  "names",
   "next!",
   "none?",
   "other",
@@ -1881,6 +1894,7 @@ static const char * const presym_name_table[] = {
   "raise",
   "real?",
   "reset",
+  "rfind",
   "rjust",
   "rmdir",
   "round",
@@ -1898,20 +1912,21 @@ static const char * const presym_name_table[] = {
   "sync=",
   "taken",
   "tally",
+  "throw",
   "times",
-  "total",
   "tr_s!",
   "umask",
   "union",
   "uniq!",
   "unix?",
   "value",
-  "width",
   "write",
   "yield",
   "zero?",
   "$DEBUG",
   "$stdin",
+  "@enums",
+  "@value",
   "AF_MAX",
   "APPEND",
   "BINARY",
@@ -1985,6 +2000,8 @@ static const char * const presym_name_table[] = {
   "T_PROC",
   "WRONLY",
   "__id__",
+  "__init",
+  "__uniq",
   "_alone",
   "_atime",
   "_chdir",
@@ -2024,6 +2041,7 @@ static const char * const presym_name_table[] = {
   "freeze",
   "getutc",
   "gmtime",
+  "gmtoff",
   "grep_v",
   "ifnone",
   "inject",
@@ -2036,7 +2054,6 @@ static const char * const presym_name_table[] = {
   "length",
   "linger",
   "listen",
-  "longer",
   "lstrip",
   "max_by",
   "maxlen",
@@ -2049,7 +2066,6 @@ static const char * const presym_name_table[] = {
   "object",
   "offset",
   "others",
-  "padstr",
   "printf",
   "public",
   "pwrite",
@@ -2149,11 +2165,16 @@ static const char * const presym_name_table[] = {
   "T_FLOAT",
   "T_RANGE",
   "Yielder",
+  "__chars",
+  "__fetch",
   "__lines",
   "__merge",
+  "__union",
+  "__uniq!",
   "_accept",
   "_listen",
   "_socket",
+  "add_all",
   "afamily",
   "asctime",
   "backlog",
@@ -2186,6 +2207,7 @@ static const char * const presym_name_table[] = {
   "frozen?",
   "getbyte",
   "include",
+  "indices",
   "inspect",
   "ip_port",
   "keep_if",
@@ -2205,7 +2227,6 @@ static const char * const presym_name_table[] = {
   "nobits?",
   "numeric",
   "optname",
-  "padding",
   "pattern",
   "pfamily",
   "pointer",
@@ -2223,7 +2244,6 @@ static const char * const presym_name_table[] = {
   "sep_len",
   "service",
   "setbyte",
-  "shorter",
   "shuffle",
   "socket?",
   "sort_by",
@@ -2238,6 +2258,7 @@ static const char * const presym_name_table[] = {
   "to_enum",
   "to_hash",
   "to_proc",
+  "tv_nsec",
   "unpack1",
   "unshift",
   "upcase!",
@@ -2289,6 +2310,7 @@ static const char * const presym_name_table[] = {
   "T_STRING",
   "T_STRUCT",
   "__delete",
+  "__except",
   "__send__",
   "__svalue",
   "__to_int",
@@ -2311,7 +2333,6 @@ static const char * const presym_name_table[] = {
   "each_key",
   "enum_for",
   "extended",
-  "filename",
   "find_all",
   "flat_map",
   "flatten!",
@@ -2322,7 +2343,6 @@ static const char * const presym_name_table[] = {
   "included",
   "integer?",
   "kind_of?",
-  "modified",
   "new_args",
   "nodename",
   "nonzero?",
@@ -2453,7 +2473,6 @@ static const char * const presym_name_table[] = {
   "transpose",
   "ungetbyte",
   "unix_path",
-  "validated",
   "values_at",
   "@feedvalue",
   "@lookahead",
@@ -2493,16 +2512,18 @@ static const char * const presym_name_table[] = {
   "UNIXSocket",
   "__callee__",
   "__case_eqq",
-  "__get_hash",
   "__method__",
   "__num_to_a",
+  "__subtract",
   "_separator",
+  "bit_length",
   "byterindex",
   "bytesplice",
   "capitalize",
   "class_eval",
   "class_exec",
   "codepoints",
+  "delete_all",
   "difference",
   "directory?",
   "drop_while",
@@ -2518,6 +2539,7 @@ static const char * const presym_name_table[] = {
   "getpeereid",
   "getsockopt",
   "given_args",
+  "gmt_offset",
   "has_value?",
   "initialize",
   "intersect?",
@@ -2536,6 +2558,7 @@ static const char * const presym_name_table[] = {
   "subclasses",
   "superclass",
   "take_while",
+  "utc_offset",
   "wednesday?",
   "with_index",
   "yield_self",
@@ -2575,6 +2598,7 @@ static const char * const presym_name_table[] = {
   "TCP_KEEPCNT",
   "TCP_NODELAY",
   "T_EXCEPTION",
+  "__fill_exec",
   "__members__",
   "_is_socket=",
   "ascii_only?",
@@ -2584,6 +2608,8 @@ static const char * const presym_name_table[] = {
   "chunk_while",
   "close_write",
   "combination",
+  "const_added",
+  "deconstruct",
   "denominator",
   "each_object",
   "expand_path",
@@ -2598,6 +2624,7 @@ static const char * const presym_name_table[] = {
   "other_begin",
   "peek_values",
   "permutation",
+  "public_send",
   "rectangular",
   "respond_to?",
   "sockaddr_in",
@@ -2607,7 +2634,6 @@ static const char * const presym_name_table[] = {
   "to_sockaddr",
   "with_object",
   "AI_CANONNAME",
-  "DebuggerExit",
   "EAFNOSUPPORT",
   "ECONNABORTED",
   "ECONNREFUSED",
@@ -2643,7 +2669,9 @@ static const char * const presym_name_table[] = {
   "__ENCODING__",
   "__attached__",
   "__codepoints",
+  "__difference",
   "__errno_list",
+  "__pat_values",
   "_setnonblock",
   "_sockaddr_in",
   "alias_method",
@@ -2653,8 +2681,11 @@ static const char * const presym_name_table[] = {
   "default_proc",
   "exclude_end?",
   "fetch_values",
+  "include_all?",
+  "include_any?",
   "instance_of?",
   "intersection",
+  "keyword_init",
   "method_added",
   "mruby_Random",
   "remove_const",
@@ -2687,8 +2718,6 @@ static const char * const presym_name_table[] = {
   "define_method",
   "delete_prefix",
   "delete_suffix",
-  "extend_object",
-  "flatten_merge",
   "in_lower_half",
   "instance_eval",
   "instance_exec",
@@ -2710,6 +2739,8 @@ static const char * const presym_name_table[] = {
   "__do_with_enum",
   "__empty_range?",
   "__errno_define",
+  "__intersection",
+  "__product_next",
   "__upto_endless",
   "absolute_path?",
   "close_on_exec=",
@@ -2727,7 +2758,6 @@ static const char * const presym_name_table[] = {
   "public_methods",
   "remote_address",
   "transform_keys",
-  "DebuggerRestart",
   "ENOTRECOVERABLE",
   "EPROTONOSUPPORT",
   "ESOCKTNOSUPPORT",
@@ -2741,7 +2771,6 @@ static const char * const presym_name_table[] = {
   "SystemCallError",
   "accept_nonblock",
   "append_as_bytes",
-  "append_features",
   "attached_object",
   "class_variables",
   "each_with_index",
@@ -2751,7 +2780,6 @@ static const char * const presym_name_table[] = {
   "local_variables",
   "method_defined?",
   "module_function",
-  "pad_repetitions",
   "private_methods",
   "singleton_class",
   "source_location",
@@ -2764,21 +2792,24 @@ static const char * const presym_name_table[] = {
   "MRUBY_RELEASE_NO",
   "SystemStackError",
   "__errno_defined?",
+  "__fill_parse_arg",
   "_sockaddr_family",
   "connect_nonblock",
+  "deconstruct_keys",
   "each_with_object",
   "global_variables",
   "included_modules",
   "inspect_sockaddr",
   "instance_methods",
   "method_undefined",
+  "normalized_index",
   "pack_sockaddr_in",
   "pack_sockaddr_un",
-  "prepend_features",
   "proper_superset?",
   "singleton_class?",
   "singleton_method",
   "transform_values",
+  "@__keyword_init__",
   "IPV6_MULTICAST_IF",
   "IPV6_UNICAST_HOPS",
   "IP_ADD_MEMBERSHIP",
@@ -2787,7 +2818,7 @@ static const char * const presym_name_table[] = {
   "MCAST_LEAVE_GROUP",
   "MRUBY_DESCRIPTION",
   "ZeroDivisionError",
-  "_new_with_prelude",
+  "__normalize_index",
   "generational_mode",
   "protected_methods",
   "recvfrom_nonblock",
@@ -2796,6 +2827,10 @@ static const char * const presym_name_table[] = {
   "IP_DROP_MEMBERSHIP",
   "MCAST_BLOCK_SOURCE",
   "MRUBY_RELEASE_DATE",
+  "UncaughtThrowError",
+  "__combination_init",
+  "__combination_next",
+  "__product_generate",
   "class_variable_get",
   "class_variable_set",
   "generational_mode=",
@@ -2809,9 +2844,9 @@ static const char * const presym_name_table[] = {
   "NotImplementedError",
   "RUBY_ENGINE_VERSION",
   "TCP_CONNECTION_INFO",
+  "__method_recursive?",
   "respond_to_missing?",
   "MCAST_UNBLOCK_SOURCE",
-  "__inspect_recursive?",
   "repeated_combination",
   "repeated_permutation",
   "__coerce_step_counter",
@@ -2820,6 +2855,7 @@ static const char * const presym_name_table[] = {
   "instance_variable_set",
   "remove_class_variable",
   "@do_not_reverse_lookup",
+  "NoMatchingPatternError",
   "__repeated_combination",
   "do_not_reverse_lookup=",
   "singleton_method_added",

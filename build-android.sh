@@ -1,10 +1,10 @@
 #!/bin/bash
-# build-android.sh - Build mruby 3.4.0 for Android targets
+# build-android.sh - Build mruby 4.0.0 for Android targets
 #
 # Prerequisites:
 #   - Ruby with rake installed
 #   - Android NDK r29 installed
-#   - mruby 3.4.0 source extracted as a git submodule at mruby/
+#   - mruby 4.0.0 source extracted as a git submodule at mruby/
 #
 # Usage:
 #   ./build-android.sh /path/to/ndk

@@ -1,5 +1,5 @@
 /**
- * mrboto - JNI bridge for embedding mruby 3.4.0 in Android
+ * mrboto - JNI bridge for embedding mruby 4.0.0 in Android
  *
  * Provides native methods for:
  *   - Opening/closing an mruby VM state
@@ -370,7 +370,7 @@ Java_moe_bemly_mrboto_MRuby_nativeEvalBytecode(JNIEnv *env, jobject thiz,
 
 /**
  * Get the mruby version string.
- * @return Version string like "3.4.0".
+ * @return Version string like "4.0.0".
  */
 JNIEXPORT jstring JNICALL
 Java_moe_bemly_mrboto_MRuby_nativeVersion(JNIEnv *env, jobject thiz, jlong mrbPtr)

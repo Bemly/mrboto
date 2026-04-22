@@ -1,6 +1,6 @@
 # mrboto
 
-Embed [mruby 3.4.0](https://mruby.org/) into Android applications as a reusable library, with a glue framework enabling 100% Ruby Android app development.
+Embed [mruby 4.0.0](https://mruby.org/) into Android applications as a reusable library, with a glue framework enabling 100% Ruby Android app development.
 
 [中文版](README.zh.md)
 
@@ -24,7 +24,7 @@ See [Architecture](https://github.com/Bemly/mrboto/wiki/Architecture) for detail
 ## Maven Coordinates
 
 ```
-moe.bemly.mrboto:mrboto:26.4.13
+moe.bemly.mrboto:mrboto:26.4.23
 ```
 
 ## Quick Start
@@ -34,7 +34,7 @@ moe.bemly.mrboto:mrboto:26.4.13
 ```kotlin
 // build.gradle.kts
 dependencies {
-    implementation("moe.bemly.mrboto:mrboto:26.4.13")
+    implementation("moe.bemly.mrboto:mrboto:26.4.23")
 }
 ```
 
@@ -112,7 +112,7 @@ Mrboto._ruby_activity_class = MainActivity
 
 | Component | Version |
 |---|---|
-| mruby | 3.4.0 |
+| mruby | 4.0.0 |
 | Android NDK | r29 |
 | minSdk | API 33 |
 | targetSdk | API 36 |
@@ -176,7 +176,7 @@ cd mruby && rake deep_clean && cd ..
 ├── showcase/                        # Showcase app (44 widgets demo)
 ├── build_config.rb                  # mruby build config
 ├── build-android.sh                 # One-shot build script
-└── mruby/                           # git submodule (tag 3.4.0)
+└── mruby/                           # git submodule (tag 4.0.0)
 ```
 
 ## How It Works

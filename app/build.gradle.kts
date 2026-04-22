@@ -83,11 +83,11 @@ publishing {
         register<MavenPublication>("release") {
             groupId = "moe.bemly.mrboto"
             artifactId = "mrboto"
-            version = "26.4.17"
+            version = "26.4.23"
 
             pom {
                 name.set("mrboto")
-                description.set("Embed mruby 3.4.0 in Android applications")
+                description.set("Embed mruby 4.0.0 in Android applications")
                 licenses {
                     license {
                         name.set("MIT")

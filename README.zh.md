@@ -1,6 +1,6 @@
 # mrboto
 
-将 [mruby 3.4.0](https://mruby.org/) 嵌入 Android 应用的轻量级框架，支持 100% Ruby 开发。
+将 [mruby 4.0.0](https://mruby.org/) 嵌入 Android 应用的轻量级框架，支持 100% Ruby 开发。
 
 [English Version](README.md)
 
@@ -25,7 +25,7 @@
 ## Maven 坐标
 
 ```
-moe.bemly.mrboto:mrboto:26.4.11
+moe.bemly.mrboto:mrboto:26.4.23
 ```
 
 ## 快速开始
@@ -35,7 +35,7 @@ moe.bemly.mrboto:mrboto:26.4.11
 ```kotlin
 // build.gradle.kts
 dependencies {
-    implementation("moe.bemly.mrboto:mrboto:26.4.11")
+    implementation("moe.bemly.mrboto:mrboto:26.4.23")
 }
 ```
 
@@ -118,7 +118,7 @@ Mrboto._ruby_activity_class = MainActivity
 
 | 组件 | 版本 |
 |---|---|
-| mruby | 3.4.0 |
+| mruby | 4.0.0 |
 | Android NDK | r29 (29.0.14206865) |
 | minSdk | API 33 (Android 13) |
 | targetSdk | API 36 |
@@ -183,7 +183,7 @@ cd mruby && rake deep_clean && cd ..
 ├── demo/                            # Demo 应用
 ├── build_config.rb                  # mruby 构建配置
 ├── build-android.sh                 # 一键构建脚本
-└── mruby/                           # git 子模块 (tag 3.4.0)
+└── mruby/                           # git 子模块 (tag 4.0.0)
 ```
 
 ## 工作原理

@@ -1,4 +1,4 @@
-# mrboto - mruby 3.4.0 build configuration for Android
+# mrboto - mruby 4.0.0 build configuration for Android
 #
 # This file configures mruby cross-compilation for Android NDK.
 #
@@ -38,6 +38,7 @@ MRuby::CrossBuild.new('android-arm64-v8a') do |conf|
   conf.gem :core => "mruby-binding"
   conf.gem :core => "mruby-catch"
   conf.gem :core => "mruby-enum-chain"
+  conf.gem :core => "mruby-strftime"
 end
 
 # ── Android x86_64 cross-build ──
@@ -55,4 +56,5 @@ MRuby::CrossBuild.new('android-x86_64') do |conf|
   conf.gem :core => "mruby-binding"
   conf.gem :core => "mruby-catch"
   conf.gem :core => "mruby-enum-chain"
+  conf.gem :core => "mruby-strftime"
 end

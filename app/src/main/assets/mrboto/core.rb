@@ -146,7 +146,7 @@ module Mrboto
 end
 
 # Regexp support: =~ returns MatchData, $~ is set (mruby supports $~ assignment)
-# but $1-$9 are NOT assignable in mruby 3.4.0
+# but $1-$9 are NOT assignable in mruby 4.0.0
 class Regexp
   def _set_match_globals(m)
     $~ = m

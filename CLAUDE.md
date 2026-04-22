@@ -4,7 +4,7 @@ This file provides guidance to Claude Code when working with this project.
 
 ## Project Overview
 
-mrboto embeds mruby 3.4.0 into Android applications as a reusable library, with a "glue" framework (mrboto-glue) enabling 100% Ruby Android app development via a three-layer architecture.
+mrboto embeds mruby 4.0.0 into Android applications as a reusable library, with a "glue" framework (mrboto-glue) enabling 100% Ruby Android app development via a three-layer architecture.
 
 Architecture:
 - `:mrboto` — Android Library module (`com.android.library`), published as AAR
@@ -28,7 +28,7 @@ Architecture:
   - `widgets.rb` — Widget builders (45 widgets including ViewPager2) + View instance methods + WebView API
   - `helpers.rb` — toast, start_activity, get_extra, shared_preferences, run_on_ui_thread, dialog, snackbar, popup_menu, animations
 - `demo/` — Demo app showing Ruby-driven Activities
-- `mruby/` — git submodule at tag 3.4.0
+- `mruby/` — git submodule at tag 4.0.0
 - `app/src/androidTest/kotlin/moe/bemly/mrboto/` — instrumented test suite (170+ tests)
 
 ## Common Tasks
@@ -58,7 +58,7 @@ cd mruby && rake deep_clean && cd ..
 
 | 组件 | 版本 |
 |------|------|
-| mruby | 3.4.0 |
+| mruby | 4.0.0 |
 | Android NDK | r29 (29.0.14206865) |
 | minSdk | API 33 (Android 13) |
 | targetSdk | API 36 |
@@ -195,6 +195,10 @@ All take registry IDs, look up GlobalRefs via `mrboto_lookup_ref()`, use Android
 - Maven coordinates: `moe.bemly.mrboto:mrboto:26.4.17`
 - `maven-publish` plugin configured in `app/build.gradle.kts`
 - AGP 9 auto-associates release variant (no explicit component needed)
+
+## Version
+
+Maven coordinates: `moe.bemly.mrboto:mrboto:26.4.23`
 
 ## Test Coverage
 
