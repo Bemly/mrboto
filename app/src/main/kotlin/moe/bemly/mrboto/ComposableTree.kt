@@ -663,15 +663,15 @@ fun RenderComposableNode(
                         RenderGlassCell(cell, backdrop, barShapeType, barCornerRadius,
                             barVibrancy, blurPx, barLensHeight, barLensAmount,
                             barSurfaceColor, barSurfaceAlpha, mruby, activity, animationScope,
-                            Modifier.weight(1f))
+                            Modifier.weight(1f).fillMaxHeight())
                     }
 
-                    // Right cell — fixed 1:1 aspect ratio, separated
+                    // Right cell — smaller fixed size
                     if (rightCellNode != null) {
                         RenderGlassCell(rightCellNode, backdrop, barShapeType, barCornerRadius,
                             barVibrancy, blurPx, barLensHeight, barLensAmount,
                             barSurfaceColor, barSurfaceAlpha, mruby, activity, animationScope,
-                            Modifier.aspectRatio(1f))
+                            Modifier.fillMaxHeight())
                     }
                     }
                 }
@@ -1390,12 +1390,7 @@ fun RenderGlassCell(
 
     CompositionLocalProvider(LocalInGlassCell provides true) {
         Box(
-            modifier = modifier.then(
-                when (layoutStr) {
-                    "aspect_ratio" -> Modifier.aspectRatio(1f)
-                    else -> Modifier.fillMaxHeight().weight(1f)
-                }
-            ),
+            modifier = modifier,
         ) {
             cell.children.forEach { child ->
                 RenderComposableNode(child, mruby, activity)
