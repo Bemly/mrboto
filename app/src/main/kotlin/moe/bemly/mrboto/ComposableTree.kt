@@ -642,16 +642,18 @@ fun RenderComposableNode(
                     }
                 }
 
-                // Bottom bar Row
-                Row(
-                    modifier = Modifier
-                        .safeContentPadding()
-                        .height(64.dp)
-                        .fillMaxWidth()
-                        .align(Alignment.BottomCenter),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                // Bottom bar Row — positioned 5% above screen bottom
+                BoxWithConstraints(modifier = Modifier.fillMaxSize().align(Alignment.BottomCenter)) {
+                    val bottomOffsetDp = maxHeight * 0.05f
+                    Row(
+                        modifier = Modifier
+                            .safeContentPadding()
+                            .height(64.dp)
+                            .fillMaxWidth()
+                            .offset(y = -bottomOffsetDp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                     val animationScope = rememberCoroutineScope()
 
                     // Left cells — evenly distributed
@@ -690,6 +692,7 @@ fun RenderComposableNode(
                         )
                     }
                 }
+                } // BoxWithConstraints
             }
         }
 
