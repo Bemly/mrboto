@@ -45,7 +45,6 @@ import com.kyant.backdrop.effects.blur
 import com.kyant.backdrop.effects.vibrancy
 import com.kyant.backdrop.effects.lens
 import com.kyant.shapes.Capsule
-import com.kyant.shapes.ContinuousCapsule
 import com.kyant.backdrop.shadow.Shadow
 import androidx.compose.ui.viewinterop.AndroidView
 import org.json.JSONArray
@@ -1279,7 +1278,7 @@ private fun RenderGlassCellDirect(
     val shape: () -> androidx.compose.ui.graphics.Shape = {
         when (cellShapeType) {
             "circle" -> CircleShape
-            "continuous_capsule" -> ContinuousCapsule()
+            "continuous_capsule" -> Capsule()
             else -> RoundedCornerShape((cell.props["corner_radius"] as? Number)?.toFloat()?.dp ?: 16f.dp)
         }
     }
