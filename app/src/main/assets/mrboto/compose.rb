@@ -94,7 +94,7 @@ module Mrboto
         kids = wrapper["children"]
         @_compose_parent_stack = saved_stack
         @_compose_root = saved_root
-        kids.size == 1 ? kids[0] : nil
+        kids.size == 1 ? kids[0] : kids
       end
     end
   end
