@@ -660,24 +660,18 @@ fun RenderComposableNode(
 
                     // Left cells — evenly distributed with weight(1f) each
                     cellNodes.forEach { cell ->
-                        Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                            RenderGlassCell(cell, backdrop, barShapeType, barCornerRadius,
-                                barVibrancy, blurPx, barLensHeight, barLensAmount,
-                                barSurfaceColor, barSurfaceAlpha, mruby, activity, animationScope)
-                        }
+                        RenderGlassCell(cell, backdrop, barShapeType, barCornerRadius,
+                            barVibrancy, blurPx, barLensHeight, barLensAmount,
+                            barSurfaceColor, barSurfaceAlpha, mruby, activity, animationScope,
+                            Modifier.weight(1f))
                     }
 
                     // Right cell — fixed 1:1 aspect ratio, separated
                     if (rightCellNode != null) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxHeight()
-                                .aspectRatio(1f)
-                        ) {
-                            RenderGlassCell(rightCellNode, backdrop, barShapeType, barCornerRadius,
-                                barVibrancy, blurPx, barLensHeight, barLensAmount,
-                                barSurfaceColor, barSurfaceAlpha, mruby, activity, animationScope)
-                        }
+                        RenderGlassCell(rightCellNode, backdrop, barShapeType, barCornerRadius,
+                            barVibrancy, blurPx, barLensHeight, barLensAmount,
+                            barSurfaceColor, barSurfaceAlpha, mruby, activity, animationScope,
+                            Modifier.aspectRatio(1f))
                     }
                     }
                 }
@@ -1291,7 +1285,7 @@ fun RenderLiquidGlassCompose(
  * the node, falling back to bar-level defaults when not specified.
  */
 @Composable
-private fun RowScope.RenderGlassCell(
+fun RenderGlassCell(
     cell: ComposableNode,
     backdrop: LayerBackdrop,
     barShapeType: String,
@@ -1305,6 +1299,7 @@ private fun RowScope.RenderGlassCell(
     mruby: MRuby,
     activity: MrbotoActivityBase,
     animationScope: kotlinx.coroutines.CoroutineScope,
+    modifier: Modifier = Modifier,
 ) {
     // Per-cell props with fallback to bar defaults
     val shapeType = cell.props["glass_shape"]?.toString()?.lowercase() ?: barShapeType.lowercase()
@@ -1395,10 +1390,12 @@ private fun RowScope.RenderGlassCell(
 
     CompositionLocalProvider(LocalInGlassCell provides true) {
         Box(
-            modifier = when (layoutStr) {
-                "aspect_ratio" -> cellModifier.aspectRatio(1f)
-                else -> cellModifier.fillMaxHeight().weight(1f)
-            },
+            modifier = modifier.then(
+                when (layoutStr) {
+                    "aspect_ratio" -> Modifier.aspectRatio(1f)
+                    else -> Modifier.fillMaxHeight().weight(1f)
+                }
+            ),
         ) {
             cell.children.forEach { child ->
                 RenderComposableNode(child, mruby, activity)
