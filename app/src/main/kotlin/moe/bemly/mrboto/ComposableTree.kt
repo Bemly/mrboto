@@ -647,11 +647,11 @@ fun RenderComposableNode(
                 // Bottom bar Row — positioned 5% above screen bottom
                 Column(modifier = Modifier.fillMaxSize()) {
                     Spacer(modifier = Modifier.weight(1f))
-                    val spacerHeight = with(LocalDensity.current) { (LocalConfiguration.current.screenHeightDp * 0.05f).toDp() }
+                    val spacerHeight = with(LocalDensity.current) { (LocalConfiguration.current.screenHeightDp * 0.15f).toDp() }
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(64.dp)
+                            .height(100.dp)
                             .padding(bottom = spacerHeight),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
