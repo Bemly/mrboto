@@ -643,7 +643,7 @@ fun RenderComposableNode(
                     }
                 }
 
-                // Floating bar — 10% margin left/right, 10% from bottom (Apple Liquid Glass spec)
+                // Floating bar — positioned above bottom
                 BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                     val bottomOffset = maxHeight * 0.05f
                     Row(
@@ -651,25 +651,33 @@ fun RenderComposableNode(
                             .align(Alignment.BottomCenter)
                             .padding(bottom = bottomOffset)
                             .fillMaxWidth(0.8f)
-                            .height(64.dp),
+                            .height(64.dp)
+                            .safeContentPadding(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                     val animationScope = rememberCoroutineScope()
 
-                    // Left cells — evenly distributed
-                    val leftCells = if (cellNodes.isNotEmpty()) cellNodes else node.children.drop(1)
-                    leftCells.forEach { cell ->
-                        RenderGlassCell(cell, backdrop, barShapeType, barCornerRadius,
-                            barVibrancy, blurPx, barLensHeight, barLensAmount,
-                            barSurfaceColor, barSurfaceAlpha, mruby, activity, animationScope)
+                    // Left cells — evenly distributed with weight(1f) each
+                    cellNodes.forEach { cell ->
+                        Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                            RenderGlassCell(cell, backdrop, barShapeType, barCornerRadius,
+                                barVibrancy, blurPx, barLensHeight, barLensAmount,
+                                barSurfaceColor, barSurfaceAlpha, mruby, activity, animationScope)
+                        }
                     }
 
-                    // Spacer pushes right cell to the end
+                    // Right cell — fixed 1:1 aspect ratio, separated
                     if (rightCellNode != null) {
-                        Spacer(modifier = Modifier.weight(1f))
-                        RenderGlassCell(rightCellNode, backdrop, barShapeType, barCornerRadius,
-                            barVibrancy, blurPx, barLensHeight, barLensAmount,
-                            barSurfaceColor, barSurfaceAlpha, mruby, activity, animationScope)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .aspectRatio(1f)
+                        ) {
+                            RenderGlassCell(rightCellNode, backdrop, barShapeType, barCornerRadius,
+                                barVibrancy, blurPx, barLensHeight, barLensAmount,
+                                barSurfaceColor, barSurfaceAlpha, mruby, activity, animationScope)
+                        }
                     }
                     }
                 }
