@@ -37,6 +37,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalConfiguration
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.LayerBackdrop
@@ -643,13 +645,15 @@ fun RenderComposableNode(
                 }
 
                 // Bottom bar Row — positioned 5% above screen bottom
-                Column(modifier = Modifier.fillMaxSize().align(Alignment.BottomCenter)) {
-                    Spacer(modifier = Modifier.weight(0.95f))
+                val bottomOffset = with(LocalDensity.current) { (LocalConfiguration.current.screenHeightDp * 0.05f).toDp() }
+                Box(modifier = Modifier.fillMaxSize().align(Alignment.BottomCenter)) {
                     Row(
                         modifier = Modifier
                             .safeContentPadding()
                             .height(64.dp)
-                            .fillMaxWidth(),
+                            .fillMaxWidth()
+                            .align(Alignment.BottomCenter)
+                            .offset(y = -bottomOffset),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -691,7 +695,7 @@ fun RenderComposableNode(
                         )
                     }
                 }
-                } // Column
+                } // Box
             }
         }
 
