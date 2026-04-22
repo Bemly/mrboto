@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.util.trace
 import kotlinx.coroutines.launch
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.Alignment
@@ -116,6 +117,7 @@ fun RenderComposableTree(
     mruby: MRuby,
     activity: MrbotoActivityBase,
 ) {
+    android.util.Log.d(TAG, "RenderComposableTree: root=${node.type}, children=${node.children.size}")
     // Pre-collect backdrop IDs so we can remember them at the root level
     val backdropIds = mutableSetOf<Int>()
     collectBackdropIds(node, backdropIds)
@@ -141,6 +143,7 @@ fun RenderComposableNode(
 
     when (node.type) {
         "column" -> {
+            android.util.Log.d(TAG, "Render: column, children=${node.children.size}")
             val vertArr = parseVerticalArrangement(node.props["vertical_arrangement"])
             val horzAlign = parseHorizontalAlignment(node.props["horizontal_alignment"])
             Column(
@@ -217,6 +220,7 @@ fun RenderComposableNode(
         }
 
         "text" -> {
+            android.util.Log.d(TAG, "Render: text='${node.content}'")
             Text(
                 text = node.content ?: "",
                 modifier = mod,
@@ -922,6 +926,7 @@ fun RenderComposableNode(
         }
 
         else -> {
+            android.util.Log.w(TAG, "Render: unknown type=${node.type}")
             Box(modifier = mod) { Text(text = "[unknown: ${node.type}]") }
         }
     }

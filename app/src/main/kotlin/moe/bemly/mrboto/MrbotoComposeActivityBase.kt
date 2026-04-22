@@ -48,7 +48,9 @@ abstract class MrbotoComposeActivityBase : MrbotoActivityBase() {
 
         // Only set up Compose content if no error occurred in super.onCreate
         if (!hasError) {
+            android.util.Log.i(TAG, "Setting Compose content, treeState=${composeTreeState != null}")
             setContent {
+                android.util.Log.d(TAG, "Compose lambda: tree=${composeTreeState?.type}")
                 MaterialTheme {
                     Surface {
                         val tree = composeTreeState

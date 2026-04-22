@@ -1,5 +1,6 @@
 plugins {
     id("com.android.application")
+    id("org.jetbrains.kotlin.plugin.compose")
 }
 
 android {
@@ -40,6 +41,7 @@ android {
 
     buildFeatures {
         viewBinding = true
+        compose = true
     }
 }
 
@@ -49,4 +51,14 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.7.1")
     implementation("com.google.android.material:material:1.13.0")
     implementation("androidx.constraintlayout:constraintlayout:2.2.1")
+
+    // Compose (required for MrbotoComposeActivityBase)
+    implementation(platform("androidx.compose:compose-bom:2025.04.01"))
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.foundation:foundation")
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.activity:activity-compose:1.13.0")
+    // AndroidLiquidGlass
+    implementation("io.github.kyant0:backdrop:1.0.6")
+    implementation("io.github.kyant0:shapes-android:1.2.0")
 }
